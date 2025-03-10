@@ -1,0 +1,58 @@
+{
+  "menu": {
+    "file": "File",
+    "edit": "Edit",
+    "view": "View",
+    "window": "Window",
+    "help": "Help"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "analytics": "Analytics",
+    "orders": "Orders",
+    "customers": "Customers",
+    "sales": "sales",
+    "settings": "Settings"
+  },
+  "header": {
+    "search": "Search...",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Logout",
+    "welcome": "Welcome",
+    "new_notifications": "New Notifications",
+    "view_all": "View All"
+  },
+  "products": {
+    "title": "Popular Products",
+    "today": "Today",
+    "week": "This Week",
+    "month": "This Month",
+    "sales": "Sales"
+  },
+  "sales": {
+    "total": "Total sales in the period",
+    "ratio": "Ratio"
+  },
+  "dashboard": {
+    "today_revenue": "Today revenue",
+    "unique_visitors": "Unique visitors",
+    "total_orders": "Total orders",
+    "total_customers": "Total customers"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search"
+  }
+} 

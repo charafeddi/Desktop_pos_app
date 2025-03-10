@@ -1,0 +1,58 @@
+{
+  "menu": {
+    "file": "Fichier",
+    "edit": "Édition",
+    "view": "Affichage",
+    "window": "Fenêtre",
+    "help": "Aide"
+  },
+  "sidebar": {
+    "dashboard": "Tableau de bord",
+    "products": "Produits",
+    "analytics": "analytique",
+    "orders": "Commandes",
+    "customers": "Clients",
+    "sales": "ventes",
+    "settings": "Paramètres"
+  },
+  "header": {
+    "search": "Rechercher...",
+    "notifications": "Notifications",
+    "profile": "Profil",
+    "settings": "Paramètres",
+    "logout": "Déconnexion",
+    "welcome": "Bienvenue",
+    "reports": "Rapports",
+    "new_notifications": "Nouvelles notifications",
+    "view_all": "Voir tout"
+  },
+  "dashboard": {
+    "today_revenue": "Revenu du jour",
+    "unique_visitors": "Visiteurs uniques",
+    "total_orders": "Total des commandes",
+    "total_customers": "Total des clients"
+  },
+  "sales": {
+    "total": "Total des ventes dans la période"
+  },
+  "products": {
+    "title": "Produits populaires",
+    "today": "Aujourd'hui",
+    "week": "Cette semaine",
+    "month": "Ce mois",
+    "sales": "Ventes"
+  },
+  "auth": {
+    "login": "Connexion",
+    "logout": "Déconnexion",
+    "register": "S'inscrire"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "search": "Rechercher"
+  }
+} 
