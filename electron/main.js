@@ -1,16 +1,122 @@
-const { app, BrowserWindow, Menu, MenuItem } = require('electron')
+const { app, BrowserWindow, Menu, MenuItem, ipcMain } = require('electron')
 const path = require('path')
+const express = require('express')
+
+// Handle SSL certificate errors in development
+app.on('ready', () => {
+  if (process.env.NODE_ENV === 'development') {
+    app.commandLine.appendSwitch('ignore-certificate-errors')
+    app.commandLine.appendSwitch('allow-insecure-localhost')
+  }
+})
 
 // Import auth handlers
 const setupAuthHandlers = require('../backend/ipc/auth.handlers')
+// Import category handlers
+const setupCategoryHandlers = require('../backend/ipc/category.handlers')
+// Import client handlers
+const setupClientHandlers = require('../backend/ipc/client.handlers')
+// Import invoice handlers
+const setupInvoiceHandlers = require('../backend/ipc/invoice.handlers')
+// Import product handlers
+const setupProductHandlers = require('../backend/ipc/product.handlers')
+// Import product type handlers
+const setupProductTypeHandlers = require('../backend/ipc/productType.handlers')
+// Import product unit handlers
+const setupProductUnitHandlers = require('../backend/ipc/productUnit.handlers')
+// Import return handlers
+const setupReturnHandlers = require('../backend/ipc/return.handlers')
+// Import sale handlers
+const setupSaleHandlers = require('../backend/ipc/sale.handlers')
+// Import sale item handlers
+const setupSaleItemHandlers = require('../backend/ipc/saleItem.handlers')
+// Import supplier handlers
+const setupSupplierHandlers = require('../backend/ipc/supplier.handlers')
+// Import todo handlers
+const setupTodoHandlers = require('../backend/ipc/todo.handlers')
+
+let mainWindow = null
+let popupWindow = null
+
+function createPopupWindow() {
+  try {
+    popupWindow = new BrowserWindow({
+      width: 800,
+      height: 500,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.join(__dirname, 'dist/preload.js'),
+        webSecurity: process.env.NODE_ENV === 'production' // Disable web security in development
+      },
+      parent: mainWindow,
+      modal: true,
+      show: false,
+      backgroundColor: '#1a1a1a',
+      titleBarStyle: 'hidden',
+      frame: false,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      fullscreenable: false,
+      allowRunningInsecureContent: process.env.NODE_ENV === 'development'
+    })
+
+    // Load the popup content using the Vue router path
+    popupWindow.loadURL('http://localhost:5173/#/product-form-popup');
+
+    // Wait for the page to load before showing
+    popupWindow.webContents.on('did-finish-load', () => {
+      console.log('Popup window loaded successfully');
+      // Add a small delay to ensure the Vue app is ready
+      setTimeout(() => {
+        popupWindow.show();
+      }, 100);
+    });
+
+    popupWindow.on('closed', () => {
+      console.log('Popup window closed');
+      popupWindow = null;
+    });
+
+    popupWindow.on('error', (error) => {
+      console.error('Popup window error:', error);
+      if (popupWindow) {
+        popupWindow.close();
+      }
+    });
+
+    // Debug preload script loading
+    popupWindow.webContents.on('preload-error', (event, preloadPath, error) => {
+      console.error('Preload script error:', error);
+    });
+
+    // Debug navigation errors
+    popupWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+      console.error('Failed to load:', errorCode, errorDescription);
+    });
+
+    // Open DevTools in development
+    if (process.env.NODE_ENV === 'development') {
+      popupWindow.webContents.openDevTools();
+    }
+  } catch (error) {
+    console.error('Error creating popup window:', error);
+    if (popupWindow) {
+      popupWindow.close();
+    }
+  }
+}
 
 function createWindow() {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
+      webSecurity: process.env.NODE_ENV === 'production', // Disable web security in development
+      allowRunningInsecureContent: process.env.NODE_ENV === 'development'
     },
   })
 
@@ -165,9 +271,75 @@ function createWindow() {
 
   // Setup IPC handlers
   setupAuthHandlers()
+  setupCategoryHandlers()
+  setupClientHandlers()
+  setupInvoiceHandlers()
+  setupProductHandlers()
+  setupProductTypeHandlers()
+  setupProductUnitHandlers()
+  setupReturnHandlers()
+  setupSaleHandlers()
+  setupSaleItemHandlers()
+  setupSupplierHandlers()
+  setupTodoHandlers()
+
+  // Setup popup window IPC handlers
+  ipcMain.on('open-product-form', (event, data) => {
+    try {
+      if (!popupWindow) {
+        createPopupWindow()
+      }
+    } catch (error) {
+      console.error('Error handling open-product-form:', error)
+      event.reply('product-form-error', error.message)
+    }
+  })
+
+  ipcMain.on('close-popup', () => {
+    try {
+      if (popupWindow) {
+        popupWindow.close()
+      }
+    } catch (error) {
+      console.error('Error closing popup:', error)
+    }
+  })
+
+  ipcMain.on('submit-product-form', (event, data) => {
+    try {
+      mainWindow.webContents.send('product-form-submitted', data)
+      if (popupWindow) {
+        popupWindow.close()
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error)
+      event.reply('product-form-error', error.message)
+    }
+  })
 
   return mainWindow
 }
+
+const appServer = express()
+const port = 3010 // Choose a port for your server
+
+// Middleware to parse JSON requests
+appServer.use(express.json())
+
+// Define a route to get todos
+appServer.get('/todos', async (req, res) => {
+  try {
+    const todos = await ipcRenderer.invoke('get-todos') // Use IPC to get todos
+    res.json(todos) // Send todos as JSON response
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching todos' })
+  }
+})
+
+// Start the server
+appServer.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`)
+})
 
 app.whenReady().then(() => {
   createWindow()
@@ -181,4 +353,4 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
-}) 
+})

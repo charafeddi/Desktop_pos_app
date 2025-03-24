@@ -22,10 +22,27 @@ export default defineConfig({
     ]),
     renderer(),
   ],
+  css: {
+    postcss: {
+      plugins: [
+        require('tailwindcss'),
+        require('autoprefixer'),
+      ],
+    },
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
     },
   },
   base: process.env.ELECTRON ? './' : '/',
+  build: {
+    assetsInlineLimit: 0, // This ensures all assets are processed as files
+    rollupOptions: {
+      output: {
+        assetFileNames: 'assets/[name].[ext]'
+      }
+    }
+  },
+  publicDir: 'public'
 })

@@ -3,7 +3,7 @@
     <div class="register-container">
       <div class="circle circle-one"></div>
       <div class="form-container">
-        <img src="https://raw.githubusercontent.com/hicodersofficial/glassmorphism-login-form/master/assets/illustration.png" alt="illustration" class="illustration" />
+        <img :src="illustration" alt="Login Illustration" class="illustration" />
         <h1 class="opacity">REGISTER</h1>
         <form @submit.prevent="handleRegister" class="register-form">
           <div class="form-group">
@@ -82,6 +82,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
+import illustration from '../../assets/img/Sign up-cuate.png'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -323,9 +324,9 @@ function goToLogin() {
 .illustration {
   position: absolute;
   top: -14%;
-  right: -2px;
-  width: 90%;
-  max-width: 300px;
+  right: -30%;
+  width: 100%;
+  max-width: 400px;
   z-index: -1;
 }
 
@@ -334,7 +335,6 @@ function goToLogin() {
 }
 
 .register-forget a {
-  color: var(--color);
   text-decoration: none;
   font-size: 14px;
 }

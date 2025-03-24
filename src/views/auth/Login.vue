@@ -1,9 +1,9 @@
 <template>
-  <section class="container">
+  <section class=" w-full container">
     <div class="login-container">
       <div class="circle circle-one"></div>
       <div class="form-container">
-        <img src="https://raw.githubusercontent.com/hicodersofficial/glassmorphism-login-form/master/assets/illustration.png" alt="illustration" class="illustration" />
+        <img :src="illustration" alt="Login Illustration" class="illustration" />
         <h1 class="opacity">LOGIN</h1>
         <form @submit.prevent="handleLogin">
           <input 
@@ -20,7 +20,7 @@
           />
           <button class="opacity" type="submit">
             <span v-if="isLoading">Loading...</span>
-            <span v-else>SUBMIT</span>
+            <span v-else>Sign In</span>
           </button>
         </form>
         <div class="register-forget opacity">
@@ -37,6 +37,7 @@
   import { ref, onMounted } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAuthStore } from '@/stores/auth.store'
+  import illustration from '../../assets/img/Mobile login-cuate.png'
   
   const router = useRouter()
   const authStore = useAuthStore()
@@ -207,9 +208,9 @@
 
 .illustration {
   position: absolute;
-  top: -14%;
-  right: -2px;
-  width: 90%;
+  top: -30%;
+  right: -60%;
+  width: 100%;
 }
 
 .circle-one {
@@ -269,4 +270,6 @@
     transform: scale(1);
   }
 }
+
+
 </style> 

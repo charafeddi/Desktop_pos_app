@@ -1,49 +1,56 @@
 <template>
 <div class="page-content">
-  <div class="page-info">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="#" class="breadcrumb-link">Apps</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+  <div class="page-info flex justify-between items-center p-4 bg-transparent">
+    <nav aria-label="breadcrumb" class="breadcrumb-nav">
+        <ol class="breadcrumb flex items-center list-none m-0 p-0 gap-2">
+            <li class="breadcrumb-item flex items-center text-gray-400">
+                <a href="#" class="breadcrumb-link text-blue-600 hover:text-blue-700">Apps</a>
+            </li>
+            <li class="breadcrumb-item active text-gray-400" aria-current="page">{{ t('sidebar.dashboard') }}</li>
         </ol>
     </nav>
+    <div class="page-options flex items-center">
+          <router-link to="/pos" class="btn btn-primary bg-black text-white rounded-lg px-4 py-2 hover:bg-gray-800">
+              {{ t('dashboard.addSale') }}
+          </router-link>
+    </div>
   </div>
   <div class="main-content">
-    <div class="row stats-row">
-      <div class="w-full lg:w-1/3 md:w-full">
-          <div class="card card-transparent stats-card">
-              <div class="card-body">
-                  <div class="stats-info">
-                      <h5 class="card-title">$3,089.67<span class="stats-change stats-change-danger">-8%</span></h5>
-                      <p class="stats-text">{{ t('dashboard.today_revenue') }}</p>
+    <div class="row stats-row grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="w-full">
+          <div class="card card-transparent stats-card bg-gray-800 rounded-lg">
+              <div class="card-body flex items-center justify-between p-6">
+                  <div class="stats-info flex-1">
+                      <h5 class="card-title text-2xl font-semibold mb-2">$3,089.67<span class="stats-change stats-change-danger text-red-500">-8%</span></h5>
+                      <p class="stats-text text-gray-400">{{ t('dashboard.today_revenue') }}</p>
                   </div>
-                  <div class="stats-icon change-danger">
+                  <div class="stats-icon change-danger flex items-center justify-center w-12 h-12 rounded-full bg-red-400">
                       <span class="material-icons">trending_down</span>
                   </div>
               </div>
           </div>
       </div>
-      <div class="w-full lg:w-1/3 md:w-full">
-          <div class="card card-transparent stats-card">
-              <div class="card-body">
-                  <div class="stats-info">
-                      <h5 class="card-title">168,047<span class="stats-change stats-change-success">+16%</span></h5>
-                      <p class="stats-text">{{ t('dashboard.unique_visitors') }}</p>
+      <div class="w-full">
+          <div class="card card-transparent stats-card bg-gray-800 rounded-lg">
+              <div class="card-body flex items-center justify-between p-6">
+                  <div class="stats-info flex-1">
+                      <h5 class="card-title text-2xl font-semibold mb-2">168,047<span class="stats-change stats-change-success text-green-500">+16%</span></h5>
+                      <p class="stats-text text-gray-400">{{ t('dashboard.unique_visitors') }}</p>
                   </div>
-                  <div class="stats-icon change-success">
+                  <div class="stats-icon change-success flex items-center justify-center w-12 h-12 rounded-full bg-green-400">
                       <span class="material-icons">trending_up</span>
                   </div>
               </div>
           </div>
       </div>
-      <div class="w-full lg:w-1/3 md:w-full">
-          <div class="card card-transparent stats-card">
-              <div class="card-body">
-                  <div class="stats-info">
-                      <h5 class="card-title">47,350<span class="stats-change stats-change-success">+12%</span></h5>
-                      <p class="stats-text">{{ t('dashboard.total_orders') }}</p>
+      <div class="w-full">
+          <div class="card card-transparent stats-card bg-gray-800 rounded-lg">
+              <div class="card-body flex items-center justify-between p-6">
+                  <div class="stats-info flex-1">
+                      <h5 class="card-title text-2xl font-semibold mb-2">47,350<span class="stats-change stats-change-success text-green-500">+12%</span></h5>
+                      <p class="stats-text text-gray-400">{{ t('dashboard.total_orders') }}</p>
                   </div>
-                  <div class="stats-icon change-success">
+                  <div class="stats-icon change-success flex items-center justify-center w-12 h-12 rounded-full bg-green-400">
                       <span class="material-icons">trending_up</span>
                   </div>
               </div>
@@ -51,13 +58,15 @@
       </div>
     </div>
 
-    <div class="row mt-6">
-      <div class="w-full lg:w-1/2 md:w-full">
+    <div class="row grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div>
         <PopularProducts />
       </div>
-      <!-- You can add other components in the other half -->
-      <div class="w-full lg:w-1/2 md:w-full">
+      <div class=" md:col-span-2 ml-4">
         <SalesChart />
+      </div>
+      <div>
+        <ProductFinishedAboutTo />
       </div>
     </div>
   </div>
@@ -73,7 +82,7 @@ import { useAnalyticsStore } from '@/stores/analytics.store'
 import { useI18n } from 'vue-i18n'
 import PopularProducts from '@/components/product/popularProduct.vue'
 import SalesChart from '@/components/charts/SalesChart.vue'
-
+import ProductFinishedAboutTo from '@/components/product/productFinishedAboutTo.vue'
 const { t } = useI18n()
 
 interface Stat {
@@ -170,132 +179,8 @@ function canAccess(roles: string[]) {
 </script>
 
 <style scoped>
-.page-content {
-  padding: 20px;
-}
+/* You can keep any additional styles here if needed */
 
-.page-info {
-  padding: 1rem 2rem;
-  background: transparent;
-}
-
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  gap: 0.5rem;
-}
-
-.breadcrumb-item {
-  display: flex;
-  align-items: center;
-  color: #d7d7d7;
-}
-
-.breadcrumb-item + .breadcrumb-item::before {
-  content: "/";
-  margin: 0 0.5rem;
-  color: #6b7280;
-}
-
-.breadcrumb-link {
-  color: #535bf2;
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.breadcrumb-link:hover {
-  color: #4347d9;
-}
-
-.breadcrumb-item.active {
-  color: #d7d7d7;
-}
-
-/* Stats Card Styles */
-.stats-card {
-  background: rgb(45, 45, 45);
-  border-radius: 10px;
-}
-
-.card-transparent {
-  background: rgb(45, 45, 45);
-  backdrop-filter: blur(20px);
-}
-
-.card-body {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.5rem;
-  position: relative;
-  gap: 2rem;
-}
-
-/* Separator for first two cards */
-.card-body:not(:last-child) {
-  border-right: 1px solid rgba(158, 158, 158, 0.2); /* Change color here - currently using a light gray */
-}
-
-/* Stats Info Section */
-.stats-info {
-  flex: 1;
-}
-
-/* Card Title (Numbers) */
-.stats-info .card-title {
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* Stats Change Indicators */
-.stats-change {
-  font-size: 0.875rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-}
-
-.stats-change-success {
-  color: #22c55e; /* Change this color for positive values */
-  background-color: rgba(34, 197, 94, 0.1);
-}
-
-.stats-change-danger {
-  color: #ef4444; /* Change this color for negative values */
-  background-color: rgba(239, 68, 68, 0.1);
-}
-
-/* Stats Text */
-.stats-text {
-  color: #6b7280;
-  font-size: 0.875rem;
-}
-
-/* Stats Icon */
-.stats-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-}
-
-.change-success {
-  color: #22c55e; /* Change this color for upward trend */
-  background-color: rgba(34, 197, 94, 0.1);
-}
-
-.change-danger {
-  color: #ef4444; /* Change this color for downward trend */
-  background-color: rgba(239, 68, 68, 0.1);
-}
 </style>
 
 

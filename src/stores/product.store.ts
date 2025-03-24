@@ -9,11 +9,13 @@ interface Product {
 
 interface ProductState {
     popularProducts: Product[]
+    productsAboutToFinish: Product[]
 }
 
 export const useProductStore = defineStore('product', {
     state: (): ProductState => ({
-        popularProducts: []
+        popularProducts: [],
+        productsAboutToFinish: []
     }),
 
     actions: {
@@ -56,6 +58,30 @@ export const useProductStore = defineStore('product', {
             } catch (error) {
                 console.error('Error fetching popular products:', error)
                 return []
+            }
+        },
+        async getProductsAboutToFinish(): Promise<Product[]> {
+            try {
+                // Here you would typically make an API call
+                // For now, we'll return mock data
+                const mockData: Product[] = [
+                    {
+                        id: 1,
+                        name: 'Product A',
+                        quantity: 10,
+                    },
+                    {
+                        id: 2,
+                        name: 'Product B',
+                        quantity: 5,
+                    }
+                ]   
+                await new Promise(resolve => setTimeout(resolve, 500))
+                this.productsAboutToFinish = mockData
+                return mockData
+            } catch (error) {
+                console.error('Error fetching products about to finish:', error)
+                return []   
             }
         }
     }
