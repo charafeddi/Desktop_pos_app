@@ -44,6 +44,26 @@ const routes: RouteRecordRaw[] = [
     name: 'Settings',
     component: () => import('@/views/settings/Settings.vue'),
     meta: { requiresAuth: true, requiresRole: ['admin'] }
+  },
+  {
+    path: '/task',
+    name: 'Task',
+    component: () => import('@/views/task/task.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/product',
+    name: 'Product',
+    component: () => import('@/views/product/Product.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/product-form-popup',
+    name: 'ProductFormPopup',
+    component: () => import('@/views/product/components/ProductFormPopup.vue'),
+    meta: {
+        title: 'Product Form'
+    }
   }
 ]
 

@@ -27,10 +27,12 @@
   },
   "products": {
     "title": "Popular Products",
+    "title_about_to_finish": "Products About To Finish",
     "today": "Today",
     "week": "This Week",
     "month": "This Month",
-    "sales": "Sales"
+    "sales": "Sales",
+    "quantity": "Quantity"
   },
   "sales": {
     "total": "Total sales in the period",
@@ -40,7 +42,8 @@
     "today_revenue": "Today revenue",
     "unique_visitors": "Unique visitors",
     "total_orders": "Total orders",
-    "total_customers": "Total customers"
+    "total_customers": "Total customers",
+    "addSale": "Add Sale"
   },
   "auth": {
     "login": "Login",
@@ -54,5 +57,51 @@
     "edit": "Edit",
     "create": "Create",
     "search": "Search"
-  }
+  },
+  "task": {
+    "all": "All",
+    "completed": "Completed",
+    "deleted": "Deleted",
+    "create_task": "Create New Task",
+    "title": "Title",
+    "description": "Description",
+    "priority": "Priority",
+    "status": "Status",
+    "search_task": "Search Task",
+    "add_task": "Add Task",
+    "cancel": "Cancel",
+    "medium": "Medium",
+    "urgent": "Urgent",
+    "not_urgent": "Not Urgent",
+    "pending": "Pending",
+    "clear_search": "Clear Search"
+  },
+  "product": {
+    "title": "Products",
+    "product": "product",
+    "add_product": "Add Product",
+    "edit_product": "Edit Product",
+    "delete_product": "Delete Product",
+    "search_product": "Search Product",
+    "total_products": "Total Products",
+    "low_stock": "Low Stock",
+    "categories": "Categories",
+    "total_value": "Total Value",
+    "filter": "Filter",
+    "name": "Name",
+    "sku": "SKU",
+    "category": "Category",
+    "type": "Type",
+    "unit": "Unit",
+    "price": "Price",
+    "cost": "Cost",
+    "stock": "Stock",
+    "min_stock": "Min Stock",
+    "status": "Status",
+    "image": "Image",
+    "description": "Description",
+    "actions": "Actions",
+    "previous": "Previous",
+    "next": "Next"
+  } 
 } 

@@ -14,7 +14,7 @@
     <div class="page-container" :class="{ 'collapsed': isSidebarCollapsed }">
       <Header />
       <div class="main-content">
-        <router-view />
+        <router-view></router-view>
       </div>
     </div>
   </div>
@@ -58,9 +58,6 @@ async function handleLogout() {
 </script>
 
 <style>
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 *, *::before, *::after {
   box-sizing: border-box;

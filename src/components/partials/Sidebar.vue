@@ -15,7 +15,7 @@
         </li>
         <li>
           <router-link
-            to="/"
+            :to="{name: 'Dashboard'}"
             class="nav-link"
             :class="{ 'active': $route.name === 'dashboard', 'icon-only': isCollapsed }"
           >
@@ -25,7 +25,7 @@
         </li>
         <li>
           <router-link
-            to="/products"
+            :to="{name: 'Product'}"
             class="nav-link"
             :class="{ 'active': $route.path === '/products', 'icon-only': isCollapsed }"
           >
@@ -35,7 +35,7 @@
         </li>
         <li>
           <router-link
-            to="/categories"
+            :to="{name: 'Analytics'}"
             class="nav-link"
             :class="{ 'active': $route.path === '/categories', 'icon-only': isCollapsed }"
           >

@@ -14,7 +14,7 @@ const { protect, authorize } = require('../middleware/auth');
 router.use(protect);
 
 // Public routes (still need to be authenticated)
-router.get('/', getTodos);
+router.get('/todos', getTodos);
 router.get('/stats', getTodoStats);
 router.get('/:id', getTodo);
 

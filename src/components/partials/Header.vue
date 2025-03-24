@@ -60,7 +60,7 @@
             <a href="#" class="nav-link">Projects</a>
           </li>
           <li class="nav-item">
-            <a href="#" class="nav-link">Tasks</a>
+            <router-link :to="{name: 'Task'}" class="nav-link">Tasks</router-link>
           </li>
           <li class="nav-item">
             <a href="#" class="nav-link">Reports</a>

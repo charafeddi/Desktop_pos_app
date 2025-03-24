@@ -30,7 +30,8 @@
     "today_revenue": "Revenu du jour",
     "unique_visitors": "Visiteurs uniques",
     "total_orders": "Total des commandes",
-    "total_customers": "Total des clients"
+    "total_customers": "Total des clients",
+    "addSale": "Ajouter une vente"
   },
   "sales": {
     "total": "Total des ventes dans la période"
@@ -40,7 +41,9 @@
     "today": "Aujourd'hui",
     "week": "Cette semaine",
     "month": "Ce mois",
-    "sales": "Ventes"
+    "sales": "Ventes",
+    "quantity": "Quantité",
+    "title_about_to_finish": "Produits à finir"
   },
   "auth": {
     "login": "Connexion",
@@ -54,5 +57,51 @@
     "edit": "Modifier",
     "create": "Créer",
     "search": "Rechercher"
+  },
+  "task": {
+    "all": "Tout",
+    "completed": "Terminé",
+    "deleted": "Supprimé",
+    "create_task": "Créer une nouvelle tâche",
+    "title": "Titre",
+    "description": "Description",
+    "priority": "Priorité",
+    "status": "Statut",
+    "search_task": "Rechercher une tâche",
+    "add_task": "Ajouter une tâche",
+    "cancel": "Annuler",
+    "medium": "Moyen",
+    "urgent": "Urgent",
+    "not_urgent": "Non urgent",
+    "pending": "En attente",
+    "clear_search": "Effacer la recherche"
+  },
+  "product": {
+    "title": "Produits",
+    "product": "produit",
+    "add_product": "Ajouter un produit",
+    "edit_product": "Modifier un produit",
+    "delete_product": "Supprimer un produit",
+    "search_product": "Rechercher un produit",
+    "total_products": "Total des produits",
+    "low_stock": "Stock faible",
+    "categories": "Catégories",
+    "total_value": "Valeur totale",
+    "filter": "Filtrer",
+    "name": "Nom",
+    "sku": "SKU",
+    "category": "Catégorie",
+    "type": "Type",
+    "unit": "Unité",
+    "price": "Prix",
+    "cost": "Coût",
+    "stock": "Stock",
+    "min_stock": "Stock minimum",
+    "status": "Statut",
+    "image": "Image",
+    "description": "Description",
+    "actions": "Actions",
+    "previous": "Précédent",
+    "next": "Suivant"
   }
 } 

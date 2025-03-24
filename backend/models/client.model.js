@@ -9,7 +9,7 @@ class Customer {
 
         return new Promise((resolve, reject) => {
             db.run(
-                `INSERT INTO customers (
+                `INSERT INTO client (
                     name, email, phone, address,
                     city, country, postal_code, tax_number
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -24,7 +24,7 @@ class Customer {
 
     static async findById(id) {
         return new Promise((resolve, reject) => {
-            db.get('SELECT * FROM customers WHERE id = ?', [id], (err, row) => {
+            db.get('SELECT * FROM client WHERE id = ?', [id], (err, row) => {
                 if (err) reject(err);
                 else resolve(row);
             });
@@ -39,7 +39,7 @@ class Customer {
 
         return new Promise((resolve, reject) => {
             db.run(
-                `UPDATE customers 
+                `UPDATE client 
                 SET name = ?, email = ?, phone = ?, address = ?,
                     city = ?, country = ?, postal_code = ?, tax_number = ?,
                     updated_at = CURRENT_TIMESTAMP
@@ -55,7 +55,7 @@ class Customer {
 
     static async delete(id) {
         return new Promise((resolve, reject) => {
-            db.run('DELETE FROM customers WHERE id = ?', [id], function(err) {
+            db.run('DELETE FROM client WHERE id = ?', [id], function(err) {
                 if (err) reject(err);
                 else resolve(this.changes);
             });
@@ -67,7 +67,7 @@ class Customer {
             db.all(
                 `SELECT c.*, 
                     (SELECT COUNT(*) FROM sales WHERE customer_id = c.id) as sale_count
-                FROM customers c
+                FROM client c
                 ORDER BY c.name ASC`,
                 [],
                 (err, rows) => {
