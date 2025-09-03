@@ -152,6 +152,62 @@ class Product {
         });
     }
 
+    static async getPopularProducts(limit = 10, period = null) {
+        return new Promise((resolve, reject) => {
+            let dateFilter = '';
+            let params = [];
+            
+            // Add date filtering if period is specified
+            if (period) {
+                switch (period.toLowerCase()) {
+                    case 'today':
+                        dateFilter = 'AND DATE(s.created_at) = DATE("now")';
+                        break;
+                    case 'week':
+                        dateFilter = 'AND s.created_at >= datetime("now", "-7 days")';
+                        break;
+                    case 'month':
+                        dateFilter = 'AND s.created_at >= datetime("now", "-30 days")';
+                        break;
+                    case 'year':
+                        dateFilter = 'AND s.created_at >= datetime("now", "-365 days")';
+                        break;
+                    default:
+                        // No filter
+                        break;
+                }
+            }
+
+            const sql = `
+                SELECT p.*, 
+                    c.name as category_name,
+                    pt.name as product_type_name,
+                    pu.name as product_unit_name,
+                    pu.symbol as product_unit_symbol,
+                    sup.name as supplier_name,
+                    COALESCE(SUM(si.quantity), 0) as total_sold,
+                    COALESCE(COUNT(si.id), 0) as sale_count,
+                    COALESCE(SUM(si.total_amount), 0) as total_revenue
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN product_types pt ON p.product_type_id = pt.id
+                LEFT JOIN product_units pu ON p.product_unit_id = pu.id
+                LEFT JOIN suppliers sup ON p.supplier_id = sup.id
+                LEFT JOIN sale_items si ON p.id = si.product_id
+                LEFT JOIN sales s ON si.sale_id = s.id
+                WHERE p.id IS NOT NULL ${dateFilter}
+                GROUP BY p.id
+                ORDER BY total_sold DESC, total_revenue DESC
+                LIMIT ?
+            `;
+
+            db.all(sql, [limit], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+    }
+
     static async getByCategory(categoryId) {
         return new Promise((resolve, reject) => {
             db.all(
@@ -218,6 +274,34 @@ class Product {
                 (err, rows) => {
                     if (err) reject(err);
                     else resolve(rows);
+                }
+            );
+        });
+    }
+
+    static async getProductStock(id) {
+        return new Promise((resolve, reject) => {
+            db.get(
+                `SELECT p.id, p.name, p.sku, p.current_stock, p.min_stock_level, p.max_stock_level,
+                    pu.name as unit_name, pu.symbol as unit_symbol,
+                    c.name as category_name,
+                    s.name as supplier_name,
+                    CASE 
+                        WHEN p.current_stock <= p.min_stock_level THEN 'low'
+                        WHEN p.current_stock = 0 THEN 'out'
+                        ELSE 'normal'
+                    END as stock_status,
+                    (p.current_stock - p.min_stock_level) as stock_above_min,
+                    (p.max_stock_level - p.current_stock) as stock_below_max
+                FROM products p
+                LEFT JOIN product_units pu ON p.product_unit_id = pu.id
+                LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN suppliers s ON p.supplier_id = s.id
+                WHERE p.id = ?`,
+                [id],
+                (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
                 }
             );
         });

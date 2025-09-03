@@ -308,4 +308,79 @@ exports.getLowStockProducts = async (req, res) => {
       message: 'Error getting low stock products'
     });
   }
+};
+
+// @desc Get product stock
+// @route Get/api/products/product-stock
+// @access Provate
+exports.getProductStock = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // check if product exist
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Error this product doesn't exist"
+      });
+    }
+
+    const productStock = await Product.getProductStock(id);
+    res.status(200).json({
+      success: true,
+      data: productStock
+    });
+  } catch (error) {
+    console.error(" Error getting product stock: ", error);
+    res.status(500).json({
+      success: false,
+      message: "Error getting product stock"
+    });
+  }
+};
+
+// @desc    Get popular products
+// @route   GET /api/products/popular
+// @access  Private
+exports.getPopularProducts = async (req, res) => {
+  try {
+    const { limit = 10, period } = req.query;
+    
+    // Validate limit parameter
+    const limitNum = parseInt(limit);
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Limit must be a number between 1 and 100'
+      });
+    }
+
+    // Validate period parameter if provided
+    const validPeriods = ['today', 'week', 'month', 'year'];
+    if (period && !validPeriods.includes(period.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Period must be one of: today, week, month, year'
+      });
+    }
+
+    const products = await Product.getPopularProducts(limitNum, period);
+    
+    res.json({
+      success: true,
+      count: products.length,
+      data: products,
+      filters: {
+        limit: limitNum,
+        period: period || 'all-time'
+      }
+    });
+  } catch (error) {
+    console.error('Error getting popular products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting popular products'
+    });
+  }
 }; 

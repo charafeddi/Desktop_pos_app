@@ -64,7 +64,26 @@ const routes: RouteRecordRaw[] = [
     meta: {
         title: 'Product Form'
     }
+  },
+  {
+    path:'/profile',
+    name:'Profile',
+    component: () => import('@/views/profile/Profile.vue'),
+    meta:{
+      title: 'Profile',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/category',
+    name: 'Category',
+    component: () => import('@/views/categories/Category.vue'),
+    meta:{
+      tilte: 'Category',
+      requiresAuth: true
+    }
   }
+
 ]
 
 const router = createRouter({
@@ -79,9 +98,9 @@ router.beforeEach((to, _, next) => {
   const requiresRole = to.matched.some(record => record.meta.requiresRole)
 
   if (requiresAuth && !authStore.isAuthenticated) {
-    next('/login')
+    next('/login') 
   } else if (requiresRole && !authStore.user?.role) {
-    next('/')
+    next('/') 
   } else if (requiresRole && 
     !to.meta.requiresRole?.includes(authStore.user?.role)) {
     next('/')

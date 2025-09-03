@@ -1,12 +1,35 @@
 <template>
-    <div>
-        <!-- This component doesn't need a template as it only handles window creation -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-black rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-100">
+                    {{ isEditing ? 'Edit Product' : 'Add New Product' }}
+                </h2>
+                <button 
+                    @click="$emit('close')" 
+                    class="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                    <span class="material-icons-outlined text-2xl">close</span>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6">
+                <ProductForm 
+                    :is-editing="isEditing"
+                    :product="product"
+                    :categories="categories"
+                    @close="$emit('close')"
+                    @submit="handleFormSubmit"
+                />
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted } from 'vue';
-const { ipcRenderer } = require('electron');
+import ProductForm from './ProductForm.vue';
 
 const props = defineProps({
     isEditing: {
@@ -15,62 +38,17 @@ const props = defineProps({
     },
     product: {
         type: Object,
-        default: () => ({
-            id: null,
-            name: '',
-            description: '',
-            price: 0,
-            category_id: null
-        })
+        default: () => ({})
     },
     categories: {
         type: Array,
-        required: true,
-        default: () => []
+        required: true
     }
 });
 
-const emit = defineEmits(['close', 'submit', 'error']);
+const emit = defineEmits(['close', 'submit']);
 
-onMounted(() => {
-    try {
-        // Ensure we only send serializable data with safe property access
-        const serializableData = {
-            isEditing: props.isEditing,
-            product: {
-                id: props.product?.id ?? null,
-                name: props.product?.name ?? '',
-                description: props.product?.description ?? '',
-                price: props.product?.price ?? 0,
-                category_id: props.product?.category_id ?? null
-            },
-            categories: (props.categories || []).map(category => ({
-                id: category?.id ?? null,
-                name: category?.name ?? '',
-                // Add other serializable properties as needed
-            }))
-        };
-
-        // Open the popup window through IPC
-        ipcRenderer.send('open-product-form', serializableData);
-
-        // Listen for form submission
-        ipcRenderer.on('product-form-submitted', (event, data) => {
-            emit('submit', data);
-            emit('close');
-        });
-    } catch (error) {
-        console.error('Error opening product form:', error);
-        emit('error', error);
-        emit('close');
-    }
-});
-
-onUnmounted(() => {
-    try {
-        ipcRenderer.removeAllListeners('product-form-submitted');
-    } catch (error) {
-        console.error('Error cleaning up event listener:', error);
-    }
-});
+const handleFormSubmit = (formData) => {
+    emit('submit', formData);
+};
 </script> 

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-const { ipcRenderer } = window.require('electron')
+
+// Use the exposed electronAPI from preload script
 
 interface User {
   id: string
@@ -27,6 +28,7 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isAuthenticated: (state) => !!state.token,
     currentUser: (state) => state.user,
+    getCurrentUser: (state) => state.user,
     isLoading: (state) => state.loading
   },
 
@@ -35,7 +37,7 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       try {
         // Send registration request through IPC
-        const response = await ipcRenderer.invoke('auth:register', userData)
+        const response = await window.electronAPI.auth.register(userData)
         
         if (response.success) {
           this.token = response.data.token
@@ -55,7 +57,7 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       try {
         // Send login request through IPC
-        const response = await ipcRenderer.invoke('auth:login', { email, password })
+        const response = await window.electronAPI.auth.login({ email, password })
         
         if (response.success) {
           this.token = response.data.token
@@ -73,7 +75,7 @@ export const useAuthStore = defineStore('auth', {
 
     logout() {
       // Send logout request through IPC if needed
-      ipcRenderer.invoke('auth:logout')
+      window.electronAPI.auth.logout()
       
       this.user = null
       this.token = null
@@ -86,16 +88,5 @@ export const useAuthStore = defineStore('auth', {
     setToken(token: string) {
       this.token = token
     }
-  },
-
-  persist: {
-    enabled: true,
-    strategies: [
-      {
-        key: 'auth',
-        storage: localStorage,
-        paths: ['token', 'user']
-      }
-    ]
   }
 }) 

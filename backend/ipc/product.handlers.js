@@ -55,12 +55,35 @@ ipcMain.handle('delete-product', async (event, id) => {
         throw new Error(error.message);
     }
 });
+// Get product low Stock
+ipcMain.handle('get-product-low-stock', async (event) => {
+    try {
+        const lowStock = await Product.getLowStock();
+        return lowStock;
+    } catch (error) {
+        throw new Error(error.message);
+    }
+});
 
-// Get product stock
+// Get popular products
+ipcMain.handle('get-popular-products', async (event, limit = 10, period = null) => {
+    try {
+        const products = await Product.getPopularProducts(limit, period);
+        return products;
+    } catch (error) {
+        throw new Error(error.message);
+    }
+});
+
+// Get product stock by ID
 ipcMain.handle('get-product-stock', async (event, id) => {
     try {
-        const stock = await Product.getStock(id);
-        return stock;
+        const productStock = await Product.getProductStock(id);
+        if (!productStock) {
+            return { message: 'Product not found' };
+        } else {
+            return productStock;
+        }
     } catch (error) {
         throw new Error(error.message);
     }

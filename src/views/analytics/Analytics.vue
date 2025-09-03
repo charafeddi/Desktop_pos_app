@@ -1,60 +1,3 @@
-<script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useAnalyticsStore } from '@/stores/analytics.store'
-
-const analyticsStore = useAnalyticsStore()
-
-const timeRange = ref('week')
-const selectedMetric = ref('sales')
-
-const metrics = {
-  sales: {
-    label: 'Sales Performance',
-    data: [12000, 19000, 15000, 22000, 18000, 24000, 21000],
-    categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  },
-  products: {
-    label: 'Top Products',
-    data: [150, 120, 90, 85, 75],
-    categories: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E']
-  },
-  customers: {
-    label: 'Customer Activity',
-    data: [45, 38, 42, 50, 35, 40, 48],
-    categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  }
-}
-
-const kpis = ref({
-  totalRevenue: 132450,
-  averageOrderValue: 75.50,
-  customerRetentionRate: 85,
-  inventoryTurnover: 4.2
-})
-
-const topSellingProducts = ref([
-  { name: 'Product A', sales: 1200, revenue: 24000 },
-  { name: 'Product B', sales: 950, revenue: 19000 },
-  { name: 'Product C', sales: 850, revenue: 17000 },
-  { name: 'Product D', sales: 700, revenue: 14000 },
-  { name: 'Product E', sales: 650, revenue: 13000 }
-])
-
-const customerSegments = ref([
-  { segment: 'Regular', count: 450, percentage: 45 },
-  { segment: 'Occasional', count: 300, percentage: 30 },
-  { segment: 'New', count: 150, percentage: 15 },
-  { segment: 'VIP', count: 100, percentage: 10 }
-])
-
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(value)
-}
-</script>
-
 <template>
   <div class="min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8">
     <div class="max-w-7xl mx-auto">
@@ -201,3 +144,60 @@ const formatCurrency = (value: number) => {
     </div>
   </div>
 </template> 
+
+<script setup lang="ts">
+  import { ref, onMounted, computed } from 'vue'
+  import { useAnalyticsStore } from '@/stores/analytics.store'
+  
+  const analyticsStore = useAnalyticsStore()
+  
+  const timeRange = ref('week')
+  const selectedMetric = ref('sales')
+  
+  const metrics = {
+    sales: {
+      label: 'Sales Performance',
+      data: [12000, 19000, 15000, 22000, 18000, 24000, 21000],
+      categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    },
+    products: {
+      label: 'Top Products',
+      data: [150, 120, 90, 85, 75],
+      categories: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E']
+    },
+    customers: {
+      label: 'Customer Activity',
+      data: [45, 38, 42, 50, 35, 40, 48],
+      categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    }
+  }
+  
+  const kpis = ref({
+    totalRevenue: 132450,
+    averageOrderValue: 75.50,
+    customerRetentionRate: 85,
+    inventoryTurnover: 4.2
+  })
+  
+  const topSellingProducts = ref([
+    { name: 'Product A', sales: 1200, revenue: 24000 },
+    { name: 'Product B', sales: 950, revenue: 19000 },
+    { name: 'Product C', sales: 850, revenue: 17000 },
+    { name: 'Product D', sales: 700, revenue: 14000 },
+    { name: 'Product E', sales: 650, revenue: 13000 }
+  ])
+  
+  const customerSegments = ref([
+    { segment: 'Regular', count: 450, percentage: 45 },
+    { segment: 'Occasional', count: 300, percentage: 30 },
+    { segment: 'New', count: 150, percentage: 15 },
+    { segment: 'VIP', count: 100, percentage: 10 }
+  ])
+  
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(value)
+  }
+  </script>

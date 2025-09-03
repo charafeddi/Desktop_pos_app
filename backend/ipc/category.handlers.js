@@ -30,7 +30,8 @@ ipcMain.handle('get-category-by-id', async (event, id) => {
 ipcMain.handle('create-category', async (event, categoryData) => {
     try {
         const categoryId = await Category.create(categoryData);
-        return { id: categoryId, ...categoryData };
+        const newCategory = await Category.findById(categoryId);
+        return newCategory;
     } catch (error) {
         throw new Error(error.message);
     }

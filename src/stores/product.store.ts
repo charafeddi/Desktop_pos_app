@@ -1,84 +1,86 @@
 import { defineStore } from 'pinia'
 
 interface Product {
-    id: number
-    name: string
-    sales: number
+    id: number,
+    name: string,
+    sku: string,
+    barcode: string,
+    description: string,
+    category_id: number,
+    product_type_id: number,
+    product_unit_id: number,
+    supplier_id: number, 
+    purchase_price: number, 
+    selling_price: number,
+    tax_rate: number, 
+    min_stock_level: number, 
+    current_stock: number,
+    sales: number,
     trend: number
 }
 
 interface ProductState {
-    popularProducts: Product[]
-    productsAboutToFinish: Product[]
+    popularProducts: Product[],
+    productsAboutToFinish: Product[],
+    products: Product[],
+    productStock:Product | null,
+    loading: boolean,
+    error: string | null,
 }
 
 export const useProductStore = defineStore('product', {
     state: (): ProductState => ({
         popularProducts: [],
-        productsAboutToFinish: []
+        productsAboutToFinish: [],
+        productStock: null,
+        products:[],
+        loading: false,
+        error:null,
     }),
-
+    getters:{
+        getProducts: (state) => state.products,
+        getPopularProducts:(state) => state.popularProducts,
+        getProductAboutTofinish: (state) => state.productsAboutToFinish
+    },
     actions: {
-        async getPopularProducts(): Promise<Product[]> {
+        async getAllProducts() {
+            this.loading = true;
+            this.error = null;
             try {
-                // Here you would typically make an API call
-                // For now, we'll return mock data
-                const mockData: Product[] = [
-                    {
-                        id: 1,
-                        name: 'Product A',
-                        sales: 150,
-                        trend: 15 // percentage increase
-                    },
-                    {
-                        id: 2,
-                        name: 'Product B',
-                        sales: 120,
-                        trend: -5 // percentage decrease
-                    },
-                    {
-                        id: 3,
-                        name: 'Product C',
-                        sales: 100,
-                        trend: 10
-                    },
-                    {
-                        id: 4,
-                        name: 'Product D',
-                        sales: 80,
-                        trend: 5
-                    }
-                ]
-
-                // Simulate API call
-                await new Promise(resolve => setTimeout(resolve, 500))
-                
-                this.popularProducts = mockData
-                return mockData
+              console.log('Fetching products');
+              const products = await window.electronAPI.products.getAll();
+              console.log('products fetched: ', products);
+              this.products = products;
             } catch (error) {
                 console.error('Error fetching popular products:', error)
                 return []
+            } finally {
+                this.loading = false;
             }
         },
-        async getProductsAboutToFinish(): Promise<Product[]> {
+        async fetchPopularProducts(limit = 10, period = null) {
+            this.loading = true;
+            this.error = null;
             try {
-                // Here you would typically make an API call
-                // For now, we'll return mock data
-                const mockData: Product[] = [
-                    {
-                        id: 1,
-                        name: 'Product A',
-                        quantity: 10,
-                    },
-                    {
-                        id: 2,
-                        name: 'Product B',
-                        quantity: 5,
-                    }
-                ]   
-                await new Promise(resolve => setTimeout(resolve, 500))
-                this.productsAboutToFinish = mockData
-                return mockData
+                console.log('Fetching popular products');
+                const popularProducts = await window.electronAPI.products.getPopularProduct(limit, period);
+                console.log('Popular products fetched: ', popularProducts);
+                this.popularProducts = popularProducts;
+            } catch (error) {
+                console.error('Error fetching popular products:', error);
+                this.error = 'Failed to fetch popular products';
+                return [];
+            } finally {
+                this.loading = false;
+            }
+        },
+        async getProductsAboutToFinish() {
+            this.loading = true;
+            this.error = null;
+            try {
+                console.log('fetching popular products');
+                const productsAboutToFinish = await window.electronAPI.products.getProductsLowStock();
+                this.productsAboutToFinish = productsAboutToFinish;
             } catch (error) {
                 console.error('Error fetching products about to finish:', error)
                 return []   
