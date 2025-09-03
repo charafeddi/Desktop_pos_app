@@ -43,8 +43,10 @@ db.serialize(() => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         description TEXT,
+        parent_id INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (parent_id) REFERENCES categories (id)
     )`);
 
     // Product Types table
@@ -260,6 +262,33 @@ db.serialize(() => {
     db.run('CREATE INDEX IF NOT EXISTS idx_todos_created ON todos(created_by)');
     db.run('CREATE INDEX IF NOT EXISTS idx_inventory_product ON inventory(product_id)');
     db.run('CREATE INDEX IF NOT EXISTS idx_inventory_transactions_product ON inventory_transactions(product_id)');
+
+    // Ensure required columns exist on products table (for legacy DBs)
+    const ensureColumn = (table, column, typeDef, defaultValue) => {
+        db.all(`PRAGMA table_info(${table})`, (err, columns) => {
+            if (err) {
+                console.error(`Error reading schema for ${table}:`, err);
+                return;
+            }
+            const hasColumn = columns && columns.some(col => col.name === column);
+            if (!hasColumn) {
+                const defaultClause = defaultValue !== undefined ? ` DEFAULT ${defaultValue}` : '';
+                const sql = `ALTER TABLE ${table} ADD COLUMN ${column} ${typeDef}${defaultClause}`;
+                db.run(sql, alterErr => {
+                    if (alterErr) {
+                        console.error(`Error adding column ${column} to ${table}:`, alterErr);
+                    } else {
+                        console.log(`Added missing column ${column} to ${table}`);
+                    }
+                });
+            }
+        });
+    };
+
+    // Add missing stock-related columns if the database was created before these fields existed
+    ensureColumn('products', 'min_stock_level', 'INTEGER', 0);
+    ensureColumn('products', 'current_stock', 'INTEGER', 0);
+    ensureColumn('products', 'max_stock_level', 'INTEGER', 0);
 });
 
 module.exports = db; 

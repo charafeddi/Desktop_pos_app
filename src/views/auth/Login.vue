@@ -8,8 +8,8 @@
         <form @submit.prevent="handleLogin">
           <input 
             type="text" 
-            placeholder="USERNAME" 
-            v-model="username"
+            placeholder="EMAIL" 
+            v-model="email"
             required
           />
           <input 
@@ -42,7 +42,7 @@
   const router = useRouter()
   const authStore = useAuthStore()
   
-  const username = ref('')
+  const email = ref('')
   const password = ref('')
   const isLoading = ref(false)
   
@@ -106,7 +106,7 @@
   async function handleLogin() {
     try {
       isLoading.value = true
-      await authStore.login(username.value, password.value)
+      await authStore.login(email.value, password.value)
       router.push('/')
     } catch (error) {
       console.error('Login failed:', error)

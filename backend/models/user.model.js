@@ -5,7 +5,7 @@ class User {
     static async create(userData) {
         const {
             name, email, password, mobile_phone,
-            role, is_active = 1
+            role
         } = userData;
 
         // Hash password
@@ -16,9 +16,9 @@ class User {
             db.run(
                 `INSERT INTO users (
                     name, email, password, mobile_phone,
-                    role, is_active
-                ) VALUES (?, ?, ?, ?, ?, ?)`,
-                [name, email, hashedPassword, mobile_phone, role, is_active],
+                    role
+                ) VALUES (?, ?, ?, ?, ?)`,
+                [name, email, hashedPassword, mobile_phone, role],
                 function(err) {
                     if (err) reject(err);
                     else resolve(this.lastID);
@@ -26,11 +26,10 @@ class User {
             );
         });
     }
-
     static async findById(id) {
         return new Promise((resolve, reject) => {
             db.get(
-                `SELECT id, name, email, mobile_phone, role, is_active, created_at, updated_at
+                `SELECT id, name, email, mobile_phone, role, created_at, updated_at
                 FROM users
                 WHERE id = ?`,
                 [id],
@@ -41,7 +40,6 @@ class User {
             );
         });
     }
-
     static async findByEmail(email) {
         return new Promise((resolve, reject) => {
             db.get(
@@ -55,6 +53,18 @@ class User {
         });
     }
 
+    static async findByMobilePhone(mobilePhone) {
+        return new Promise((resolve, reject) => {
+            db.get(
+                `SELECT * FROM users WHERE mobile_phone = ?`,
+                [mobilePhone],
+                (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                }
+            );
+        });
+    }
     static async update(id, userData) {
         const {
             name, email, mobile_phone,
@@ -75,7 +85,6 @@ class User {
             );
         });
     }
-
     static async updatePassword(id, newPassword) {
         // Hash new password
         const salt = await bcrypt.genSalt(10);
@@ -94,7 +103,6 @@ class User {
             );
         });
     }
-
     static async delete(id) {
         return new Promise((resolve, reject) => {
             db.run('DELETE FROM users WHERE id = ?', [id], function(err) {

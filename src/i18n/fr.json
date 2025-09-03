@@ -13,7 +13,8 @@
     "orders": "Commandes",
     "customers": "Clients",
     "sales": "ventes",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "categories": "Catégories"
   },
   "header": {
     "search": "Rechercher...",
@@ -102,6 +103,25 @@
     "description": "Description",
     "actions": "Actions",
     "previous": "Précédent",
-    "next": "Suivant"
+    "next": "Suivant",
+    "barcode":"Barcode",
+    "product_type": "Type de Produit",
+    "product_unit": "Unité de Produit",
+    "supplier": "Fournisseur",
+    "purchase_price": "Prix d'Achat",
+    "selling_price": "Prix de Vente",
+    "tax_rate": "Taux d'Imposition",
+    "current_stock": "Stock Actuel",
+    "min_stock_level": "Niveau de Stock Minimum",
+    "max_stock_level": "Niveau de Stock Maximal"
+  },
+  "Category": {
+    "Add": "Ajouter une nouvelle catégorie",
+    "Edit": "Modifier la catégorie",
+    "subcategory": "Sous-Catégorie",
+    "save": "Enregistrer",
+    "description": "Description",
+    "name": "Nom de la catégorie",
+    "noParent": "aucun parent"
   }
 } 

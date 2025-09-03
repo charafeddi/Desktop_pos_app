@@ -1,89 +1,89 @@
 <script setup lang="ts">
-    import { ref, computed } from 'vue'
-    
-    interface Product {
-      id: string
-      name: string
-      price: number
-      category: string
-      image?: string
+  import { ref, computed } from 'vue'
+  
+  interface Product {
+    id: string
+    name: string
+    price: number
+    category: string
+    image?: string
+  }
+  
+  interface CartItem extends Product {
+    quantity: number
+  }
+  
+  const products = ref<Product[]>([
+    { id: '1', name: 'Product A', price: 19.99, category: 'Category 1' },
+    { id: '2', name: 'Product B', price: 29.99, category: 'Category 1' },
+    { id: '3', name: 'Product C', price: 39.99, category: 'Category 2' },
+    { id: '4', name: 'Product D', price: 49.99, category: 'Category 2' },
+    { id: '5', name: 'Product E', price: 59.99, category: 'Category 3' }
+  ])
+  
+  const cart = ref<CartItem[]>([])
+  const searchQuery = ref('')
+  const selectedCategory = ref('all')
+  
+  const categories = computed(() => {
+    const cats = ['all', ...new Set(products.value.map(p => p.category))]
+    return cats
+  })
+  
+  const filteredProducts = computed(() => {
+    return products.value.filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+      const matchesCategory = selectedCategory.value === 'all' || product.category === selectedCategory.value
+      return matchesSearch && matchesCategory
+    })
+  })
+  
+  const cartTotal = computed(() => {
+    return cart.value.reduce((total, item) => total + (item.price * item.quantity), 0)
+  })
+  
+  function addToCart(product: Product) {
+    const existingItem = cart.value.find(item => item.id === product.id)
+    if (existingItem) {
+      existingItem.quantity++
+    } else {
+      cart.value.push({ ...product, quantity: 1 })
     }
-    
-    interface CartItem extends Product {
-      quantity: number
+  }
+  
+  function removeFromCart(productId: string) {
+    const index = cart.value.findIndex(item => item.id === productId)
+    if (index !== -1) {
+      cart.value.splice(index, 1)
     }
-    
-    const products = ref<Product[]>([
-      { id: '1', name: 'Product A', price: 19.99, category: 'Category 1' },
-      { id: '2', name: 'Product B', price: 29.99, category: 'Category 1' },
-      { id: '3', name: 'Product C', price: 39.99, category: 'Category 2' },
-      { id: '4', name: 'Product D', price: 49.99, category: 'Category 2' },
-      { id: '5', name: 'Product E', price: 59.99, category: 'Category 3' }
-    ])
-    
-    const cart = ref<CartItem[]>([])
-    const searchQuery = ref('')
-    const selectedCategory = ref('all')
-    
-    const categories = computed(() => {
-      const cats = ['all', ...new Set(products.value.map(p => p.category))]
-      return cats
-    })
-    
-    const filteredProducts = computed(() => {
-      return products.value.filter(product => {
-        const matchesSearch = product.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-        const matchesCategory = selectedCategory.value === 'all' || product.category === selectedCategory.value
-        return matchesSearch && matchesCategory
-      })
-    })
-    
-    const cartTotal = computed(() => {
-      return cart.value.reduce((total, item) => total + (item.price * item.quantity), 0)
-    })
-    
-    function addToCart(product: Product) {
-      const existingItem = cart.value.find(item => item.id === product.id)
-      if (existingItem) {
-        existingItem.quantity++
+  }
+  
+  function updateQuantity(productId: string, newQuantity: number) {
+    const item = cart.value.find(item => item.id === productId)
+    if (item) {
+      if (newQuantity <= 0) {
+        removeFromCart(productId)
       } else {
-        cart.value.push({ ...product, quantity: 1 })
+        item.quantity = newQuantity
       }
     }
+  }
+  
+  function checkout() {
+    // Implement checkout logic here
+    console.log('Checking out:', cart.value)
+    cart.value = []
+  }
+  
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(value)
+  }
+</script>
     
-    function removeFromCart(productId: string) {
-      const index = cart.value.findIndex(item => item.id === productId)
-      if (index !== -1) {
-        cart.value.splice(index, 1)
-      }
-    }
-    
-    function updateQuantity(productId: string, newQuantity: number) {
-      const item = cart.value.find(item => item.id === productId)
-      if (item) {
-        if (newQuantity <= 0) {
-          removeFromCart(productId)
-        } else {
-          item.quantity = newQuantity
-        }
-      }
-    }
-    
-    function checkout() {
-      // Implement checkout logic here
-      console.log('Checking out:', cart.value)
-      cart.value = []
-    }
-    
-    const formatCurrency = (value: number) => {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD'
-      }).format(value)
-    }
-    </script>
-    
-    <template>
+<template>
       <div class="min-h-screen bg-gray-100">
         <div class="flex h-screen">
           <!-- Products Section -->
@@ -176,4 +176,4 @@
           </div>
         </div>
       </div>
-    </template>
+</template>

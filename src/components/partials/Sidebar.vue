@@ -74,6 +74,18 @@
             </span>
             <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.sales') }}</span>
           </router-link>
+        </li>        
+        <li>
+          <router-link
+            to="/category"
+            class="nav-link"
+            :class="{ 'active': $route.path === '/category', 'icon-only': isCollapsed }"
+          >
+            <span class="material-icons-outlined">
+              category
+            </span>
+            <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.categories') }}</span>
+          </router-link>
         </li>
       </ul>
 
@@ -117,7 +129,7 @@ function toggleSidebar() {
 /* Keep your original styles */
 .page-sidebar {
   width: 280px;
-  position: fixed;
+  position: relative;
   background: var(--primary-color);
   color: var(--color);
   top: 0;

@@ -25,12 +25,9 @@ export const useLanguageStore = defineStore('language', {
     },
 
     initLanguageListener() {
-      // Listen for language change events from the main process
-      const { ipcRenderer } = window.require('electron')
-      
-      ipcRenderer.on('change-language', (_: any, lang: Language) => {
-        this.setLanguage(lang)
-      })
+      // Language changes can be handled through the exposed electronAPI if needed
+      // For now, we'll just initialize the current language
+      this.setLanguage(this.currentLanguage)
     }
   }
 }) 

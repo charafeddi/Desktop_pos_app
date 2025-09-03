@@ -2,12 +2,12 @@ const db = require('../config/database');
 
 class Category {
     static async create(categoryData) {
-        const { name, description } = categoryData;
+        const { name, description, parent_id } = categoryData;
 
         return new Promise((resolve, reject) => {
             db.run(
-                `INSERT INTO categories (name, description) VALUES (?, ?)`,
-                [name, description],
+                `INSERT INTO categories (name, description, parent_id) VALUES (?, ?, ?)`,
+                [name, description, parent_id],
                 function(err) {
                     if (err) reject(err);
                     else resolve(this.lastID);
@@ -30,6 +30,10 @@ class Category {
                 }
             );
         });
+    }
+
+    static async getById(id) {
+        return this.findById(id);
     }
 
     static async update(id, categoryData) {

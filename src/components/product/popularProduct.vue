@@ -17,17 +17,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useProductStore } from '@/stores/product.store'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 const productStore = useProductStore()
-const popularProducts = ref([])
+
+// Get popular products from store using getter
+const popularProducts = computed(() => productStore.getPopularProducts)
 
 // Function to load popular products
 async function loadPopularProducts() {
-    popularProducts.value = await productStore.getPopularProducts()
+    await productStore.fetchPopularProducts()
 }
 
 // Load initial data

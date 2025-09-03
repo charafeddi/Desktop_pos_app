@@ -13,7 +13,8 @@
     "orders": "Orders",
     "customers": "Customers",
     "sales": "sales",
-    "settings": "Settings"
+    "settings": "Settings",
+    "categories": "Categories"
   },
   "header": {
     "search": "Search...",
@@ -102,6 +103,26 @@
     "description": "Description",
     "actions": "Actions",
     "previous": "Previous",
-    "next": "Next"
-  } 
+    "next": "Next",
+    "barcode":"barcode",
+    "product_type": "Product Type",
+    "product_unit": "Product Unit",
+    "supplier": "Supplier",
+    "purchase_price": "Purchase Price",
+    "selling_price": "Selling Price",
+    "tax_rate": "Tax Rate",
+    "current_stock": "Current Stock",
+    "min_stock_level": "Min Stock Level",
+    "max_stock_level": "Max Stock Level"
+  },
+  "Category": {
+    "Add": "Add New Category",
+    "Edit": "Edit Category",
+    "subcategory": "Subcategory",
+    "save": "Save",
+    "description": "Description",
+    "name":"Category Name",
+    "noParent": "No Parent"
+
+  }
 } 

@@ -1,5 +1,6 @@
 <!-- Root template with authentication check -->
 <template>
+  <Menu />
   <!-- Login/Register view when not authenticated -->
   <div v-if="!isAuthenticated" class="w-full h-full">
     <router-view></router-view>
@@ -28,6 +29,7 @@ import { useLanguageStore } from './stores/language.store'
 import Sidebar from './components/partials/Sidebar.vue'
 import Header from './components/partials/Header.vue'
 import '@material-design-icons/font'
+import Menu from './components/topMenu/Menu.vue'
 
 // Initialize route, router, and stores
 const route = useRoute()
@@ -87,16 +89,13 @@ html, body {
 
 .page-container {
   flex: 1;
-  margin-left: 280px;
   height: 100%;
   display: flex;
   flex-direction: column;
   transition: margin-left 0.3s ease-in-out;
 }
 
-.page-container.collapsed {
-  margin-left: 80px;
-}
+
 
 .main-content {
   flex: 1;

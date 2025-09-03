@@ -20,14 +20,14 @@
               <span class="material-icons" :class="{ 'rotate-180': isDropdownOpen }">keyboard_arrow_down</span>
             </a>
             <div class="dropdown-menu" :class="{ 'show': isDropdownOpen }" ref="dropdownMenu">
-              <a class="dropdown-item" href="#/profile">
+              <router-link class="dropdown-item" :to="{name:'Profile'}">
                 <span class="material-icons">account_circle</span>
                 {{ t('header.profile') }}
-              </a>
-              <a class="dropdown-item" href="#/settings">
+              </router-link>
+              <router-link class="dropdown-item" :to="{name:'Settings'}">
                 <span class="material-icons">settings</span>
                 {{ t('header.settings') }}
-              </a>
+              </router-link>
               <div class="dropdown-divider"></div>
               <a class="dropdown-item" href="#" @click.prevent="handleLogout">
                 <span class="material-icons">logout</span>
