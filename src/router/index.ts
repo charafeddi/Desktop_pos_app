@@ -58,6 +58,18 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/product-types',
+    name: 'ProductTypes',
+    component: () => import('@/views/product/ProductTypes.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/product-units',
+    name: 'ProductUnits',
+    component: () => import('@/views/product/ProductUnits.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/product-form-popup',
     name: 'ProductFormPopup',
     component: () => import('@/views/product/components/ProductFormPopup.vue'),
