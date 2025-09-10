@@ -1,83 +1,20 @@
-<script setup lang="ts">
-import { ref } from 'vue'
-import { useAuthStore } from '@/stores/auth.store'
-
-const authStore = useAuthStore()
-
-interface TaxRate {
-  id: string
-  name: string
-  rate: number
-  isDefault: boolean
-}
-
-interface PrinterSettings {
-  enabled: boolean
-  printerName: string
-  paperSize: string
-  printCopies: number
-}
-
-const companyInfo = ref({
-  name: 'My Store',
-  address: '123 Main St',
-  phone: '(555) 123-4567',
-  email: 'contact@mystore.com',
-  taxId: 'TAX-123456'
-})
-
-const taxRates = ref<TaxRate[]>([
-  { id: '1', name: 'Standard Rate', rate: 20, isDefault: true },
-  { id: '2', name: 'Reduced Rate', rate: 10, isDefault: false },
-  { id: '3', name: 'Zero Rate', rate: 0, isDefault: false }
-])
-
-const printerSettings = ref<PrinterSettings>({
-  enabled: true,
-  printerName: 'Default Printer',
-  paperSize: 'A4',
-  printCopies: 1
-})
-
-const backupSettings = ref({
-  autoBackup: true,
-  backupFrequency: 'daily',
-  backupLocation: 'cloud'
-})
-
-function saveSettings() {
-  // Implement settings save logic
-  console.log('Saving settings...')
-}
-
-function testPrinter() {
-  // Implement printer test logic
-  console.log('Testing printer...')
-}
-
-function backupNow() {
-  // Implement manual backup logic
-  console.log('Starting manual backup...')
-}
-</script>
-
 <template>
-  <div class="min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen py-6 px-4 sm:px-6 lg:px-8">
     <div class="max-w-7xl mx-auto">
       <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">Settings</h1>
+        <h1 class="text-3xl font-bold">Settings</h1>
       </div>
 
       <div class="space-y-6">
         <!-- Company Information -->
-        <div class="bg-white shadow rounded-lg">
+        <div class="shadow rounded-lg">
           <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+            <h3 class="text-lg leading-6 font-medium mb-4">
               Company Information
             </h3>
             <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <label class="block text-sm font-medium text-gray-700">Company Name</label>
+                <label class="block text-sm font-medium ">Company Name</label>
                 <input
                   v-model="companyInfo.name"
                   type="text"
@@ -85,7 +22,7 @@ function backupNow() {
                 >
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700">Address</label>
+                <label class="block text-sm font-medium ">Address</label>
                 <input
                   v-model="companyInfo.address"
                   type="text"
@@ -93,7 +30,7 @@ function backupNow() {
                 >
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700">Phone</label>
+                <label class="block text-sm font-medium ">Phone</label>
                 <input
                   v-model="companyInfo.phone"
                   type="text"
@@ -101,7 +38,7 @@ function backupNow() {
                 >
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700">Email</label>
+                <label class="block text-sm font-medium ">Email</label>
                 <input
                   v-model="companyInfo.email"
                   type="email"
@@ -113,9 +50,9 @@ function backupNow() {
         </div>
 
         <!-- Tax Rates -->
-        <div class="bg-white shadow rounded-lg">
+        <div class="shadow rounded-lg">
           <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+            <h3 class="text-lg leading-6 font-medium mb-4">
               Tax Rates
             </h3>
             <div class="space-y-4">
@@ -135,25 +72,46 @@ function backupNow() {
                     max="100"
                     class="w-20 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   >
-                  <span class="text-gray-500">%</span>
+                  <span class="">%</span>
                   <input
                     v-model="rate.isDefault"
                     type="radio"
                     name="defaultTax"
                     class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"
                   >
-                  <label class="text-sm text-gray-700">Default</label>
+                  <label class="text-sm ">Default</label>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
+        <!-- manage product types/units -->
+         <div class="shadow rounded-lg">
+          <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium mb-4">
+              Manage Product Types/Units
+            </h3>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <label class="block text-sm font-medium ">Product Types</label>
+                <router-link :to="{name:'ProductTypes'}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                  Manage Product Types
+                </router-link>
+              </div>
+              <div class="flex items-center justify-between">
+                <label class="block text-sm font-medium ">Product Units</label>
+                <router-link :to="{name:'ProductUnits'}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                  Manage Product Units
+                </router-link>
+              </div>
+            </div>
+          </div>
+         </div>
         <!-- Printer Settings -->
-        <div class="bg-white shadow rounded-lg">
+        <div class=" shadow rounded-lg">
           <div class="px-4 py-5 sm:p-6">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="text-lg leading-6 font-medium text-gray-900">
+              <h3 class="text-lg leading-6 font-medium ">
                 Printer Settings
               </h3>
               <button
@@ -171,11 +129,11 @@ function backupNow() {
                     type="checkbox"
                     class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
                   >
-                  <span class="ml-2 text-sm text-gray-700">Enable Printing</span>
+                  <span class="ml-2 text-sm ">Enable Printing</span>
                 </label>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700">Printer Name</label>
+                <label class="block text-sm font-medium ">Printer Name</label>
                 <input
                   v-model="printerSettings.printerName"
                   type="text"
@@ -188,10 +146,10 @@ function backupNow() {
         </div>
 
         <!-- Backup Settings -->
-        <div class="bg-white shadow rounded-lg">
+        <div class=" shadow rounded-lg">
           <div class="px-4 py-5 sm:p-6">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="text-lg leading-6 font-medium text-gray-900">
+              <h3 class="text-lg leading-6 font-medium ">
                 Backup Settings
               </h3>
               <button
@@ -209,11 +167,11 @@ function backupNow() {
                     type="checkbox"
                     class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
                   >
-                  <span class="ml-2 text-sm text-gray-700">Enable Automatic Backup</span>
+                  <span class="ml-2 text-sm ">Enable Automatic Backup</span>
                 </label>
               </div>
               <div v-if="backupSettings.autoBackup">
-                <label class="block text-sm font-medium text-gray-700">Backup Frequency</label>
+                <label class="block text-sm font-medium ">Backup Frequency</label>
                 <select
                   v-model="backupSettings.backupFrequency"
                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -241,3 +199,68 @@ function backupNow() {
     </div>
   </div>
 </template> 
+
+
+
+<script setup lang="ts">
+  import { ref } from 'vue'
+  import { useAuthStore } from '@/stores/auth.store'
+  
+  const authStore = useAuthStore()
+  
+  interface TaxRate {
+    id: string
+    name: string
+    rate: number
+    isDefault: boolean
+  }
+  
+  interface PrinterSettings {
+    enabled: boolean
+    printerName: string
+    paperSize: string
+    printCopies: number
+  }
+  
+  const companyInfo = ref({
+    name: 'My Store',
+    address: '123 Main St',
+    phone: '(555) 123-4567',
+    email: 'contact@mystore.com',
+    taxId: 'TAX-123456'
+  })
+  
+  const taxRates = ref<TaxRate[]>([
+    { id: '1', name: 'Standard Rate', rate: 20, isDefault: true },
+    { id: '2', name: 'Reduced Rate', rate: 10, isDefault: false },
+    { id: '3', name: 'Zero Rate', rate: 0, isDefault: false }
+  ])
+  
+  const printerSettings = ref<PrinterSettings>({
+    enabled: true,
+    printerName: 'Default Printer',
+    paperSize: 'A4',
+    printCopies: 1
+  })
+  
+  const backupSettings = ref({
+    autoBackup: true,
+    backupFrequency: 'daily',
+    backupLocation: 'cloud'
+  })
+  
+  function saveSettings() {
+    // Implement settings save logic
+    console.log('Saving settings...')
+  }
+  
+  function testPrinter() {
+    // Implement printer test logic
+    console.log('Testing printer...')
+  }
+  
+  function backupNow() {
+    // Implement manual backup logic
+    console.log('Starting manual backup...')
+  }
+  </script>

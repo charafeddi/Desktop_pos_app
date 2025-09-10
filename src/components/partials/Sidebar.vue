@@ -74,7 +74,8 @@
             </span>
             <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.sales') }}</span>
           </router-link>
-        </li>        
+        </li> 
+               
         <li>
           <router-link
             to="/category"
