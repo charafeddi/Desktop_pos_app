@@ -2,65 +2,105 @@
     <div class="menu-bar">
         <ul class="menu-list">
             <li class="menu-item" @click="toggleDropdown('file')">
-                File 
+                {{ t('menu.file') }} 
                 <ul class="dropDown" v-if="activeDropdown === 'file'">
-                    <li class="item-dorpdown">New</li>
-                    <li class="item-dorpdown">Open</li>
-                    <li class="item-dorpdown">Save</li>
-                    <li class="item-dorpdown">Save As</li>
-                    <li class="item-dorpdown">Exit</li>
+                    <li class="item-dropdown">{{ t('menu.new') }}</li>
+                    <li class="item-dropdown">{{ t('menu.open') }}</li>
+                    <li class="item-dropdown">{{ t('menu.save') }}</li>
+                    <li class="item-dropdown">{{ t('menu.save_as') }}</li>
+                    <li class="item-dropdown">{{ t('menu.exit') }}</li>
                 </ul>
             </li>
             <li class="menu-item" @click="toggleDropdown('edit')">
-                Edit
+                {{ t('menu.edit') }}
                 <ul class="dropDown" v-if="activeDropdown === 'edit'">
-                    <li class="item-dorpdown">Cut</li>
-                    <li class="item-dorpdown">Copy</li>
-                    <li class="item-dorpdown">Paste</li>
+                    <li class="item-dropdown">{{ t('menu.cut') }}</li>
+                    <li class="item-dropdown">{{ t('menu.copy') }}</li>
+                    <li class="item-dropdown">{{ t('menu.paste') }}</li>
                 </ul>
             </li>
             <li class="menu-item" @click="toggleDropdown('view')">
-                View
-                <ul class="dropDown" v-if="activeDropdown === 'view'">
-                    <li class="item-dorpdown">Toolbar</li>
-                    <li class="item-dorpdown">Language</li>
-                    <li class="item-dorpdown">Status Bar</li>
+                {{ t('menu.view') }}
+                <ul class="dropDown" v-if="activeDropdown === 'view' || activeDropdown === 'language'">
+                    <li class="item-dropdown">{{ t('menu.toolbar') }}</li>
+                    <li class="menu-item submenu-item" @click.stop="toggleDropdown('language')">
+                        {{ t('menu.language') }}
+                        <svg v-if="activeDropdown === 'language'" class="inline ml-1 arrow-down" width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
+                            <path d="M0.646447 2.64645C0.451184 2.84171 0.451184 3.15829 0.646447 3.35355L3.81802 6.52513C3.82669 6.53379 3.83592 6.54181 3.84562 6.54915C3.86101 6.56051 3.87787 6.57067 3.89618 6.57907C3.93289 6.59527 3.97341 6.60659 4.01661 6.61176C4.02549 6.61305 4.03448 6.6137 4.04355 6.6137C4.05468 6.6137 4.06571 6.61289 4.07659 6.61125C4.12408 6.60395 4.16807 6.58873 4.20615 6.56667L7.17701 4.88873C7.37794 4.76044 7.42537 4.48425 7.29708 4.28332C7.16879 4.08239 6.89260 4.03495 6.69167 4.16324L4.5 5.46602L2.30833 4.16324C2.10740 4.03495 1.83121 4.08239 1.70292 4.28332C1.57463 4.48425 1.62206 4.76044 1.82299 4.88873L4.79385 6.56667C4.83193 6.58873 4.87592 6.60395 4.92341 6.61125C4.91404 6.61289 4.90481 6.6137 4.89587 6.6137Z"/>
+                        </svg>
+                        <svg v-else class="inline ml-1 arrow-right" width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
+                            <path d="M3.35355 0.646447C3.15829 0.451184 2.84171 0.451184 2.64645 0.646447C2.45118 0.84171 2.45118 1.15829 2.64645 1.35355L4.29289 3L2.64645 4.64645C2.45118 4.84171 2.45118 5.15829 2.64645 5.35355C2.84171 5.54882 3.15829 5.54882 3.35355 5.35355L6.70711 2L3.35355 0.646447ZM7.35355 2.64645C7.15829 2.45118 6.84171 2.45118 6.64645 2.64645L3.29289 6L0.853553 8.43934C0.65829 8.6346 0.658291 8.95118 0.853553 9.14645C1.04882 9.34171 1.3654 9.34171 1.56066 9.14645L3.64645 7.06066L5.73223 9.14645C5.92749 9.34171 6.24407 9.34171 6.43933 9.14645C6.6346 8.95118 6.6346 8.6346 6.43933 8.43934L4.35355 6.35355L7.35355 3.35355C7.54882 3.15829 7.54882 2.84171 7.35355 2.64645Z"/>
+                        </svg>
+                        <ul class="dropDown language-dropdown" v-if="activeDropdown === 'language'">
+                            <li class="item-dropdown" @click="changeLanguage('en')" :class="{ active: currentLocale === 'en' }">
+                                {{ t('menu.english') }}
+                            </li>
+                            <li class="item-dropdown" @click="changeLanguage('fr')" :class="{ active: currentLocale === 'fr' }">
+                                {{ t('menu.french') }}
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="item-dropdown">{{ t('menu.status_bar') }}</li>
                 </ul>
             </li>
             <li class="menu-item" @click="toggleDropdown('help')">
-                Help
+                {{ t('menu.help') }}
                 <ul class="dropDown" v-if="activeDropdown === 'help'">
-                    <li class="item-dorpdown">About</li>
-                    <li class="item-dorpdown">Documentation</li>
+                    <li class="item-dropdown">{{ t('menu.about') }}</li>
+                    <li class="item-dropdown">{{ t('menu.documentation') }}</li>
                 </ul>
             </li>
         </ul>
     </div>
 </template>
-<script>
-export default {
-    data() {
-        return {
-            activeDropdown: null
-        }
-    },
-    methods: {
-        toggleDropdown(dropdown) {
-            this.activeDropdown = this.activeDropdown === dropdown ? null : dropdown;
-        },
-        closeDropdownOnClickOutside(event) {
-            if (!event.target.closest('.menu-item')) {
-                this.activeDropdown = null;
-            }
-        }
-    },
-    mounted() {
-        document.addEventListener('click', this.closeDropdownOnClickOutside);
-    },
-    beforeUnmount() {
-        document.removeEventListener('click', this.closeDropdownOnClickOutside);
+<script setup>
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t, locale } = useI18n()
+
+const activeDropdown = ref(null)
+const currentLocale = ref(locale.value)
+
+const toggleDropdown = (dropdown) => {
+    if (dropdown === 'language') {
+        // For language dropdown, just toggle it (parent view dropdown remains open)
+        activeDropdown.value = activeDropdown.value === 'language' ? 'view' : 'language'
+    } else {
+        activeDropdown.value = activeDropdown.value === dropdown ? null : dropdown
     }
 }
+
+const changeLanguage = (lang) => {
+    locale.value = lang
+    currentLocale.value = lang
+    activeDropdown.value = null // Close language dropdown after selection
+    // Store language preference in localStorage
+    localStorage.setItem('language', lang)
+}
+
+// Memoize selector for better performance
+const MENU_SELECTORS = '.menu-bar, .menu-list, .menu-item, .dropDown'
+
+const closeDropdownOnClickOutside = (event) => {
+    if (!event.target.closest(MENU_SELECTORS)) {
+        activeDropdown.value = null
+    }
+}
+
+onMounted(() => {
+    // Load saved language preference once
+    const savedLang = localStorage.getItem('language')
+    if (savedLang && ['en', 'fr'].includes(savedLang)) {
+        locale.value = savedLang
+        currentLocale.value = savedLang
+    }
+    document.addEventListener('click', closeDropdownOnClickOutside, { passive: true })
+})
+
+onBeforeUnmount(() => {
+    document.removeEventListener('click', closeDropdownOnClickOutside)
+})
 </script>
 <style lang="css">
     .menu-bar {
@@ -91,7 +131,7 @@ export default {
         transition: background 0.2s;
     }
     .menu-item:hover {
-       background: #424242;
+       color: #424242;
     }
 
     .dropDown {
@@ -108,6 +148,29 @@ export default {
         z-index: 1001;
     }
 
+    /* Submenu item styling */
+    .submenu-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    /* Language submenu dropdown */
+    .submenu-item .dropDown,
+    .language-dropdown {
+        left: 100%;
+        top: 0;
+        margin-left: 1px;
+        z-index: 1002;
+        min-width: 120px;
+    }
+
+    .language-dropdown {
+        background: #2a2a2a;
+        border: 2px solid transparent;
+    }
+
     .item-dropdown {
         padding: 8px 12px;
         cursor: pointer;
@@ -118,4 +181,26 @@ export default {
     .item-dropdown:hover {
         background: #333333;
     }
+
+    .item-dropdown.active {
+        background: #4a90e2;
+        color: white;
+    }
+
+    .item-dropdown.active:hover {
+        background: #357abd;
+    }
+
+    .arrow-down, .arrow-right {
+        transition: transform 0.2s;
+    }
+
+    .menu-item .arrow-down {
+        transform: rotate(90deg);
+    }
+
+    .menu-item .arrow-right {
+        transform: rotate(0deg);
+    }
+
 </style>

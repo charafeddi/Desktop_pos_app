@@ -294,6 +294,7 @@ const handleSubmit = async () => {
         } else {
             await productUnitStore.create(cleanData);
         }
+        await productUnitStore.fetchProductUnits();
         closeForm();
     } catch (error) {
         console.error('Error saving product unit:', error);
@@ -307,6 +308,7 @@ const deleteProductUnit = async (id) => {
     if (confirm('Are you sure you want to delete this product unit?')) {
         try {
             await productUnitStore.delete(id);
+            await productUnitStore.fetchProductUnits();
         } catch (error) {
             console.error('Error deleting product unit:', error);
             alert('Error deleting product unit. Please try again.');

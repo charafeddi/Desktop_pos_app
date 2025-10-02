@@ -57,7 +57,12 @@ export const useSupplierStore = defineStore('supplier', {
         console.log('Creating supplier with data:', supplierData);
         const newSupplier = await window.electronAPI.suppliers.create(supplierData);
         console.log('Supplier created successfully:', newSupplier);
-        this.suppliers.push(newSupplier);
+        // Ensure list reflects server truth immediately
+        if (newSupplier && typeof newSupplier === 'object') {
+          this.suppliers = [newSupplier, ...this.suppliers];
+        } else {
+          await this.fetchSuppliers();
+        }
         return newSupplier;
       } catch (error: any) {
         console.error('Error creating supplier:', error);
@@ -72,9 +77,16 @@ export const useSupplierStore = defineStore('supplier', {
       this.error = null;
       try {
         const result = await window.electronAPI.suppliers.update(id, supplierData);
-        const index = this.suppliers.findIndex(sup => sup.id === id);
+        const index = this.suppliers.findIndex(sup => String(sup.id) === String(id));
         if (index !== -1) {
-          this.suppliers[index] = result;
+          if (result && typeof result === 'object') {
+            // Use splice to replace item for guaranteed reactivity
+            const next = [...this.suppliers];
+            next.splice(index, 1, result);
+            this.suppliers = next;
+          } else {
+            await this.fetchSuppliers();
+          }
         }
         return result;
       } catch (error: any) {
@@ -89,7 +101,7 @@ export const useSupplierStore = defineStore('supplier', {
       this.error = null;
       try {
         await window.electronAPI.suppliers.delete(id);
-        this.suppliers = this.suppliers.filter(sup => sup.id !== id);
+        this.suppliers = this.suppliers.filter(sup => String(sup.id) !== String(id));
       } catch (error: any) {
         this.error = error?.message || 'Failed to delete supplier';
         throw error;

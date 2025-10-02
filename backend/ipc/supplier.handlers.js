@@ -40,7 +40,9 @@ ipcMain.handle('create-supplier', async (event, supplierData) => {
 ipcMain.handle('update-supplier', async (event, id, supplierData) => {
     try {
         await Supplier.update(id, supplierData);
-        return { message: 'Supplier updated successfully' };
+        // Return the updated supplier row so frontend state can update reactively
+        const updated = await Supplier.findById(id);
+        return updated;
     } catch (error) {
         throw new Error(error.message);
     }

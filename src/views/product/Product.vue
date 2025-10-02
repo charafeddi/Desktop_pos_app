@@ -15,6 +15,45 @@
                     <span class="material-icons-outlined">filter_alt</span> 
                     {{ t('product.filter') }}
                 </button>
+                <div class="relative">
+                    <button
+                        @click="showExportDropdown = !showExportDropdown"
+                        class="btn btn-secondary rounded-lg px-4 py-2 hover:bg-gray-500 flex items-center"
+                    >
+                        <span class="material-icons-outlined">download</span>
+                        Export
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Export Dropdown -->
+                    <div
+                        v-if="showExportDropdown"
+                        class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+                    >
+                        <div class="py-1">
+                            <button
+                                @click="exportProductsData('csv'); showExportDropdown = false"
+                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Export as CSV
+                            </button>
+                            <button
+                                @click="exportProductsData('pdf'); showExportDropdown = false"
+                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                </svg>
+                                Export as PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <button @click="showAddForm = true" class="btn btn-primary bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700">
                     <span class="material-icons-outlined">
                         add_circle
@@ -45,7 +84,7 @@
                     <div class="rounded-lg shadow p-4 border border-gray-200">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm">{{ t('product.low_stock') }}</p>
+                                <p class="text-sm">{{t('product.low_stock')}}</p>
                                 <h3 class="text-2xl font-bold">{{productsAboutToFinish.length}}</h3>
                             </div>
                             <div class="bg-red-100 p-3 rounded-full">
@@ -58,8 +97,8 @@
                     <div class="rounded-lg shadow p-4 border border-gray-200">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm">{{ t('product.categories') }}</p>
-                                <h3 class="text-2xl font-bold"> {{categories.length }} </h3>
+                                <p class="text-sm">{{t('product.categories')}}</p>
+                                <h3 class="text-2xl font-bold">{{categories.length }}</h3>
                             </div>
                             <div class="bg-green-100 p-3 rounded-full">
                                 <span class="material-icons-outlined text-green-600 text-xl">
@@ -72,7 +111,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm">{{ t('product.total_value') }}</p>
-                                <h3 class="text-2xl font-bold">$45,678</h3>
+                                <h3 class="text-2xl font-bold">{{ totalInventoryValue }}</h3>
                             </div>
                             <div class="bg-purple-100 p-3 rounded-full">
                                 <span class="material-icons-outlined text-purple-600 text-xl">
@@ -144,7 +183,12 @@
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0 h-10 w-10">
-                                            <img class="h-10 w-10 rounded-full" :src="product.image" :alt="product.name">
+                                            <div v-if="product.image">
+                                                <img class="h-10 w-10 rounded-full" :src="product.image" :alt="product.name">
+                                            </div>
+                                            <div v-else>
+                                                <img class="h-10 w-10 rounded-full" src="../../assets/img/product-no-image.png" alt="image">
+                                            </div>
                                         </div>
                                         <div class="ml-4">
                                             <div class="text-sm font-medium text-gray-300">{{ product.name }}</div>
@@ -153,19 +197,19 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-300">{{ product.category }}</div>
+                                    <div class="text-sm text-gray-300">{{ product.category_name }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-300">{{ product.stock }}</div>
-                                    <div class="text-sm text-gray-400">{{ t('product.min_stock') }}: {{ product.minStock }}</div>
+                                    <div class="text-sm text-gray-300">{{ product.current_stock }}</div>
+                                    <div class="text-sm text-gray-400">{{ t('product.min_stock') }}: {{ product.min_stock_level }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-300">{{ t('product.price') }}: ${{ product.price }}</div>
-                                    <div class="text-sm text-gray-400">{{ t('product.cost') }}: ${{ product.cost }}</div>
+                                    <div class="text-sm text-gray-300">{{ t('product.price') }}: ${{ product.selling_price }}</div>
+                                    <div class="text-sm text-gray-400">{{ t('product.cost') }}: ${{ product.purchase_price }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span :class="getStatusClass(product.status)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
-                                        {{ product.status }}
+                                    <span :class="product.is_active ? 'text-green-500' : 'text-red-500'" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                                        {{ product.is_active? 'Active' : 'Not Active' }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -238,6 +282,7 @@
     import { useI18n } from 'vue-i18n';
     import { useCategoryStore } from '../../stores/category.store';
     import { useProductStore } from '../../stores/product.store';
+    import { exportProducts } from '@/utils/exportUtils';
     const { t } = useI18n();
     const ProductStore = useProductStore();
     const categoryStore = useCategoryStore();
@@ -250,6 +295,24 @@
     const products = computed(() => Array.isArray(ProductStore.getProducts) ? ProductStore.getProducts : []);
     const productsAboutToFinish = computed(() => Array.isArray(ProductStore.getProductAboutTofinish) ? ProductStore.getProductAboutTofinish: []);
 
+    // Calculate total inventory value (stock * price)
+    const totalInventoryValue = computed(() => {
+        if (!Array.isArray(products.value) || products.value.length === 0) {
+            return '$0.00'
+        }
+        
+        const total = products.value.reduce((sum, product) => {
+            const stock = Number(product.current_stock) || 0
+            const price = Number(product.selling_price) || 0
+            return sum + (stock * price)
+        }, 0)
+        
+        return total.toLocaleString('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2
+        })
+    });
 
     const categories = computed(() => categoryStore.getCategories || []);
     
@@ -292,25 +355,12 @@
     const totalPages = computed(() => Math.max(1, Math.ceil((totalItems.value || 0) / itemsPerPage)));
     const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage);
     const endIndex = computed(() => Math.min(startIndex.value + itemsPerPage, totalItems.value));
-    
-    // Methods
-    const getStatusClass = (status) => {
-        switch (status) {
-            case 'active':
-                return 'bg-green-100 text-green-800';
-            case 'inactive':
-                return 'bg-gray-100 text-gray-800';
-            case 'out_of_stock':
-                return 'bg-red-100 text-red-800';
-            default:
-                return 'bg-gray-100 text-gray-800';
-        }
-    };
-    
+        
     // Form state
     const showAddForm = ref(false);
     const showEditForm = ref(false);
     const selectedProduct = ref(null);
+    const showExportDropdown = ref(false);
     
     // Form methods
     const closeForm = () => {
@@ -319,22 +369,20 @@
         selectedProduct.value = null;
     };
     
-    const handleFormSubmit = (formData) => {
-        if (showEditForm.value) {
-            // Update existing product
-            const index = products.value.findIndex(p => p.id === selectedProduct.value.id);
-            if (index !== -1) {
-                products.value[index] = { ...products.value[index], ...formData };
+    const handleFormSubmit = async (formData) => {
+        try {
+            if (showEditForm.value && selectedProduct.value?.id) {
+                await window.electronAPI?.products.update(selectedProduct.value.id, formData);
+            } else {
+                await window.electronAPI?.products.create(formData);
             }
-        } else {
-            // Add new product
-            const newProduct = {
-                id: products.value.length + 1,
-                ...formData
-            };
-            products.value.push(newProduct);
+            // Refresh products from DB to ensure persistence
+            await ProductStore.getAllProducts?.();
+        } catch (e) {
+            console.error('Failed to save product', e);
+        } finally {
+            closeForm();
         }
-        closeForm();
     };
     
     // Edit product method
@@ -350,11 +398,23 @@
         }
     };
 
-    
+    // Export products
+    const exportProductsData = async (format) => {
+        try {
+            const success = await exportProducts(products.value, format);
+            if (success) {
+                alert(`Products data exported successfully as ${format.toUpperCase()}`);
+            } else {
+                alert('Failed to export products data');
+            }
+        } catch (error) {
+            console.error('Export error:', error);
+            alert('Error exporting products data');
+        }
+    };
+
+    console.log(filteredProducts.value);
 </script>
-
-
-
 <style scoped>
 .btn {
     @apply transition-colors duration-200;

@@ -269,6 +269,7 @@ const handleSubmit = async () => {
         } else {
             await productTypeStore.create(cleanData);
         }
+        await productTypeStore.fetchProductTypes();
         closeForm();
     } catch (error) {
         console.error('Error saving product type:', error);
@@ -282,6 +283,7 @@ const deleteProductType = async (id) => {
     if (confirm('Are you sure you want to delete this product type?')) {
         try {
             await productTypeStore.delete(id);
+            await productTypeStore.fetchProductTypes();
         } catch (error) {
             console.error('Error deleting product type:', error);
             alert('Error deleting product type. Please try again.');

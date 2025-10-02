@@ -1,61 +1,74 @@
 const { ipcMain } = require('electron');
-const Client = require('../models/client.model');
+const Customer = require('../models/client.model');
 
 function setupClientHandlers() {
-// Get all clients
-ipcMain.handle('get-clients', async (event) => {
+// Get all customers
+ipcMain.handle('get-customers', async (event) => {
     try {
-        const clients = await Client.getAll();
-        return clients;
+        const customers = await Customer.getAll();
+        return customers;
     } catch (error) {
         throw new Error(error.message);
     }
 });
 
-// Get client by ID
-ipcMain.handle('get-client-by-id', async (event, id) => {
+// Get customer by ID
+ipcMain.handle('get-customer-by-id', async (event, id) => {
     try {
-        const client = await Client.getById(id);
-        if (!client) {
-            return { message: 'Client not found' };
+        const customer = await Customer.findById(id);
+        if (!customer) {
+            return { message: 'Customer not found' };
         } else {
-            return client;
+            return customer;
         }
     } catch (error) {
         throw new Error(error.message);
     }
 });
 
-// Create new client
-ipcMain.handle('create-client', async (event, clientData) => {
+// Create new customer
+ipcMain.handle('create-customer', async (event, customerData) => {
     try {
-        const clientId = await Client.create(clientData);
-        return { id: clientId, ...clientData };
+        const customerId = await Customer.create(customerData);
+        return { id: customerId, ...customerData };
     } catch (error) {
         throw new Error(error.message);
     }
 });
 
-// Update client
-ipcMain.handle('update-client', async (event, id, clientData) => {
+// Update customer
+ipcMain.handle('update-customer', async (event, id, customerData) => {
     try {
-        await Client.update(id, clientData);
-        return { message: 'Client updated successfully' };
+        await Customer.update(id, customerData);
+        // Return the updated customer row so frontend state can update reactively
+        const updated = await Customer.findById(id);
+        return updated;
     } catch (error) {
         throw new Error(error.message);
     }
 });
 
-// Delete client
-ipcMain.handle('delete-client', async (event, id) => {
+// Delete customer
+ipcMain.handle('delete-customer', async (event, id) => {
     try {
-        await Client.delete(id);
-        return { message: 'Client deleted successfully' };
+        await Customer.delete(id);
+        return { message: 'Customer deleted successfully' };
     } catch (error) {
         throw new Error(error.message);
     }
 });
+
+// Toggle customer status
+ipcMain.handle('toggle-customer-status', async (event, id) => {
+    try {
+        await Customer.toggleStatus(id);
+        const updated = await Customer.findById(id);
+        return updated;
+    } catch (error) {
+        throw new Error(error.message);
+    }
+}); 
 
 }
 
-module.exports = setupClientHandlers; 
+module.exports = setupClientHandlers;

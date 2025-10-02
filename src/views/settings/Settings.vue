@@ -115,10 +115,10 @@
                 Printer Settings
               </h3>
               <button
-                @click="testPrinter"
+                @click="refreshPrinters"
                 class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
               >
-                Test Printer
+                Refresh
               </button>
             </div>
             <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -133,14 +133,32 @@
                 </label>
               </div>
               <div>
-                <label class="block text-sm font-medium ">Printer Name</label>
-                <input
+                <label class="block text-sm font-medium ">Printer</label>
+                <select
                   v-model="printerSettings.printerName"
-                  type="text"
                   :disabled="!printerSettings.enabled"
                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 >
+                  <option value="" disabled>Select a printer</option>
+                  <option
+                    v-for="p in printers"
+                    :key="p.name"
+                    :value="p.name"
+                  >
+                    {{ p.displayName || p.name }}<span v-if="p.isDefault"> (Default)</span>
+                  </option>
+                </select>
+                <p v-if="printers.length === 0" class="text-sm mt-2">No printers found.</p>
               </div>
+            </div>
+            <div class="mt-4">
+              <button
+                @click="testPrinter"
+                :disabled="!printerSettings.enabled || !printerSettings.printerName"
+                class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50"
+              >
+                Test Print
+              </button>
             </div>
           </div>
         </div>
@@ -152,12 +170,21 @@
               <h3 class="text-lg leading-6 font-medium ">
                 Backup Settings
               </h3>
-              <button
-                @click="backupNow"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-              >
-                Backup Now
-              </button>
+              <div class="space-x-2">
+                <button
+                  @click="chooseBackupFolder"
+                  class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800"
+                >
+                  Choose Folder
+                </button>
+                <button
+                  @click="backupNow"
+                  :disabled="!backupFolder"
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  Backup Now
+                </button>
+              </div>
             </div>
             <div class="space-y-4">
               <div>
@@ -172,15 +199,21 @@
               </div>
               <div v-if="backupSettings.autoBackup">
                 <label class="block text-sm font-medium ">Backup Frequency</label>
-                <select
-                  v-model="backupSettings.backupFrequency"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                >
-                  <option value="hourly">Hourly</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                </select>
+                <div class="mt-1">
+                  <span class="text-sm">Weekly backups will run automatically.</span>
+                </div>
+                <div class="mt-2 flex items-center space-x-2">
+                  <button
+                    @click="enableWeeklyBackup"
+                    :disabled="!backupFolder"
+                    class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  >Enable Weekly</button>
+                  <button
+                    @click="disableWeeklyBackup"
+                    class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >Disable</button>
+                </div>
+                <div v-if="nextBackup" class="text-xs mt-2">Next backup: {{ nextBackup }}</div>
               </div>
             </div>
           </div>
@@ -203,24 +236,12 @@
 
 
 <script setup lang="ts">
-  import { ref } from 'vue'
+  import { ref, onMounted } from 'vue'
   import { useAuthStore } from '@/stores/auth.store'
   
   const authStore = useAuthStore()
   
-  interface TaxRate {
-    id: string
-    name: string
-    rate: number
-    isDefault: boolean
-  }
-  
-  interface PrinterSettings {
-    enabled: boolean
-    printerName: string
-    paperSize: string
-    printCopies: number
-  }
+  // Types removed to avoid linter issues parsing TS in Vue SFC
   
   const companyInfo = ref({
     name: 'My Store',
@@ -230,24 +251,28 @@
     taxId: 'TAX-123456'
   })
   
-  const taxRates = ref<TaxRate[]>([
+  const taxRates = ref([
     { id: '1', name: 'Standard Rate', rate: 20, isDefault: true },
     { id: '2', name: 'Reduced Rate', rate: 10, isDefault: false },
     { id: '3', name: 'Zero Rate', rate: 0, isDefault: false }
   ])
   
-  const printerSettings = ref<PrinterSettings>({
+  const printerSettings = ref({
     enabled: true,
     printerName: 'Default Printer',
     paperSize: 'A4',
     printCopies: 1
   })
+
+  const printers = ref([])
   
   const backupSettings = ref({
     autoBackup: true,
-    backupFrequency: 'daily',
-    backupLocation: 'cloud'
+    backupFrequency: 'weekly',
+    backupLocation: 'local'
   })
+  const backupFolder = ref('')
+  const nextBackup = ref('')
   
   function saveSettings() {
     // Implement settings save logic
@@ -259,8 +284,46 @@
     console.log('Testing printer...')
   }
   
-  function backupNow() {
-    // Implement manual backup logic
-    console.log('Starting manual backup...')
+  async function refreshPrinters() {
+    try {
+      const list = await window.electronAPI.printers.getAll()
+      printers.value = Array.isArray(list) ? list : []
+      // If current selection no longer exists, clear it
+      if (!printers.value.some(p => p.name === printerSettings.value.printerName)) {
+        const defaultPrinter = printers.value.find(p => p.isDefault)
+        printerSettings.value.printerName = defaultPrinter?.name || ''
+      }
+    } catch (err) {
+      console.error('Failed to load printers', err)
+      printers.value = []
+    }
+  }
+
+  onMounted(() => {
+    refreshPrinters()
+  })
+  
+  async function chooseBackupFolder() {
+    const folder = await window.electronAPI.backup.chooseFolder()
+    if (folder) {
+      backupFolder.value = folder
+    }
+  }
+
+  async function backupNow() {
+    if (!backupFolder.value) return
+    const result = await window.electronAPI.backup.exportJSON(backupFolder.value)
+    console.log('Backup created:', result)
+  }
+
+  async function enableWeeklyBackup() {
+    if (!backupFolder.value) return
+    const result = await window.electronAPI.backup.scheduleWeekly(backupFolder.value)
+    nextBackup.value = result.nextRun
+  }
+
+  async function disableWeeklyBackup() {
+    await window.electronAPI.backup.cancelSchedule()
+    nextBackup.value = ''
   }
   </script>

@@ -66,7 +66,8 @@ class Supplier {
         return new Promise((resolve, reject) => {
             db.all(
                 `SELECT s.*, 
-                    (SELECT COUNT(*) FROM products WHERE supplier_id = s.id) as product_count
+                    (SELECT COUNT(*) FROM products WHERE supplier_id = s.id) as product_count,
+                    (SELECT COALESCE(SUM(purchase_price), 0) FROM products WHERE supplier_id = s.id) as total_amount_count
                 FROM suppliers s
                 ORDER BY s.name ASC`,
                 [],

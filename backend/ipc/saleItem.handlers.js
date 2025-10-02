@@ -3,7 +3,7 @@ const SaleItem = require('../models/saleItem.model');
 
 function setupSaleItemHandlers() {
 // Get all sale items
-ipcMain.handle('get-sale-items', async (event) => {
+ipcMain.handle('get-all-sale-items', async (event) => {
     try {
         const saleItems = await SaleItem.getAll();
         return saleItems;

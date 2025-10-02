@@ -85,6 +85,29 @@ export const useProductStore = defineStore('product', {
                 console.error('Error fetching products about to finish:', error)
                 return []   
             }
+        },
+        async updateProduct(id, productData) {
+            this.loading = true;
+            this.error = null;
+            try {
+                console.log('Updating product:', id, productData);
+                const updatedProduct = await window.electronAPI.products.update(id, productData);
+                console.log('Product updated:', updatedProduct);
+                
+                // Update the product in the local state
+                const index = this.products.findIndex(p => p.id === id);
+                if (index !== -1) {
+                    this.products[index] = { ...this.products[index], ...productData };
+                }
+                
+                return updatedProduct;
+            } catch (error) {
+                console.error('Error updating product:', error);
+                this.error = 'Failed to update product';
+                throw error;
+            } finally {
+                this.loading = false;
+            }
         }
     }
 }) 
