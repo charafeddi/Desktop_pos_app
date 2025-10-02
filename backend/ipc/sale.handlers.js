@@ -15,12 +15,22 @@ ipcMain.handle('get-sales', async (event) => {
 // Get sale by ID
 ipcMain.handle('get-sale-by-id', async (event, id) => {
     try {
-        const sale = await Sale.getById(id);
+        const sale = await Sale.findById(id);
         if (!sale) {
             return { message: 'Sale not found' };
         } else {
             return sale;
         }
+    } catch (error) {
+        throw new Error(error.message);
+    }
+});
+
+// Get sale items
+ipcMain.handle('get-sale-items', async (event, saleId) => {
+    try {
+        const items = await Sale.getItems(saleId);
+        return items;
     } catch (error) {
         throw new Error(error.message);
     }

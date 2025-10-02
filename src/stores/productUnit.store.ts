@@ -51,7 +51,12 @@ export const useProductUnitStore = defineStore('productUnit', {
         console.log('Creating product unit with data:', productUnitData);
         const newProductUnit = await window.electronAPI.productUnits.create(productUnitData);
         console.log('Product unit created successfully:', newProductUnit);
-        this.productUnits.push(newProductUnit);
+        if (newProductUnit && typeof newProductUnit === 'object') {
+          // Immutable prepend for reactivity
+          this.productUnits = [newProductUnit, ...this.productUnits];
+        } else {
+          await this.fetchProductUnits();
+        }
         return newProductUnit;
       } catch (error: any) {
         console.error('Error creating product unit:', error);
@@ -66,9 +71,15 @@ export const useProductUnitStore = defineStore('productUnit', {
       this.error = null;
       try {
         const result = await window.electronAPI.productUnits.update(id, productUnitData);
-        const index = this.productUnits.findIndex(pu => pu.id === id);
+        const index = this.productUnits.findIndex(pu => String(pu.id) === String(id));
         if (index !== -1) {
-          this.productUnits[index] = result;
+          if (result && typeof result === 'object') {
+            const next = [...this.productUnits];
+            next.splice(index, 1, result);
+            this.productUnits = next;
+          } else {
+            await this.fetchProductUnits();
+          }
         }
         return result;
       } catch (error: any) {
@@ -83,7 +94,7 @@ export const useProductUnitStore = defineStore('productUnit', {
       this.error = null;
       try {
         await window.electronAPI.productUnits.delete(id);
-        this.productUnits = this.productUnits.filter(pu => pu.id !== id);
+        this.productUnits = this.productUnits.filter(pu => String(pu.id) !== String(id));
       } catch (error: any) {
         this.error = error?.message || 'Failed to delete product unit';
         throw error;

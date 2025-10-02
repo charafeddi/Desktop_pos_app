@@ -94,6 +94,42 @@ const routes: RouteRecordRaw[] = [
       tilte: 'Category',
       requiresAuth: true
     }
+  },
+  {
+    path: '/supplier',
+    name: 'Supplier',
+    component: () => import('@/views/suplier/Suplier.vue'),
+    meta:{
+      title: 'Suplier',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/customers',
+    name: 'Customers',
+    component: () => import('@/views/customers/Customers.vue'),
+    meta:{
+      title: 'Customers',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/sales',
+    name: 'SalesList',
+    component: () => import('@/views/sales/SalesList.vue'),
+    meta:{
+      title: 'Sales History',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/returns',
+    name: 'Returns',
+    component: () => import('@/views/returns/Returns.vue'),
+    meta:{
+      title: 'Returns & Refunds',
+      requiresAuth: true
+    }
   }
 
 ]
@@ -114,7 +150,7 @@ router.beforeEach((to, _, next) => {
   } else if (requiresRole && !authStore.user?.role) {
     next('/') 
   } else if (requiresRole && 
-    !to.meta.requiresRole?.includes(authStore.user?.role)) {
+    !to.meta.requiresRole?.includes(authStore.user?.role || '')) {
     next('/')
   } else {
     next()

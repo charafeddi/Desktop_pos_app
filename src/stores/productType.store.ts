@@ -51,7 +51,12 @@ export const useProductTypeStore = defineStore('productType', {
         console.log('Creating product type with data:', productTypeData);
         const newProductType = await window.electronAPI.productTypes.create(productTypeData);
         console.log('Product type created successfully:', newProductType);
-        this.productTypes.push(newProductType);
+        if (newProductType && typeof newProductType === 'object') {
+          // Immutable prepend for reactivity
+          this.productTypes = [newProductType, ...this.productTypes];
+        } else {
+          await this.fetchProductTypes();
+        }
         return newProductType;
       } catch (error: any) {
         console.error('Error creating product type:', error);
@@ -66,9 +71,15 @@ export const useProductTypeStore = defineStore('productType', {
       this.error = null;
       try {
         const result = await window.electronAPI.productTypes.update(id, productTypeData);
-        const index = this.productTypes.findIndex(pt => pt.id === id);
+        const index = this.productTypes.findIndex(pt => String(pt.id) === String(id));
         if (index !== -1) {
-          this.productTypes[index] = result;
+          if (result && typeof result === 'object') {
+            const next = [...this.productTypes];
+            next.splice(index, 1, result);
+            this.productTypes = next;
+          } else {
+            await this.fetchProductTypes();
+          }
         }
         return result;
       } catch (error: any) {
@@ -83,7 +94,7 @@ export const useProductTypeStore = defineStore('productType', {
       this.error = null;
       try {
         await window.electronAPI.productTypes.delete(id);
-        this.productTypes = this.productTypes.filter(pt => pt.id !== id);
+        this.productTypes = this.productTypes.filter(pt => String(pt.id) !== String(id));
       } catch (error: any) {
         this.error = error?.message || 'Failed to delete product type';
         throw error;

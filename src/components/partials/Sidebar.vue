@@ -65,7 +65,7 @@
         </li>
         <li>
           <router-link
-            to="/reports"
+            to="/sales"
             class="nav-link"
             :class="{ 'active': $route.path === '/reports', 'icon-only': isCollapsed }"
           >
@@ -73,6 +73,18 @@
               real_estate_agent
             </span>
             <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.sales') }}</span>
+          </router-link>
+        </li>
+        <li>
+          <router-link
+            to="/returns"
+            class="nav-link"
+            :class="{ 'active': $route.path === '/returns', 'icon-only': isCollapsed }"
+          >
+            <span class="material-icons-outlined">
+              assignment_return
+            </span>
+            <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.returns') }}</span>
           </router-link>
         </li> 
                
@@ -86,6 +98,30 @@
               category
             </span>
             <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.categories') }}</span>
+          </router-link>
+        </li>
+        <li>
+          <router-link
+            :to="{name:'Supplier'}"
+            class="nav-link"
+            :class="{ 'active': $route.path === '/supplier', 'icon-only': isCollapsed }"
+          >
+            <span class="material-icons-outlined">
+              local_shipping
+            </span>
+            <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.supplier') }}</span>
+          </router-link>
+        </li>
+        <li>
+          <router-link
+            :to="{name:'Inventory'}"
+            class="nav-link"
+            :class="{ 'active': $route.path === '/inventory', 'icon-only': isCollapsed }"
+          >
+          <span class="material-icons-outlined">
+            inventory
+          </span>
+            <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.inventory') }}</span>
           </router-link>
         </li>
       </ul>
