@@ -46,8 +46,8 @@
             </a>
           </li>
           <li class="nav-item">
-            <a href="#" class="nav-link" id="dark-theme-toggle">
-              <span class="material-icons">brightness_2</span>
+            <a href="#" class="nav-link" :title="t('header.theme')" @click.prevent="toggleTheme">
+              <span class="material-icons">{{ isDarkMode ? 'light_mode' : 'dark_mode' }}</span>
             </a>
           </li>
         </ul>
@@ -87,10 +87,12 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
+import { useThemeStore } from '@/stores/theme.store'
 import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const themeStore = useThemeStore()
 const { t } = useI18n()
 
 const isDropdownOpen = ref(false)
@@ -99,6 +101,9 @@ const dropdownMenu = ref(null)
 
 // Get user from auth store
 const user = computed(() => authStore.user)
+
+// Get theme state
+const isDarkMode = computed(() => themeStore.getIsDarkMode)
 
 // Generate avatar URL based on username
 const userAvatar = computed(() => {
@@ -110,6 +115,11 @@ const userAvatar = computed(() => {
 // Toggle dropdown
 const toggleDropdown = () => {
   isDropdownOpen.value = !isDropdownOpen.value
+}
+
+// Toggle theme
+const toggleTheme = () => {
+  themeStore.toggleTheme()
 }
 
 // Handle click outside to close dropdown
@@ -126,9 +136,10 @@ const handleLogout = async () => {
   router.push('/login')
 }
 
-// Add and remove click outside listener
+// Initialize theme on mount
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  themeStore.loadTheme()
 })
 
 onUnmounted(() => {
@@ -139,7 +150,7 @@ onUnmounted(() => {
 <style>
 .page-header {
   background: transparent;
-  border-block-end: 1px solid rgba(255, 255, 255, 0.1);
+  border-block-end: 1px solid var(--color-border);
   height: 64px;
   position: relative;
   z-index: 1000;
@@ -175,13 +186,19 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   padding: 0.5rem;
-  color: #d7d7d7;
+  color: var(--color-text);
   text-decoration: none;
   transition: all 0.2s ease;
+  border-radius: 0.375rem;
+}
+
+.nav-link:hover {
+  background-color: var(--color-surface);
+  color: var(--color-primary);
 }
 
 .nav-link.active .material-icons-outlined{
-  color: #535bf2;
+  color: var(--color-primary);
 }
 
 .nav-profile {
@@ -204,21 +221,22 @@ onUnmounted(() => {
 .navbar-search input {
   padding-block: 0.5rem;
   padding-inline: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border);
   border-radius: 0.375rem;
-  background: rgba(255, 255, 255, 0.05);
-  color: #e1e1e1;
+  background: var(--color-surface);
+  color: var(--color-text);
   outline: none;
   transition: all 0.2s ease;
 }
 
 .navbar-search input:focus {
-  border-color: #f5f6f7;
-  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 3px rgba(83, 91, 242, 0.1);
 }
 
 .navbar-search input::placeholder {
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 /* Dropdown styles */
@@ -226,8 +244,8 @@ onUnmounted(() => {
   position: absolute;
   top: calc(100% + 0.5rem);
   inset-inline-end: 0px;
-  background: #2a2a2a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 0.375rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
   min-width: 200px;
@@ -247,9 +265,9 @@ onUnmounted(() => {
   inset-inline-end: 24px;
   width: 12px;
   height: 12px;
-  background: #2a2a2a;
-  border-inline-start: 1px solid rgba(255, 255, 255, 0.1);
-  border-block-start: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-surface);
+  border-inline-start: 1px solid var(--color-border);
+  border-block-start: 1px solid var(--color-border);
   transform: rotate(45deg);
 }
 
@@ -264,7 +282,7 @@ onUnmounted(() => {
   align-items: center;
   padding-block: 0.75rem;
   padding-inline: 1rem;
-  color: #d7d7d7;
+  color: var(--color-text);
   text-decoration: none;
   transition: all 0.2s ease;
   gap: 0.75rem;
@@ -273,16 +291,16 @@ onUnmounted(() => {
 .dropdown-item:hover,
 .dropdown-item.active {
   background-color: rgba(83, 91, 242, 0.1);
-  color: #535bf2;
+  color: var(--color-primary);
 }
 
 .dropdown-item:hover .material-icons,
 .dropdown-item.active .material-icons-outlined{
-  color: #535bf2;
+  color: var(--color-primary);
 }
 
 .dropdown-divider {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--color-border);
   margin: 0.5rem 0;
 }
 
@@ -295,12 +313,12 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   line-height: 18px;
-  color: #d7d7d7;
+  color: var(--color-text);
   transition: color 0.2s ease;
 }
 
 .nav-link:hover .material-icons-outlined{
-  color: #535bf2;
+  color: var(--color-primary);
 }
 
 /* Utility icons specific size */
@@ -335,7 +353,7 @@ onUnmounted(() => {
 }
 
 .badge-info {
-  background-color: #3b82f6;
+  background-color: var(--color-info);
   color: white;
 }
 

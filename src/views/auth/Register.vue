@@ -84,9 +84,13 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import illustration from '../../assets/img/Sign up-cuate.png'
 
+// Composables
 const router = useRouter()
+
+// Stores
 const authStore = useAuthStore()
 
+// Reactive Variables
 const formData = reactive({
   name: '',
   email: '',
@@ -132,6 +136,7 @@ const themes = [
   }
 ]
 
+// Methods
 function setTheme(theme) {
   const root = document.querySelector(":root")
   if (root) {
@@ -154,6 +159,7 @@ function displayThemeButtons() {
   }
 }
 
+// Lifecycle Hooks
 onMounted(() => {
   displayThemeButtons()
 })

@@ -163,64 +163,15 @@
           </div>
         </div>
 
-        <!-- Backup Settings -->
-        <div class=" shadow rounded-lg">
-          <div class="px-4 py-5 sm:p-6">
-            <div class="flex justify-between items-center mb-4">
-              <h3 class="text-lg leading-6 font-medium ">
-                Backup Settings
-              </h3>
-              <div class="space-x-2">
-                <button
-                  @click="chooseBackupFolder"
-                  class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800"
-                >
-                  Choose Folder
-                </button>
-                <button
-                  @click="backupNow"
-                  :disabled="!backupFolder"
-                  class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  Backup Now
-                </button>
-              </div>
-            </div>
-            <div class="space-y-4">
-              <div>
-                <label class="flex items-center">
-                  <input
-                    v-model="backupSettings.autoBackup"
-                    type="checkbox"
-                    class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
-                  >
-                  <span class="ml-2 text-sm ">Enable Automatic Backup</span>
-                </label>
-              </div>
-              <div v-if="backupSettings.autoBackup">
-                <label class="block text-sm font-medium ">Backup Frequency</label>
-                <div class="mt-1">
-                  <span class="text-sm">Weekly backups will run automatically.</span>
-                </div>
-                <div class="mt-2 flex items-center space-x-2">
-                  <button
-                    @click="enableWeeklyBackup"
-                    :disabled="!backupFolder"
-                    class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                  >Enable Weekly</button>
-                  <button
-                    @click="disableWeeklyBackup"
-                    class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                  >Disable</button>
-                </div>
-                <div v-if="nextBackup" class="text-xs mt-2">Next backup: {{ nextBackup }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <!-- Save Button -->
-        <div class="flex justify-end">
+        <div class="flex justify-between">
+          <button
+            @click="resetToDefaults"
+            class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+          >
+            Reset to Defaults
+          </button>
           <button
             @click="saveSettings"
             class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
@@ -228,60 +179,189 @@
             Save Settings
           </button>
         </div>
+
+        <!-- Backup & Restore Settings -->
+        <div class="shadow rounded-lg">
+          <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium mb-4">
+              Database Backup & Restore
+            </h3>
+            
+            <div class="space-y-4">
+              <!-- Backup Folder Selection -->
+              <div>
+                <label class="block text-sm font-medium mb-2">Backup Folder:</label>
+                <div class="flex gap-2">
+                  <input
+                    v-model="backupFolder"
+                    type="text"
+                    readonly
+                    class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="No folder selected"
+                  >
+                  <button
+                    @click="chooseBackupFolder"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    Choose Folder
+                  </button>
+                </div>
+              </div>
+
+              <!-- Backup Options -->
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <button
+                    @click="backupNow"
+                    :disabled="!backupFolder"
+                    class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400"
+                  >
+                    Create Backup Now
+                  </button>
+                </div>
+                <div>
+                  <button
+                    @click="enableDailyBackup"
+                    :disabled="!backupFolder"
+                    class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+                  >
+                    🕛 Enable Daily Backups
+                  </button>
+                </div>
+                <div>
+                  <button
+                    @click="enableWeeklyBackup"
+                    :disabled="!backupFolder"
+                    class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+                  >
+                    📅 Enable Weekly Backups
+                  </button>
+                </div>
+              </div>
+
+              <!-- Schedule Status -->
+              <div v-if="nextBackup" class="bg-gray-50 p-4 rounded-md">
+                <h4 class="font-medium text-gray-900 mb-2">Backup Schedule Status:</h4>
+                <p class="text-sm text-gray-600 mb-2">Next backup: {{ formatDateTime(nextBackup) }}</p>
+                <div class="flex gap-2">
+                  <button
+                    @click="cancelSchedule"
+                    class="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
+                  >
+                    Cancel Schedule
+                  </button>
+                </div>
+              </div>
+
+              <!-- Restore Section -->
+              <div class="border-t pt-4">
+                <h4 class="font-medium  mb-2">Restore Database:</h4>
+                <p class="text-xs text-gray-200 mb-3">
+                  ⚠️ Warning: This will completely replace your current database with the backup data!
+                </p>
+                <div class="flex gap-2">
+                  <button
+                    @click="chooseRestoreFile"
+                    class="px-4 py-2 text-sm bg-orange-600 text-white rounded-md hover:bg-orange-700"
+                  >
+                    Choose Backup File
+                  </button>
+                  <button
+                    v-if="selectedRestoreFile"
+                    @click="restoreDatabase"
+                    class="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+                  >
+                    🚨 Restore Database
+                  </button>
+                </div>
+                
+                <div v-if="selectedRestoreFile" class="mt-2 text-sm text-gray-600">
+                  Selected: {{ selectedRestoreFile }}
+                </div>
+              </div>
+
+              <!-- Status Messages -->
+              <div v-if="backupMessage" class="mt-4 p-3 rounded-md" :class="backupMessageType === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'">
+                {{ backupMessage }}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template> 
 
-
-
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue'
-  import { useAuthStore } from '@/stores/auth.store'
-  
-  const authStore = useAuthStore()
-  
-  // Types removed to avoid linter issues parsing TS in Vue SFC
-  
-  const companyInfo = ref({
-    name: 'My Store',
-    address: '123 Main St',
-    phone: '(555) 123-4567',
-    email: 'contact@mystore.com',
-    taxId: 'TAX-123456'
-  })
-  
-  const taxRates = ref([
-    { id: '1', name: 'Standard Rate', rate: 20, isDefault: true },
-    { id: '2', name: 'Reduced Rate', rate: 10, isDefault: false },
-    { id: '3', name: 'Zero Rate', rate: 0, isDefault: false }
-  ])
-  
-  const printerSettings = ref({
-    enabled: true,
-    printerName: 'Default Printer',
-    paperSize: 'A4',
-    printCopies: 1
-  })
+import { ref, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth.store'
+import { useSettingsStore } from '@/stores/settings.store'
 
-  const printers = ref([])
+// Stores
+const authStore = useAuthStore()
+const settingsStore = useSettingsStore()
+// Reactive Variables - Settings from Store
+const companyInfo = ref(settingsStore.getCompanyInfo)
+const taxRates = ref(settingsStore.getTaxRates)
+const printerSettings = ref(settingsStore.getPrinterSettings)
+const backupSettings = ref(settingsStore.getBackupSettings)
+const backupFolder = ref(settingsStore.getBackupFolder)
+
+// Additional Variables
+const printers = ref([])
+const nextBackup = ref('')
+const selectedRestoreFile = ref('')
+const selectedRestoreFilePath = ref('')
+const backupMessage = ref('')
+const backupMessageType = ref('success')
+// Methods
+function saveSettings() {
+    try {
+      // Update store with current values
+      settingsStore.updateCompanyInfo(companyInfo.value)
+      settingsStore.updateTaxRates(taxRates.value)
+      settingsStore.updatePrinterSettings(printerSettings.value)
+      settingsStore.updateBackupSettings(backupSettings.value)
+      settingsStore.setBackupFolder(backupFolder.value)
+      
+      // Show success message
+      backupMessage.value = 'Settings saved successfully!'
+      backupMessageType.value = 'success'
+      
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        backupMessage.value = ''
+      }, 3000)
+      
+    } catch (error) {
+      backupMessage.value = 'Failed to save settings'
+      backupMessageType.value = 'error'
+      console.error('Error saving settings:', error)
+    }
+  }
   
-  const backupSettings = ref({
-    autoBackup: true,
-    backupFrequency: 'weekly',
-    backupLocation: 'local'
-  })
-  const backupFolder = ref('')
-  const nextBackup = ref('')
-  
-  function saveSettings() {
-    // Implement settings save logic
-    console.log('Saving settings...')
+  function resetToDefaults() {
+    if (confirm('Are you sure you want to reset all settings to defaults? This action cannot be undone.')) {
+      settingsStore.resetSettings()
+      
+      // Update local refs
+      companyInfo.value = settingsStore.getCompanyInfo
+      taxRates.value = settingsStore.getTaxRates
+      printerSettings.value = settingsStore.getPrinterSettings
+      backupSettings.value = settingsStore.getBackupSettings
+      backupFolder.value = settingsStore.getBackupFolder
+      
+      backupMessage.value = 'Settings reset to defaults successfully!'
+      backupMessageType.value = 'success'
+      
+      setTimeout(() => {
+        backupMessage.value = ''
+      }, 3000)
+    }
   }
   
   function testPrinter() {
     // Implement printer test logic
-    console.log('Testing printer...')
   }
   
   async function refreshPrinters() {
@@ -300,6 +380,10 @@
   }
 
   onMounted(() => {
+    // Load settings from store
+    settingsStore.loadSettings()
+    
+    // Refresh printers list
     refreshPrinters()
   })
   
@@ -311,19 +395,101 @@
   }
 
   async function backupNow() {
-    if (!backupFolder.value) return
-    const result = await window.electronAPI.backup.exportJSON(backupFolder.value)
-    console.log('Backup created:', result)
+    if (!backupFolder.value) {
+      showMessage('Please select a backup folder first', 'error')
+      return
+    }
+    try {
+      const result = await window.electronAPI.backup.exportJSON(backupFolder.value)
+      showMessage(`Backup created successfully! File: ${result.filePath}, Tables: ${result.tables}`, 'success')
+    } catch (error) {
+      showMessage(`Backup failed: ${error.message}`, 'error')
+    }
+  }
+
+  async function enableDailyBackup() {
+    if (!backupFolder.value) {
+      showMessage('Please select a backup folder first', 'error')
+      return
+    }
+    try {
+      const result = await window.electronAPI.backup.scheduleDaily(backupFolder.value)
+      nextBackup.value = result.nextRun
+      showMessage(`Daily backups enabled! Next backup: ${formatDateTime(result.nextRun)}`, 'success')
+    } catch (error) {
+      showMessage(`Failed to enable daily backups: ${error.message}`, 'error')
+    }
   }
 
   async function enableWeeklyBackup() {
-    if (!backupFolder.value) return
-    const result = await window.electronAPI.backup.scheduleWeekly(backupFolder.value)
-    nextBackup.value = result.nextRun
+    if (!backupFolder.value) {
+      showMessage('Please select a backup folder first', 'error')
+      return
+    }
+    try {
+      const result = await window.electronAPI.backup.scheduleWeekly(backupFolder.value)
+      nextBackup.value = result.nextRun
+      showMessage(`Weekly backups enabled! Next backup: ${formatDateTime(result.nextRun)}`, 'success')
+    } catch (error) {
+      showMessage(`Failed to enable weekly backups: ${error.message}`, 'error')
+    }
   }
 
-  async function disableWeeklyBackup() {
-    await window.electronAPI.backup.cancelSchedule()
-    nextBackup.value = ''
+  async function cancelSchedule() {
+    try {
+      await window.electronAPI.backup.cancelSchedule()
+      nextBackup.value = ''
+      showMessage('Backup schedule cancelled', 'success')
+    } catch (error) {
+      showMessage(`Failed to cancel schedule: ${error.message}`, 'error')
+    }
+  }
+
+  async function chooseRestoreFile() {
+    try {
+      const filePath = await window.electronAPI.backup.chooseRestoreFile()
+      if (filePath) {
+        selectedRestoreFilePath.value = filePath
+        selectedRestoreFile.value = filePath.split('/').pop() || filePath.split('\\').pop()
+        showMessage('Backup file selected', 'success')
+      }
+    } catch (error) {
+      showMessage(`Failed to select backup file: ${error.message}`, 'error')
+    }
+  }
+
+  async function restoreDatabase() {
+    if (!selectedRestoreFile.value) {
+      showMessage('Please select a backup file first', 'error')
+      return
+    }
+    
+    const confirmRestore = confirm('⚠️ WARNING: This will completely replace your current database!\n\nThis action cannot be undone. Are you sure you want to continue?')
+    if (!confirmRestore) return
+
+    try {
+      const result = await window.electronAPI.backup.restoreFromJSON(selectedRestoreFilePath.value)
+      showMessage(`Database restored successfully! ${result.message}`, 'success')
+      selectedRestoreFile.value = ''
+      
+      // Refresh the app to reflect the restored data
+      setTimeout(() => {
+        window.location.reload()
+      }, 2000)
+    } catch (error) {
+      showMessage(`Restore failed: ${error.message}`, 'error')
+    }
+  }
+
+  function showMessage(message, type) {
+    backupMessage.value = message
+    backupMessageType.value = type
+    setTimeout(() => {
+      backupMessage.value = ''
+    }, 5000)
+  }
+
+  function formatDateTime(dateTimeString) {
+    return new Date(dateTimeString).toLocaleString()
   }
   </script>

@@ -43,7 +43,8 @@
     "welcome": "Bienvenue",
     "reports": "Rapports",
     "new_notifications": "Nouvelles notifications",
-    "view_all": "Voir tout"
+    "view_all": "Voir tout",
+    "theme": "Basculer le Thème"
   },
   "dashboard": {
     "addSale": "Ajouter une Vente",

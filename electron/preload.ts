@@ -3,6 +3,7 @@ import { contextBridge, IpcRenderer, ipcRenderer, IpcRendererEvent } from 'elect
 // Define types for our IPC channels
 type ValidChannels = 'toMain' | 'fromMain' | 'close-popup' | 'submit-product-form' | 'product-form-submitted';
 type AuthChannels = 'auth:login' | 'auth:register' | 'auth:logout';
+type PrintChannels = 'print-receipt' | 'get-printers' | 'test-print';
 type ProductChannels = 'get-products' | 'create-product' | 'update-product' | 'delete-product' | 'get-product-by-id';
 
 // Expose protected methods that allow the renderer process to use
@@ -111,12 +112,15 @@ contextBridge.exposeInMainWorld(
       getAll: () => ipcRenderer.invoke('printers:get-all')
     },
 
-    // Backup
+    // Enhanced Backup & Restore
     backup: {
       chooseFolder: () => ipcRenderer.invoke('backup:choose-folder'),
       exportJSON: (folderPath: string) => ipcRenderer.invoke('backup:export-json', folderPath),
+      scheduleDaily: (folderPath: string) => ipcRenderer.invoke('backup:schedule-daily', folderPath),
       scheduleWeekly: (folderPath: string) => ipcRenderer.invoke('backup:schedule-weekly', folderPath),
-      cancelSchedule: () => ipcRenderer.invoke('backup:cancel-schedule')
+      cancelSchedule: () => ipcRenderer.invoke('backup:cancel-schedule'),
+      chooseRestoreFile: () => ipcRenderer.invoke('backup:choose-restore-file'),
+      restoreFromJSON: (filePath: string) => ipcRenderer.invoke('backup:restore-from-json', filePath)
     },
 
     // Product form popup specific methods
@@ -133,6 +137,13 @@ contextBridge.exposeInMainWorld(
     // File operations
     files: {
       saveFile: (data: string, filename: string, type: string) => ipcRenderer.invoke('save-file', data, filename, type)
+    },
+
+    // Print methods
+    print: {
+      printReceipt: (receiptText: string, printerName?: string) => ipcRenderer.invoke('print-receipt', { receiptText, printerName }),
+      getPrinters: () => ipcRenderer.invoke('get-printers'),
+      testPrint: (printerName?: string) => ipcRenderer.invoke('test-print', { printerName })
     }
   }
 ) 

@@ -1,16 +1,31 @@
 {
   "name": "pos-system",
   "private": true,
-  "version": "0.0.1",
+  "version": "1.0.0",
+  "description": "Professional Point of Sale Desktop Application",
+  "author": {
+    "name": "Your Name",
+    "email": "your.email@example.com"
+  },
   "main": "electron/main.js",
+  "homepage": "./",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build",
+    "build": "vite build",
+    "build:check": "vue-tsc --noEmit",
     "preview": "vite preview",
     "electron:dev": "node electron-start.js",
-    "electron:build": "vue-tsc && vite build && electron-builder",
+    "electron:build": "npm run build:preload && npm run build && electron-builder",
+    "electron:build:win": "npm run build:preload && npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win",
+    "electron:build:win:dir": "npm run build:preload && npm run build && electron-builder --win --dir",
+    "electron:build:win:portable": "npm run build:preload && npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --config.win.target=portable",
+    "electron:build:mac": "npm run build:preload && npm run build && electron-builder --mac",
+    "electron:build:linux": "npm run build:preload && npm run build && electron-builder --linux",
+    "electron:build:all": "npm run build:preload && npm run build && electron-builder --win --mac --linux",
     "electron:preview": "vite preview",
-    "build:preload": "tsc -p electron/tsconfig.json"
+    "build:preload": "tsc -p electron/tsconfig.json",
+    "dist": "npm run electron:build",
+    "pack": "npm run build:preload && npm run build && electron-builder --dir"
   },
   "dependencies": {
     "@material-design-icons/font": "^0.14.15",
@@ -18,6 +33,8 @@
     "@vuelidate/validators": "^2.0.4",
     "better-sqlite3": "^11.8.1",
     "chart.js": "^4.4.8",
+    "chartjs-adapter-date-fns": "^3.0.0",
+    "chartjs-plugin-datalabels": "^2.2.0",
     "date-fns": "^4.1.0",
     "express": "^4.21.2",
     "file-saver": "^2.0.5",
@@ -27,6 +44,7 @@
     "pinia": "^2.1.7",
     "quagga": "^0.12.1",
     "vue": "^3.4.15",
+    "vue-chartjs": "^5.3.2",
     "vue-i18n": "^11.0.0-rc.1",
     "vue-router": "^4.2.5"
   },
@@ -35,6 +53,7 @@
     "@types/node": "^20.17.27",
     "@vitejs/plugin-vue": "^5.0.3",
     "autoprefixer": "^10.4.17",
+    "cross-env": "^10.1.0",
     "electron": "^28.2.0",
     "electron-builder": "^24.9.1",
     "postcss": "^8.4.35",
@@ -48,23 +67,117 @@
   "build": {
     "appId": "com.pos.desktop",
     "productName": "POS System",
+    "copyright": "Copyright © 2024 POS System",
     "directories": {
-      "output": "release"
+      "output": "app-build",
+      "buildResources": "build"
     },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "backend/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/data/",
+        "to": "data/"
+      }
+    ],
     "win": {
       "target": [
-        "nsis"
-      ]
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "requestedExecutionLevel": "asInvoker",
+      "artifactName": "${productName}-${version}-${arch}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "POS System",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true
     },
     "mac": {
       "target": [
-        "dmg"
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.business",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "dmg": {
+      "title": "POS System Installer",
+      "background": "build/dmg-background.png",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
       ]
     },
     "linux": {
       "target": [
-        "AppImage"
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Office",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "appImage": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libdrm2",
+        "libxcomposite1",
+        "libxdamage1",
+        "libxrandr2",
+        "libgbm1",
+        "libxss1",
+        "libasound2"
       ]
-    }
+    },
+    "publish": null,
+    "compression": "maximum",
+    "removePackageScripts": true,
+    "forceCodeSigning": false,
+    "nodeGypRebuild": false
   }
 }

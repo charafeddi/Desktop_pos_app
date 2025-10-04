@@ -318,10 +318,13 @@ import { useCustomerStore } from '../../stores/customers.store'
 import { useI18n } from 'vue-i18n'
 import { exportCustomers } from '@/utils/exportUtils'
 
-const customerStore = useCustomerStore()
+// Composables
 const { t } = useI18n()
 
-// Reactive data
+// Stores
+const customerStore = useCustomerStore()
+
+// Reactive Variables
 const searchQuery = ref('')
 const showAddForm = ref(false)
 const showEditForm = ref(false)
@@ -341,7 +344,7 @@ const formData = ref({
     is_active: 1
 })
 
-// Computed properties
+// Computed Properties
 const customers = computed(() => customerStore.getCustomers || [])
 const lastUpdated = computed(() => {
     if (customers.value.length === 0) return 'Never'
@@ -479,7 +482,7 @@ const getStatusDotClass = (isActive) => {
     return isActive ? 'bg-green-400' : 'bg-red-400'
 }
 
-// Load data on mount
+// Lifecycle Hooks
 onMounted(() => {
     customerStore.fetchCustomers()
 })

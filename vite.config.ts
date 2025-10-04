@@ -7,7 +7,11 @@ import { resolve } from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    vue(),
+    vue({
+      script: {
+        defineModel: true
+      }
+    }),
     electron([
       {
         // Main process entry point
@@ -37,6 +41,7 @@ export default defineConfig({
   },
   base: process.env.ELECTRON ? './' : '/',
   build: {
+    target: 'esnext',
     assetsInlineLimit: 0, // This ensures all assets are processed as files
     rollupOptions: {
       output: {
@@ -44,5 +49,8 @@ export default defineConfig({
       }
     }
   },
-  publicDir: 'public'
+  publicDir: 'public',
+  esbuild: {
+    target: 'esnext'
+  }
 })

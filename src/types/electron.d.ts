@@ -86,8 +86,11 @@ declare global {
       backup: {
         chooseFolder: () => Promise<string | null>;
         exportJSON: (folderPath: string) => Promise<{ filePath: string; tables: number }>;
-        scheduleWeekly: (folderPath: string) => Promise<{ nextRun: string; folderPath: string }>;
+        scheduleDaily: (folderPath: string) => Promise<{ nextRun: string; folderPath: string; frequency: string }>;
+        scheduleWeekly: (folderPath: string) => Promise<{ nextRun: string; folderPath: string; frequency: string }>;
         cancelSchedule: () => Promise<{ cancelled: boolean }>;
+        chooseRestoreFile: () => Promise<string | null>;
+        restoreFromJSON: (filePath: string) => Promise<{ success: boolean; message: string; tablesRestored: number }>;
       };
       
       closePopup: () => void;

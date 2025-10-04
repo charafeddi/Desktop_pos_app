@@ -34,41 +34,45 @@
   </section>
 </template>
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue'
-  import { useRouter } from 'vue-router'
-  import { useAuthStore } from '@/stores/auth.store'
-  import illustration from '../../assets/img/Mobile login-cuate.png'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth.store'
+import illustration from '../../assets/img/Mobile login-cuate.png'
+
+// Composables
+const router = useRouter()
+
+// Stores
+const authStore = useAuthStore()
   
-  const router = useRouter()
-  const authStore = useAuthStore()
-  
-  const email = ref('')
-  const password = ref('')
-  const isLoading = ref(false)
-  
-  const themes = [
-    {
-      background: "#1A1A2E",
-      color: "#FFFFFF",
-      primaryColor: "#0F3460"
-    },
-    {
-      background: "#461220",
-      color: "#FFFFFF",
-      primaryColor: "#E94560"
-    },
-    {
-      background: "#192A51",
-      color: "#FFFFFF",
-      primaryColor: "#967AA1"
-    },
-    {
-      background: "#F7B267",
-      color: "#000000",
-      primaryColor: "#F4845F"
-    },
-    {
-      background: "#F25F5C",
+// Reactive Variables
+const email = ref('')
+const password = ref('')
+const isLoading = ref(false)
+
+const themes = [
+  {
+    background: "#1A1A2E",
+    color: "#FFFFFF",
+    primaryColor: "#0F3460"
+  },
+  {
+    background: "#461220",
+    color: "#FFFFFF",
+    primaryColor: "#E94560"
+  },
+  {
+    background: "#192A51",
+    color: "#FFFFFF",
+    primaryColor: "#967AA1"
+  },
+  {
+    background: "#F7B267",
+    color: "#000000",
+    primaryColor: "#F4845F"
+  },
+  {
+    background: "#F25F5C",
       color: "#000000",
       primaryColor: "#642B36"
     },
@@ -79,45 +83,47 @@
     }
   ]
   
-  function setTheme(theme: any) {
-    const root = document.querySelector(":root") as HTMLElement
-    root.style.setProperty("--background", theme.background)
-    root.style.setProperty("--color", theme.color)
-    root.style.setProperty("--primary-color", theme.primaryColor)
+// Methods
+function setTheme(theme: any) {
+  const root = document.querySelector(":root") as HTMLElement
+  root.style.setProperty("--background", theme.background)
+  root.style.setProperty("--color", theme.color)
+  root.style.setProperty("--primary-color", theme.primaryColor)
+}
+
+function displayThemeButtons() {
+  const btnContainer = document.querySelector(".theme-btn-container")
+  if (btnContainer) {
+    themes.forEach((theme) => {
+      const div = document.createElement("div")
+      div.className = "theme-btn"
+      div.style.cssText = `background: ${theme.background}; width: 25px; height: 25px`
+      div.addEventListener("click", () => setTheme(theme))
+      btnContainer.appendChild(div)
+    })
   }
+}
   
-  function displayThemeButtons() {
-    const btnContainer = document.querySelector(".theme-btn-container")
-    if (btnContainer) {
-      themes.forEach((theme) => {
-        const div = document.createElement("div")
-        div.className = "theme-btn"
-        div.style.cssText = `background: ${theme.background}; width: 25px; height: 25px`
-        div.addEventListener("click", () => setTheme(theme))
-        btnContainer.appendChild(div)
-      })
-    }
+// Lifecycle Hooks
+onMounted(() => {
+  displayThemeButtons()
+})
+  
+async function handleLogin() {
+  try {
+    isLoading.value = true
+    await authStore.login(email.value, password.value)
+    router.push('/')
+  } catch (error) {
+    console.error('Login failed:', error)
+  } finally {
+    isLoading.value = false
   }
-  
-  onMounted(() => {
-    displayThemeButtons()
-  })
-  
-  async function handleLogin() {
-    try {
-      isLoading.value = true
-      await authStore.login(email.value, password.value)
-      router.push('/')
-    } catch (error) {
-      console.error('Login failed:', error)
-    } finally {
-      isLoading.value = false
-    }
-  }
-  
-  function goToRegister() {
-    router.push('/register')
-  }
+}
+
+function goToRegister() {
+  router.push('/register')
+}
 </script>
 <style scoped>
 :root {

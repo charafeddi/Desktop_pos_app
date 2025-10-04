@@ -20,8 +20,8 @@ interface AuthState {
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
-    user: null,
-    token: null,
+    user: JSON.parse(localStorage.getItem('auth_user') || 'null'),
+    token: localStorage.getItem('auth_token'),
     loading: false
   }),
 
@@ -42,6 +42,9 @@ export const useAuthStore = defineStore('auth', {
         if (response.success) {
           this.token = response.data.token
           this.user = response.data.user
+          // Persist auth data to localStorage
+          localStorage.setItem('auth_token', response.data.token)
+          localStorage.setItem('auth_user', JSON.stringify(response.data.user))
           return response.data
         } else {
           throw new Error(response.message || 'Registration failed')
@@ -62,6 +65,9 @@ export const useAuthStore = defineStore('auth', {
         if (response.success) {
           this.token = response.data.token
           this.user = response.data.user
+          // Persist auth data to localStorage
+          localStorage.setItem('auth_token', response.data.token)
+          localStorage.setItem('auth_user', JSON.stringify(response.data.user))
           return response.data
         } else {
           throw new Error(response.message || 'Login failed')
@@ -77,16 +83,22 @@ export const useAuthStore = defineStore('auth', {
       // Send logout request through IPC if needed
       window.electronAPI.auth.logout()
       
+      // Clear auth data from localStorage
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('auth_user')
+      
       this.user = null
       this.token = null
     },
 
     setUser(user: User) {
       this.user = user
+      localStorage.setItem('auth_user', JSON.stringify(user))
     },
 
     setToken(token: string) {
       this.token = token
+      localStorage.setItem('auth_token', token)
     }
   }
 }) 

@@ -28,6 +28,7 @@ const setupAuthHandlers = require('../backend/ipc/auth.handlers');
 const setupCategoryHandlers = require('../backend/ipc/category.handlers');
 // Import client handlers
 const setupClientHandlers = require('../backend/ipc/client.handlers');
+const setupPrintHandlers = require('../backend/ipc/print.handlers');
 // Import invoice handlers
 const setupInvoiceHandlers = require('../backend/ipc/invoice.handlers');
 // Import product handlers
@@ -114,6 +115,7 @@ function createWindow() {
   setupAuthHandlers();
   setupCategoryHandlers();
   setupClientHandlers();
+  setupPrintHandlers();
   setupInvoiceHandlers();
   setupProductHandlers();
   setupProductTypeHandlers();
@@ -228,26 +230,102 @@ function createWindow() {
     }
   });
 
-  // Simple in-memory weekly scheduler
+  // Enhanced backup scheduler with daily and weekly options
   let backupInterval = null;
   let scheduledFolder = null;
+  let backupFrequency = 'weekly';
 
-  ipcMain.handle('backup:schedule-weekly', async (_event, folderPath) => {
+  function calculateNextBackupTime(frequency) {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0); // Set to midnight
+
+    if (frequency === 'daily') {
+      return tomorrow;
+    } else if (frequency === 'weekly') {
+      // Next Monday at midnight
+      const daysUntilMonday = (8 - now.getDay()) % 7;
+      const nextMonday = new Date(now);
+      nextMonday.setDate(now.getDate() + (daysUntilMonday === 0 ? 7 : daysUntilMonday));
+      nextMonday.setHours(0, 0, 0, 0);
+      return nextMonday;
+    }
+    return tomorrow;
+  }
+
+  function scheduleNextBackup() {
+    if (!scheduledFolder) return;
+
+    const nextBackupTime = calculateNextBackupTime(backupFrequency);
+    const now = new Date();
+    const msUntilNext = nextBackupTime.getTime() - now.getTime();
+
+    console.log(`Next backup scheduled for: ${nextBackupTime.toLocaleString()}`);
+    
+    setTimeout(async () => {
+      try {
+        await exportBackupJSON(scheduledFolder);
+        console.log('Scheduled backup completed successfully');
+        // Schedule the next backup
+        scheduleNextBackup();
+      } catch (error) {
+        console.error('Scheduled backup failed:', error);
+        // Reschedule for next day even if failed
+        setTimeout(scheduleNextBackup, 24 * 60 * 60 * 1000);
+      }
+    }, msUntilNext);
+  }
+
+  ipcMain.handle('backup:schedule-daily', async (_event, folderPath) => {
     if (!folderPath) throw new Error('No folder path provided');
     scheduledFolder = folderPath;
+    backupFrequency = 'daily';
+    
+    // Clear any existing schedule
     if (backupInterval) {
       clearInterval(backupInterval);
       backupInterval = null;
     }
-    // Run immediately once, then every 7 days
-    try { await exportBackupJSON(scheduledFolder); } catch (_) {}
-    const weekMs = 7 * 24 * 60 * 60 * 1000;
-    backupInterval = setInterval(() => {
-      // Fire and forget; errors are ignored for scheduled runs
-      exportBackupJSON(scheduledFolder).catch(() => {});
-    }, weekMs);
-    const nextRun = new Date(Date.now() + weekMs).toISOString();
-    return { nextRun, folderPath: scheduledFolder };
+    
+    // Run immediately once
+    try { 
+      await exportBackupJSON(scheduledFolder); 
+      console.log('Initial daily backup completed');
+    } catch (error) {
+      console.error('Initial backup failed:', error);
+    }
+    
+    // Schedule next backup for midnight
+    scheduleNextBackup();
+
+    const nextRun = calculateNextBackupTime('daily');
+    return { nextRun: nextRun.toISOString(), folderPath: scheduledFolder, frequency: 'daily' };
+  });
+
+  ipcMain.handle('backup:schedule-weekly', async (_event, folderPath) => {
+    if (!folderPath) throw new Error('No folder path provided');
+    scheduledFolder = folderPath;
+    backupFrequency = 'weekly';
+    
+    if (backupInterval) {
+      clearInterval(backupInterval);
+      backupInterval = null;
+    }
+    
+    // Run immediately once
+    try { 
+      await exportBackupJSON(scheduledFolder); 
+      console.log('Initial weekly backup completed');
+    } catch (error) {
+      console.error('Initial backup failed:', error);
+    }
+    
+    // Schedule next backup for next Monday
+    scheduleNextBackup();
+
+    const nextRun = calculateNextBackupTime('weekly');
+    return { nextRun: nextRun.toISOString(), folderPath: scheduledFolder, frequency: 'weekly' };
   });
 
   ipcMain.handle('backup:cancel-schedule', async () => {
@@ -256,7 +334,112 @@ function createWindow() {
       backupInterval = null;
     }
     scheduledFolder = null;
+    backupFrequency = 'weekly';
     return { cancelled: true };
+  });
+
+  // Restore functionality
+  ipcMain.handle('backup:choose-restore-file', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Select backup file to restore',
+      properties: ['openFile'],
+      filters: [
+        { name: 'JSON Backup Files', extensions: ['json'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    });
+    if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+      return null;
+    }
+    return result.filePaths[0];
+  });
+
+  ipcMain.handle('backup:restore-from-json', async (event, filePath) => {
+    try {
+      if (!filePath) throw new Error('No file path provided');
+      
+      // Read and parse the backup file
+      const backupData = JSON.parse(await fs.promises.readFile(filePath, 'utf-8'));
+      
+      if (!backupData.tables || typeof backupData.tables !== 'object') {
+        throw new Error('Invalid backup file format');
+      }
+
+      console.log(`Starting restore from backup created: ${backupData.createdAt}`);
+      
+      // Start transaction for restore
+      db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+        
+        try {
+          // Get list of existing tables
+          db.all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'", async (err, existingTables) => {
+            if (err) throw err;
+            
+            const existingTableNames = existingTables.map(t => t.name);
+            
+            // Clear existing data from all tables (except sqlite_sequence)
+            for (const tableName of existingTableNames) {
+              if (tableName !== 'sqlite_sequence') {
+                await new Promise((resolve, reject) => {
+                  db.run(`DELETE FROM ${tableName}`, (err) => {
+                    if (err) reject(err); else resolve();
+                  });
+                });
+              }
+            }
+            
+            // Restore data to each table
+            for (const [tableName, rows] of Object.entries(backupData.tables)) {
+              if (existingTableNames.includes(tableName) && Array.isArray(rows)) {
+                if (rows.length > 0) {
+                  const columns = Object.keys(rows[0]);
+                  const placeholders = columns.map(() => '?').join(', ');
+                  const insertSQL = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`;
+                  
+                  for (const row of rows) {
+                    await new Promise((resolve, reject) => {
+                      const values = columns.map(col => row[col]);
+                      db.run(insertSQL, values, (err) => {
+                        if (err) {
+                          console.warn(`Warning: Failed to restore row in ${tableName}:`, err.message);
+                          resolve(); // Continue with other rows
+                        } else {
+                          resolve();
+                        }
+                      });
+                    });
+                  }
+                }
+              }
+            }
+            
+            // Commit transaction
+            db.run('COMMIT', (err) => {
+              if (err) {
+                db.run('ROLLBACK');
+                throw new Error(`Restore failed: ${err.message}`);
+              }
+              console.log('Database restore completed successfully');
+            });
+          });
+          
+        } catch (error) {
+          db.run('ROLLBACK');
+          throw error;
+        }
+      });
+      
+      return { 
+        success: true, 
+        message: `Database restored successfully from backup created: ${backupData.createdAt}`,
+        tablesRestored: Object.keys(backupData.tables).length
+      };
+      
+    } catch (error) {
+      console.error('Restore error:', error);
+      throw new Error(`Restore failed: ${error.message}`);
+    }
   });
 
   return mainWindow;

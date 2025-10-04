@@ -22,6 +22,11 @@ interface CustomerState {
     customer: Customer | null,
     loading: boolean,
     error: string | null,
+    // Performance optimization properties
+    lastFetchTime: number | null,
+    cacheExpiry: number,
+    searchCache: Map<string, Customer[]>,
+    filterCache: Map<string, Customer[]>
 }
 
 export const useCustomerStore = defineStore('customer', {
@@ -30,13 +35,73 @@ export const useCustomerStore = defineStore('customer', {
         customer: null,
         loading: false,
         error: null,
+        // Performance optimization properties
+        lastFetchTime: null,
+        cacheExpiry: 300000, // 5 minutes cache expiry
+        searchCache: new Map(),
+        filterCache: new Map()
     }),
     getters: {
         getCustomers: (state) => state.customers,
         getCustomerById: (state) => state.customer,
+        
+        // Performance optimized getters
+        getCustomersWithSearch: (state) => (searchQuery: string) => {
+            const cacheKey = `search-${searchQuery}`
+            
+            // Check cache first
+            if (state.searchCache.has(cacheKey)) {
+                return state.searchCache.get(cacheKey)!
+            }
+            
+            // Perform search
+            let filteredCustomers = state.customers
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase()
+                filteredCustomers = state.customers.filter(customer =>
+                    customer.name.toLowerCase().includes(query) ||
+                    customer.email.toLowerCase().includes(query) ||
+                    customer.phone.includes(query)
+                )
+            }
+            
+            // Cache the result
+            state.searchCache.set(cacheKey, filteredCustomers)
+            return filteredCustomers
+        },
+        
+        getActiveCustomers: (state) => {
+            return state.customers.filter(customer => customer.is_active === 1)
+        },
+        
+        getInactiveCustomers: (state) => {
+            return state.customers.filter(customer => customer.is_active === 0)
+        },
+        
+        getCustomerStats: (state) => {
+            const total = state.customers.length
+            const active = state.customers.filter(c => c.is_active === 1).length
+            const inactive = total - active
+            
+            return {
+                totalCustomers: total,
+                activeCustomers: active,
+                inactiveCustomers: inactive
+            }
+        }
     },
     actions: {
-        async fetchCustomers() {
+        async fetchCustomers(forceRefresh = false) {
+            // Check if we should refresh based on cache
+            const now = Date.now()
+            const shouldRefresh = forceRefresh || 
+                                !this.lastFetchTime || 
+                                (now - this.lastFetchTime) > this.cacheExpiry
+            
+            if (!shouldRefresh) {
+                return
+            }
+
             this.loading = true;
             this.error = null;
             try {
@@ -44,6 +109,10 @@ export const useCustomerStore = defineStore('customer', {
                 const customers = await window.electronAPI.customers.getAll();
                 console.log('Customers fetched:', customers);
                 this.customers = customers;
+                this.lastFetchTime = now;
+                
+                // Clear caches when customers are updated
+                this.clearCustomerCache();
             } catch (error: any) {
                 console.error('Error fetching customers:', error);
                 this.error = error?.message || 'Failed to fetch customers';
@@ -127,6 +196,22 @@ export const useCustomerStore = defineStore('customer', {
                 this.loading = false;
             }
         },
+
+        /**
+         * Clear customer caches to force fresh computation
+         */
+        clearCustomerCache(): void {
+            this.searchCache.clear()
+            this.filterCache.clear()
+        },
+
+        /**
+         * Clear all caches and force refresh
+         */
+        clearAllCaches(): void {
+            this.clearCustomerCache()
+            this.lastFetchTime = null
+        }
     }
 })
 

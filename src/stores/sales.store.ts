@@ -33,6 +33,11 @@ interface SaleState {
     currentSale: Sale | null
     loading: boolean
     error: string | null
+    // Performance optimization properties
+    lastFetchTime: number | null
+    cacheExpiry: number
+    salesByDateCache: Map<string, Sale[]>
+    salesByCustomerCache: Map<number, Sale[]>
 }
 
 export const useSalesStore = defineStore('sales', {
@@ -41,14 +46,29 @@ export const useSalesStore = defineStore('sales', {
         currentSale: null,
         loading: false,
         error: null,
+        // Performance optimization properties
+        lastFetchTime: null,
+        cacheExpiry: 120000, // 2 minutes cache expiry
+        salesByDateCache: new Map(),
+        salesByCustomerCache: new Map()
     }),
     getters: {
         getSales: (state) => state.sales,
         getCurrentSale: (state) => state.currentSale,
         getSalesByDate: (state) => (date: string) => {
-            return state.sales.filter(sale => 
+            // Check cache first
+            if (state.salesByDateCache.has(date)) {
+                return state.salesByDateCache.get(date)!
+            }
+            
+            // Compute result
+            const sales = state.sales.filter(sale => 
                 sale.created_at && sale.created_at.startsWith(date)
             )
+            
+            // Cache the result
+            state.salesByDateCache.set(date, sales)
+            return sales
         },
         getTotalSalesAmount: (state) => {
             return state.sales.reduce((total, sale) => total + sale.final_amount, 0)
@@ -56,7 +76,17 @@ export const useSalesStore = defineStore('sales', {
         getSalesCount: (state) => state.sales.length,
     },
     actions: {
-        async fetchSales() {
+        async fetchSales(forceRefresh = false) {
+            // Check if we should refresh based on cache
+            const now = Date.now()
+            const shouldRefresh = forceRefresh || 
+                                !this.lastFetchTime || 
+                                (now - this.lastFetchTime) > this.cacheExpiry
+            
+            if (!shouldRefresh) {
+                return
+            }
+
             this.loading = true
             this.error = null
             try {
@@ -64,6 +94,10 @@ export const useSalesStore = defineStore('sales', {
                 const sales = await window.electronAPI.sales.getAll()
                 console.log('Sales fetched:', sales)
                 this.sales = sales
+                this.lastFetchTime = now
+                
+                // Clear caches when sales are updated
+                this.clearSalesCache()
             } catch (error: any) {
                 console.error('Error fetching sales:', error)
                 this.error = error?.message || 'Failed to fetch sales'
@@ -210,6 +244,22 @@ export const useSalesStore = defineStore('sales', {
                 tax_amount: (item.customPrice || item.selling_price) * item.quantity * ((item.tax_rate || 10) / 100),
                 total_amount: (item.customPrice || item.selling_price) * item.quantity
             }))
+        },
+
+        /**
+         * Clear sales caches to force fresh computation
+         */
+        clearSalesCache(): void {
+            this.salesByDateCache.clear()
+            this.salesByCustomerCache.clear()
+        },
+
+        /**
+         * Clear all caches and force refresh
+         */
+        clearAllCaches(): void {
+            this.clearSalesCache()
+            this.lastFetchTime = null
         }
     }
 })

@@ -23,6 +23,7 @@ interface KPIData {
   inventoryValue: number
   lowStockItems: number
   outOfStockItems: number
+  topCategory: string
 }
 
 /**
@@ -42,6 +43,27 @@ interface TopProduct {
   sales: number
   revenue: number
   quantity_sold: number
+  returns?: number
+  return_rate?: number
+}
+
+/**
+ * Most Returned Product Interface
+ * Represents a product with its return data
+ * 
+ * @interface MostReturnedProduct
+ * @property {number} id - Unique product identifier
+ * @property {string} name - Product name
+ * @property {number} returns - Number of times this product was returned
+ * @property {number} quantity_returned - Total quantity of this product returned
+ * @property {number} return_rate - Percentage of sales that were returned
+ */
+interface MostReturnedProduct {
+  id: number
+  name: string
+  returns: number
+  quantity_returned: number
+  return_rate: number
 }
 
 /**
@@ -165,14 +187,26 @@ interface InventoryInsightsData {
 interface AnalyticsState {
   kpis: KPIData
   topProducts: TopProduct[]
+  mostReturnedProducts: MostReturnedProduct[]
   customerSegments: CustomerSegment[]
   salesChartData: SalesChartData[]
   revenueTrendData: RevenueTrendData[]
   productPerformanceData: ProductPerformanceData[]
   customerAnalyticsData: CustomerAnalyticsData[]
   inventoryInsightsData: InventoryInsightsData[]
+  topCategory: string
   loading: boolean
   error: string | null
+  // Performance optimization properties
+  lastFetchTime: number | null
+  dataCache: {
+    salesData: any[] | null
+    productsData: any[] | null
+    customersData: any[] | null
+    returnsData: any[] | null
+    timestamp: number | null
+  }
+  cacheExpiry: number
 }
 
 /**
@@ -200,17 +234,30 @@ export const useAnalyticsStore = defineStore('analytics', {
       totalCustomers: 0,      // Total number of customers
       inventoryValue: 0,      // Total value of current stock
       lowStockItems: 0,       // Products with low stock
-      outOfStockItems: 0      // Products with no stock
+      outOfStockItems: 0,    // Products with no stock
+      topCategory: 'No Sales' // Top selling category
     },
     topProducts: [],          // Best-selling products
+    mostReturnedProducts: [], // Most returned products
     customerSegments: [],     // Customer categories
     salesChartData: [],       // Daily sales data
     revenueTrendData: [],     // Revenue trend analysis
     productPerformanceData: [], // Product performance metrics
     customerAnalyticsData: [], // Customer behavior analytics
     inventoryInsightsData: [], // Inventory insights
+    topCategory: 'No Sales',  // Top selling category
     loading: false,           // Loading state
-    error: null               // Error message
+    error: null,              // Error message
+    // Performance optimization properties
+    lastFetchTime: null,
+    dataCache: {
+      salesData: null,
+      productsData: null,
+      customersData: null,
+      returnsData: null,
+      timestamp: null
+    },
+    cacheExpiry: 300000 // 5 minutes cache expiry
   }),
 
   /**
@@ -220,12 +267,14 @@ export const useAnalyticsStore = defineStore('analytics', {
   getters: {
     getKPIs: (state) => state.kpis,
     getTopProducts: (state) => state.topProducts,
+    getMostReturnedProducts: (state) => state.mostReturnedProducts,
     getCustomerSegments: (state) => state.customerSegments,
     getSalesChartData: (state) => state.salesChartData,
     getRevenueTrendData: (state) => state.revenueTrendData,
     getProductPerformanceData: (state) => state.productPerformanceData,
     getCustomerAnalyticsData: (state) => state.customerAnalyticsData,
     getInventoryInsightsData: (state) => state.inventoryInsightsData,
+    getTopCategory: (state) => state.topCategory,
     getLoading: (state) => state.loading,
     getError: (state) => state.error
   },
@@ -244,21 +293,40 @@ export const useAnalyticsStore = defineStore('analytics', {
      * 3. Calculates KPIs, top products, customer segments, and sales chart data
      * 4. Handles errors and sets loading state to false
      */
-    async fetchAnalyticsData() {
+    async fetchAnalyticsData(forceRefresh = false) {
+      // Check cache validity
+      const now = Date.now()
+      const cacheValid = this.dataCache.timestamp && 
+                       (now - this.dataCache.timestamp) < this.cacheExpiry
+      
+      // Skip loading if we have valid cached data and no force refresh
+      if (!forceRefresh && cacheValid) {
+        return
+      }
+
       this.loading = true
       this.error = null
       
       try {
         // Fetch all analytics data in parallel for better performance
-        const [salesData, productsData, customersData] = await Promise.all([
+        const [salesData, productsData, customersData, returnsData] = await Promise.all([
           this.fetchSalesData(),
           this.fetchProductsData(),
-          this.fetchCustomersData()
+          this.fetchCustomersData(),
+          this.fetchReturnsData()
         ])
+
+        // Cache the fetched data
+        this.dataCache.salesData = salesData
+        this.dataCache.productsData = productsData
+        this.dataCache.customersData = customersData
+        this.dataCache.returnsData = returnsData
+        this.dataCache.timestamp = now
 
         // Calculate all analytics metrics
         this.calculateKPIs(salesData, productsData, customersData)
         this.calculateTopProducts(productsData)
+        this.calculateMostReturnedProducts(returnsData, productsData)
         this.calculateCustomerSegments(customersData, salesData)
         this.generateSalesChartData(salesData)
         
@@ -267,6 +335,12 @@ export const useAnalyticsStore = defineStore('analytics', {
         this.generateProductPerformanceData(productsData)
         this.generateCustomerAnalyticsData(customersData, salesData)
         this.generateInventoryInsightsData(productsData)
+        
+        // Calculate top category
+        this.topCategory = this.calculateTopCategory(productsData, salesData)
+
+        // Update last fetch time
+        this.lastFetchTime = now
 
       } catch (error) {
         console.error('Error fetching analytics data:', error)
@@ -274,6 +348,20 @@ export const useAnalyticsStore = defineStore('analytics', {
       } finally {
         this.loading = false
       }
+    },
+
+    /**
+     * Clear analytics cache
+     */
+    clearAnalyticsCache(): void {
+      this.dataCache = {
+        salesData: null,
+        productsData: null,
+        customersData: null,
+        returnsData: null,
+        timestamp: null
+      }
+      this.lastFetchTime = null
     },
 
     /**
@@ -298,14 +386,95 @@ export const useAnalyticsStore = defineStore('analytics', {
      */
     async fetchProductsData() {
       try {
-        // Use getPopularProduct to get products with sales data
-        const products = await window.electronAPI.products.getPopularProduct(50, 'all')
-        console.log('Fetched products data:', products)
+        // Use getAll to get all products for inventory calculation
+        console.log('=== FETCHING PRODUCTS DATA ===')
+        const products = await window.electronAPI.products.getAll()
+        console.log('Raw products data from backend:', products)
+        console.log('Number of products:', products?.length || 0)
+        if (products && products.length > 0) {
+          console.log('Sample product fields:', Object.keys(products[0]))
+          console.log('Sample product data:', products[0])
+        }
+        console.log('================================')
         return products || []
       } catch (error) {
         console.error('Error fetching products data:', error)
         return []
       }
+    },
+
+    /**
+     * Fetch returns data from the backend
+     * @returns {Promise<any[]>} Array of return records
+     */
+    async fetchReturnsData() {
+      try {
+        console.log('=== FETCHING RETURNS DATA ===')
+        const returns = await window.electronAPI.returns.getAll()
+        console.log('Raw returns data from backend:', returns)
+        console.log('Number of returns:', returns?.length || 0)
+        console.log('================================')
+        return returns || []
+      } catch (error) {
+        console.error('Error fetching returns data:', error)
+        return []
+      }
+    },
+
+    /**
+     * Calculate most returned products
+     * 
+     * @param {any[]} returns - Array of return records
+     * @param {any[]} products - Array of product records
+     */
+    calculateMostReturnedProducts(returns: any[], products: any[]) {
+      console.log('Calculating most returned products from:', returns.length, 'returns')
+      
+      // Group returns by product
+      const productReturns: { [key: number]: { returns: number, quantity_returned: number, sales: number } } = {}
+      
+      returns.forEach(returnItem => {
+        if (returnItem.items && Array.isArray(returnItem.items)) {
+          returnItem.items.forEach((item: any) => {
+            const productId = item.product_id
+            if (!productReturns[productId]) {
+              productReturns[productId] = { returns: 0, quantity_returned: 0, sales: 0 }
+            }
+            productReturns[productId].returns += 1
+            productReturns[productId].quantity_returned += item.quantity || 0
+          })
+        }
+      })
+      
+      // Get sales data for each product
+      products.forEach(product => {
+        if (productReturns[product.id]) {
+          productReturns[product.id].sales = product.sales || product.total_sold || 0
+        }
+      })
+      
+      // Calculate most returned products
+      const mostReturned = Object.entries(productReturns)
+        .map(([productId, data]) => {
+          const product = products.find(p => p.id === parseInt(productId))
+          if (!product) return null
+          
+          const returnRate = data.sales > 0 ? (data.quantity_returned / data.sales) * 100 : 0
+          
+          return {
+            id: product.id,
+            name: product.name || 'Unknown Product',
+            returns: data.returns,
+            quantity_returned: data.quantity_returned,
+            return_rate: Math.round(returnRate * 100) / 100 // Round to 2 decimal places
+          }
+        })
+        .filter(item => item !== null)
+        .sort((a, b) => b!.returns - a!.returns)
+        .slice(0, 5) // Top 5 most returned products
+      
+      console.log('Most returned products calculated:', mostReturned)
+      this.mostReturnedProducts = mostReturned as MostReturnedProduct[]
     },
 
     /**
@@ -355,9 +524,22 @@ export const useAnalyticsStore = defineStore('analytics', {
       const averageOrderValue = sales.length > 0 ? totalRevenue / sales.length : 0
       
       // Calculate inventory value
-      // This is the total value of all products currently in stock
-      const inventoryValue = products.reduce((sum: number, product: any) => 
-        sum + ((product.current_stock || 0) * (product.selling_price || 0)), 0)
+      // This is the total cost value of all products currently in stock
+      
+      const inventoryValue = products.reduce((sum: number, product: any) => {
+        const stock = product.current_stock || 0
+        // Use purchase_price if available, otherwise fall back to selling_price
+        const price = product.purchase_price || 0
+        const itemValue = stock * price
+        return sum + itemValue
+      }, 0)
+        
+        // Additional debugging - check if we have any products with stock
+        const productsWithStock = products.filter(p => (p.current_stock || 0) > 0)
+        console.log('Products with stock > 0:', productsWithStock.length)
+        productsWithStock.forEach(p => {
+          console.log(`- ${p.name}: stock=${p.current_stock}, purchase_price=${p.purchase_price}, selling_price=${p.selling_price}`)
+        })
       
       // Calculate stock alerts
       // Low stock: products with stock above 0 but below minimum threshold
@@ -375,7 +557,8 @@ export const useAnalyticsStore = defineStore('analytics', {
         totalCustomers: customers.length,
         inventoryValue,
         lowStockItems,
-        outOfStockItems
+        outOfStockItems,
+        topCategory: this.topCategory
       }
     },
 
@@ -711,6 +894,44 @@ export const useAnalyticsStore = defineStore('analytics', {
       }).sort((a, b) => b.totalValue - a.totalValue)
       
       console.log('Generated inventory insights data:', this.inventoryInsightsData)
+    },
+
+    /**
+     * Calculate top category by sales volume
+     * 
+     * @param {any[]} products - Array of product records
+     * @param {any[]} sales - Array of sales records
+     */
+    calculateTopCategory(products: any[], sales: any[]) {
+      // Group products by category and calculate total sales
+      const categorySales: { [key: string]: number } = {}
+      const categoryCounts: { [key: string]: number } = {}
+      
+      products.forEach(product => {
+        const category = product.category_name || product.category_id || 'Uncategorized'
+        
+        // Count products per category
+        categoryCounts[category] = (categoryCounts[category] || 0) + 1
+        
+        // Count sales per category (if product has sales data)
+        const productSales = product.sales || product.total_sold || 0
+        categorySales[category] = (categorySales[category] || 0) + productSales
+      })
+      
+      // Find the category with the highest sales, or if no sales, highest product count
+      const totalSales = Object.values(categorySales).reduce((sum, val) => sum + val, 0)
+      
+      if (totalSales > 0) {
+        // Use sales data if available
+        const topCategory = Object.entries(categorySales)
+          .sort(([,a], [,b]) => b - a)[0]
+        return topCategory ? topCategory[0] : 'No Sales'
+      } else {
+        // Fall back to category with most products
+        const topCategory = Object.entries(categoryCounts)
+          .sort(([,a], [,b]) => b - a)[0]
+        return topCategory ? topCategory[0] : 'No Products'
+      }
     },
 
     /**

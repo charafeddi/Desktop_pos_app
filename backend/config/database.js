@@ -1,32 +1,48 @@
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
+// Determine if we're in a packaged app or development
+const isPackaged = process.env.NODE_ENV === 'production' || 
+                   process.resourcesPath !== undefined ||
+                   (process.argv && process.argv[0] && process.argv[0].includes('POS System.exe'));
+
+console.log('Environment check:', {
+    NODE_ENV: process.env.NODE_ENV,
+    resourcesPath: process.resourcesPath,
+    argv0: process.argv[0],
+    isPackaged: isPackaged
+});
+
 // Create data directory if it doesn't exist
-const dataDir = path.join(__dirname, '..', 'data');
+let dataDir;
+if (isPackaged) {
+    // In packaged app, use user's AppData directory
+    dataDir = path.join(process.env.APPDATA || process.env.HOME, 'POS-System', 'data');
+} else {
+    // In development, use local data directory
+    dataDir = path.join(__dirname, '..', 'data');
+}
+
 if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir);
+    fs.mkdirSync(dataDir, { recursive: true });
 }
 
 // Database file path
 const dbPath = path.join(dataDir, 'pos.db');
+console.log('Database path:', dbPath);
 
 // Create database connection
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Error connecting to database:', err);
-        process.exit(1);
-    }
-    console.log('Connected to SQLite database');
-});
+const db = new Database(dbPath);
+console.log('Connected to SQLite database');
 
 // Enable foreign keys
-db.run('PRAGMA foreign_keys = ON');
+db.pragma('foreign_keys = ON');
 
 // Create tables if they don't exist
-db.serialize(() => {
+try {
     // Users table
-    db.run(`CREATE TABLE IF NOT EXISTS users (
+    db.exec(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
@@ -39,7 +55,7 @@ db.serialize(() => {
     )`);
 
     // Categories table
-    db.run(`CREATE TABLE IF NOT EXISTS categories (
+    db.exec(`CREATE TABLE IF NOT EXISTS categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         description TEXT,
@@ -50,7 +66,7 @@ db.serialize(() => {
     )`);
 
     // Product Types table
-    db.run(`CREATE TABLE IF NOT EXISTS product_types (
+    db.exec(`CREATE TABLE IF NOT EXISTS product_types (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         description TEXT,
@@ -59,7 +75,7 @@ db.serialize(() => {
     )`);
 
     // Product Units table
-    db.run(`CREATE TABLE IF NOT EXISTS product_units (
+    db.exec(`CREATE TABLE IF NOT EXISTS product_units (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         symbol TEXT NOT NULL,
@@ -68,7 +84,7 @@ db.serialize(() => {
     )`);
 
     // Suppliers table
-    db.run(`CREATE TABLE IF NOT EXISTS suppliers (
+    db.exec(`CREATE TABLE IF NOT EXISTS suppliers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         contact_person TEXT,
@@ -83,7 +99,7 @@ db.serialize(() => {
     )`);
 
     // Products table
-    db.run(`CREATE TABLE IF NOT EXISTS products (
+    db.exec(`CREATE TABLE IF NOT EXISTS products (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         sku TEXT UNIQUE,
@@ -107,7 +123,7 @@ db.serialize(() => {
     )`);
 
     // Customers table
-    db.run(`CREATE TABLE IF NOT EXISTS customers (
+    db.exec(`CREATE TABLE IF NOT EXISTS customers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         email TEXT,
@@ -122,7 +138,7 @@ db.serialize(() => {
     )`);
 
     // Sales table
-    db.run(`CREATE TABLE IF NOT EXISTS sales (
+    db.exec(`CREATE TABLE IF NOT EXISTS sales (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         invoice_number TEXT UNIQUE NOT NULL,
         customer_id INTEGER,
@@ -140,11 +156,13 @@ db.serialize(() => {
 
     // Add missing columns if they don't exist (for existing databases)
     const addColumnIfNotExists = (columnName, columnDefinition) => {
-        db.run(`ALTER TABLE sales ADD COLUMN ${columnName} ${columnDefinition}`, (err) => {
-            if (err && !err.message.includes('duplicate column name')) {
+        try {
+            db.exec(`ALTER TABLE sales ADD COLUMN ${columnName} ${columnDefinition}`);
+        } catch (err) {
+            if (!err.message.includes('duplicate column name')) {
                 console.error(`Error adding ${columnName} column:`, err);
             }
-        });
+        }
     };
 
     // Add all missing columns
@@ -165,7 +183,7 @@ db.serialize(() => {
     addColumnIfNotExists('updated_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP');
 
     // Sale Items table
-    db.run(`CREATE TABLE IF NOT EXISTS sale_items (
+    db.exec(`CREATE TABLE IF NOT EXISTS sale_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sale_id INTEGER NOT NULL,
         product_id INTEGER NOT NULL,
@@ -181,11 +199,13 @@ db.serialize(() => {
 
     // Add missing columns to sale_items table if they don't exist
     const addSaleItemColumnIfNotExists = (columnName, columnDefinition) => {
-        db.run(`ALTER TABLE sale_items ADD COLUMN ${columnName} ${columnDefinition}`, (err) => {
-            if (err && !err.message.includes('duplicate column name')) {
+        try {
+            db.exec(`ALTER TABLE sale_items ADD COLUMN ${columnName} ${columnDefinition}`);
+        } catch (err) {
+            if (!err.message.includes('duplicate column name')) {
                 console.error(`Error adding sale_items ${columnName} column:`, err);
             }
-        });
+        }
     };
 
     // Add all missing columns to sale_items
@@ -200,7 +220,7 @@ db.serialize(() => {
     addSaleItemColumnIfNotExists('created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP');
 
     // Returns table
-    db.run(`CREATE TABLE IF NOT EXISTS returns (
+    db.exec(`CREATE TABLE IF NOT EXISTS returns (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sale_id INTEGER NOT NULL,
         customer_id INTEGER NOT NULL,
@@ -218,32 +238,40 @@ db.serialize(() => {
     )`);
 
     // Add missing columns to returns table if they don't exist
-    db.run(`ALTER TABLE returns ADD COLUMN discount_amount REAL DEFAULT 0`, (err) => {
-        if (err && !err.message.includes('duplicate column name')) {
+    try {
+        db.exec(`ALTER TABLE returns ADD COLUMN discount_amount REAL DEFAULT 0`);
+    } catch (err) {
+        if (!err.message.includes('duplicate column name')) {
             console.error('Error adding discount_amount column:', err);
         }
-    });
+    }
     
-    db.run(`ALTER TABLE returns ADD COLUMN tax_amount REAL DEFAULT 0`, (err) => {
-        if (err && !err.message.includes('duplicate column name')) {
+    try {
+        db.exec(`ALTER TABLE returns ADD COLUMN tax_amount REAL DEFAULT 0`);
+    } catch (err) {
+        if (!err.message.includes('duplicate column name')) {
             console.error('Error adding tax_amount column:', err);
         }
-    });
+    }
     
-    db.run(`ALTER TABLE returns ADD COLUMN final_amount REAL DEFAULT 0`, (err) => {
-        if (err && !err.message.includes('duplicate column name')) {
+    try {
+        db.exec(`ALTER TABLE returns ADD COLUMN final_amount REAL DEFAULT 0`);
+    } catch (err) {
+        if (!err.message.includes('duplicate column name')) {
             console.error('Error adding final_amount column:', err);
         }
-    });
+    }
     
-    db.run(`ALTER TABLE returns ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`, (err) => {
-        if (err && !err.message.includes('duplicate column name')) {
+    try {
+        db.exec(`ALTER TABLE returns ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`);
+    } catch (err) {
+        if (!err.message.includes('duplicate column name')) {
             console.error('Error adding updated_at column:', err);
         }
-    });
+    }
 
     // Return Items table
-    db.run(`CREATE TABLE IF NOT EXISTS return_items (
+    db.exec(`CREATE TABLE IF NOT EXISTS return_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         return_id INTEGER NOT NULL,
         sale_item_id INTEGER NOT NULL,
@@ -260,26 +288,32 @@ db.serialize(() => {
     )`);
 
     // Add missing columns to return_items table if they don't exist
-    db.run(`ALTER TABLE return_items ADD COLUMN discount_amount REAL DEFAULT 0`, (err) => {
-        if (err && !err.message.includes('duplicate column name')) {
+    try {
+        db.exec(`ALTER TABLE return_items ADD COLUMN discount_amount REAL DEFAULT 0`);
+    } catch (err) {
+        if (!err.message.includes('duplicate column name')) {
             console.error('Error adding discount_amount column to return_items:', err);
         }
-    });
+    }
     
-    db.run(`ALTER TABLE return_items ADD COLUMN tax_amount REAL DEFAULT 0`, (err) => {
-        if (err && !err.message.includes('duplicate column name')) {
+    try {
+        db.exec(`ALTER TABLE return_items ADD COLUMN tax_amount REAL DEFAULT 0`);
+    } catch (err) {
+        if (!err.message.includes('duplicate column name')) {
             console.error('Error adding tax_amount column to return_items:', err);
         }
-    });
+    }
     
-    db.run(`ALTER TABLE return_items ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP`, (err) => {
-        if (err && !err.message.includes('duplicate column name')) {
+    try {
+        db.exec(`ALTER TABLE return_items ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP`);
+    } catch (err) {
+        if (!err.message.includes('duplicate column name')) {
             console.error('Error adding created_at column to return_items:', err);
         }
-    });
+    }
 
     // Todo table
-    db.run(`
+    db.exec(`
         CREATE TABLE IF NOT EXISTS todos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
@@ -297,7 +331,7 @@ db.serialize(() => {
     `);
 
     // Inventory table
-    db.run(`
+    db.exec(`
         CREATE TABLE IF NOT EXISTS inventory (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_id INTEGER NOT NULL,
@@ -309,7 +343,7 @@ db.serialize(() => {
     `);
 
     // Inventory transactions table
-    db.run(`
+    db.exec(`
         CREATE TABLE IF NOT EXISTS inventory_transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_id INTEGER NOT NULL,
@@ -324,7 +358,7 @@ db.serialize(() => {
     `);
 
     // Settings table
-    db.run(`
+    db.exec(`
         CREATE TABLE IF NOT EXISTS settings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             key TEXT UNIQUE NOT NULL,
@@ -335,44 +369,38 @@ db.serialize(() => {
     `);
 
     // Create indexes
-    db.run('CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_products_supplier ON products(supplier_id)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_products_type ON products(product_type_id)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_products_unit ON products(product_unit_id)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_sales_customer ON sales(customer_id)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_sales_user ON sales(user_id)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_sale_items_product ON sale_items(product_id)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_returns_sale ON returns(sale_id)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_returns_customer ON returns(customer_id)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_returns_user ON returns(user_id)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_return_items_return ON return_items(return_id)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_return_items_product ON return_items(product_id)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_todos_assigned ON todos(assigned_to)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_todos_created ON todos(created_by)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_inventory_product ON inventory(product_id)');
-    db.run('CREATE INDEX IF NOT EXISTS idx_inventory_transactions_product ON inventory_transactions(product_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_products_supplier ON products(supplier_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_products_type ON products(product_type_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_products_unit ON products(product_unit_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_sales_customer ON sales(customer_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_sales_user ON sales(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_sale_items_product ON sale_items(product_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_returns_sale ON returns(sale_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_returns_customer ON returns(customer_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_returns_user ON returns(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_return_items_return ON return_items(return_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_return_items_product ON return_items(product_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_todos_assigned ON todos(assigned_to)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_todos_created ON todos(created_by)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_inventory_product ON inventory(product_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_inventory_transactions_product ON inventory_transactions(product_id)');
 
     // Ensure required columns exist on products table (for legacy DBs)
     const ensureColumn = (table, column, typeDef, defaultValue) => {
-        db.all(`PRAGMA table_info(${table})`, (err, columns) => {
-            if (err) {
-                console.error(`Error reading schema for ${table}:`, err);
-                return;
-            }
+        try {
+            const columns = db.pragma(`table_info(${table})`);
             const hasColumn = columns && columns.some(col => col.name === column);
             if (!hasColumn) {
                 const defaultClause = defaultValue !== undefined ? ` DEFAULT ${defaultValue}` : '';
                 const sql = `ALTER TABLE ${table} ADD COLUMN ${column} ${typeDef}${defaultClause}`;
-                db.run(sql, alterErr => {
-                    if (alterErr) {
-                        console.error(`Error adding column ${column} to ${table}:`, alterErr);
-                    } else {
-                        console.log(`Added missing column ${column} to ${table}`);
-                    }
-                });
+                db.exec(sql);
+                console.log(`Added missing column ${column} to ${table}`);
             }
-        });
+        } catch (err) {
+            console.error(`Error ensuring column ${column} in ${table}:`, err);
+        }
     };
 
     // Add missing stock-related columns if the database was created before these fields existed
@@ -384,29 +412,20 @@ db.serialize(() => {
     ensureColumn('customers', 'is_active', 'INTEGER', 1);
     
     // Add performance indexes for frequently queried columns
-    db.run(`CREATE INDEX IF NOT EXISTS idx_sales_date ON sales(date)`, (err) => {
-        if (err) console.error('Error creating sales date index:', err);
-    });
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_sales_date ON sales(created_at)`);
     
-    db.run(`CREATE INDEX IF NOT EXISTS idx_sales_customer ON sales(customer_id)`, (err) => {
-        if (err) console.error('Error creating sales customer index:', err);
-    });
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_sales_customer ON sales(customer_id)`);
     
-    db.run(`CREATE INDEX IF NOT EXISTS idx_sale_items_product ON sale_items(product_id)`, (err) => {
-        if (err) console.error('Error creating sale items product index:', err);
-    });
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_sale_items_product ON sale_items(product_id)`);
     
-    db.run(`CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id)`, (err) => {
-        if (err) console.error('Error creating sale items sale index:', err);
-    });
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id)`);
     
-    db.run(`CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku)`, (err) => {
-        if (err) console.error('Error creating products SKU index:', err);
-    });
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku)`);
     
-    db.run(`CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id)`, (err) => {
-        if (err) console.error('Error creating products category index:', err);
-    });
-});
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id)`);
+    
+} catch (error) {
+    console.error('Database initialization error:', error);
+}
 
 module.exports = db; 

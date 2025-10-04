@@ -42,7 +42,8 @@
     "logout": "Logout",
     "welcome": "Welcome",
     "new_notifications": "New Notifications",
-    "view_all": "View All"
+    "view_all": "View All",
+    "theme": "Toggle Theme"
   },
   "products": {
     "title": "Popular Products",
@@ -406,5 +407,69 @@
     "close": "Close",
     "confirm_delete": "Are you sure you want to delete this return?",
     "error_loading_returns": "Error loading returns"
+  },
+  "print": {
+    "preview": {
+      "title": "Receipt Preview",
+      "print": "Print Receipt",
+      "save_pdf": "Save as PDF",
+      "email": "Email Receipt",
+      "copy": "Copy Text",
+      "print_success": "Receipt printed successfully",
+      "print_error": "Failed to print receipt",
+      "save_success": "Receipt saved successfully",
+      "save_error": "Failed to save receipt",
+      "copy_success": "Receipt copied to clipboard",
+      "copy_error": "Failed to copy receipt",
+      "email": {
+        "title": "Email Receipt",
+        "recipient": "Recipient Email",
+        "subject": "Subject",
+        "placeholder": "Enter customer email",
+        "subject_placeholder": "Receipt from POS System",
+        "default_subject": "Your Receipt",
+        "send": "Send",
+        "cancel": "Cancel",
+        "no_address": "Please enter recipient email",
+        "send_success": "Receipt emailed successfully",
+        "send_error": "Failed to email receipt"
+      }
+    },
+    "settings": {
+      "title": "Print Settings",
+      "description": "Configure receipt printing preferences",
+      "save": "Save Changes",
+      "reset": "Reset to Default",
+      "save_success": "Settings saved successfully",
+      "save_error": "Failed to save settings",
+      "reset_success": "Settings reset to default",
+      "printer": {
+        "title": "Printer Configuration",
+        "select": "Select Printer",
+        "default": "Use Default Printer",
+        "refresh": "Refresh List",
+        "test": "Test Print",
+        "refresh_success": "Printers refreshed successfully",
+        "refresh_error": "Failed to refresh printers",
+        "test_success": "Test print successful",
+        "test_error": "Test print failed"
+      },
+      "template": {
+        "title": "Receipt Template",
+        "company_name": "Company Name",
+        "company_name_placeholder": "Enter company name",
+        "company_address": "Company Address",
+        "company_address_placeholder": "Enter company address",
+        "company_phone": "Company Phone",
+        "company_phone_placeholder": "Enter company phone",
+        "default_tax_rate": "Default Tax Rate (%)"
+      },
+      "options": {
+        "title": "Print Options",
+        "auto_print": "Auto Print After Sale",
+        "show_qr_code": "Show QR Code",
+        "print_watermark": "Print Watermark"
+      }
+    }
   }
 } 

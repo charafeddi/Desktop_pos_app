@@ -277,143 +277,151 @@
     </div>
 </template>
 <script setup>
-    import { ref, computed, onMounted } from 'vue';
-    import ProductFormWindow from './components/ProductFormWindow.vue';
-    import { useI18n } from 'vue-i18n';
-    import { useCategoryStore } from '../../stores/category.store';
-    import { useProductStore } from '../../stores/product.store';
-    import { exportProducts } from '@/utils/exportUtils';
-    const { t } = useI18n();
-    const ProductStore = useProductStore();
-    const categoryStore = useCategoryStore();
-    // Load products on mount and guard against undefined
-    onMounted(() => {
-        ProductStore.getAllProducts?.();
-        ProductStore.getProductsAboutToFinish?.();
-        categoryStore.fetchCategories?.();
-    });
-    const products = computed(() => Array.isArray(ProductStore.getProducts) ? ProductStore.getProducts : []);
-    const productsAboutToFinish = computed(() => Array.isArray(ProductStore.getProductAboutTofinish) ? ProductStore.getProductAboutTofinish: []);
+import { ref, computed, onMounted } from 'vue'
+import ProductFormWindow from './components/ProductFormWindow.vue'
+import { useI18n } from 'vue-i18n'
+import { useCategoryStore } from '../../stores/category.store'
+import { useProductStore } from '../../stores/product.store'
+import { exportProducts } from '@/utils/exportUtils'
 
-    // Calculate total inventory value (stock * price)
-    const totalInventoryValue = computed(() => {
-        if (!Array.isArray(products.value) || products.value.length === 0) {
-            return '$0.00'
-        }
-        
-        const total = products.value.reduce((sum, product) => {
-            const stock = Number(product.current_stock) || 0
-            const price = Number(product.selling_price) || 0
-            return sum + (stock * price)
-        }, 0)
-        
-        return total.toLocaleString('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 2
+// Composables
+const { t } = useI18n()
+
+// Stores
+const ProductStore = useProductStore()
+const categoryStore = useCategoryStore()
+// Lifecycle Hooks
+onMounted(() => {
+    ProductStore.getAllProducts?.()
+    ProductStore.getProductsAboutToFinish?.()
+    categoryStore.fetchCategories?.()
+})
+// Computed Properties
+const products = computed(() => Array.isArray(ProductStore.getProducts) ? ProductStore.getProducts : [])
+const productsAboutToFinish = computed(() => Array.isArray(ProductStore.getProductAboutTofinish) ? ProductStore.getProductAboutTofinish : [])
+
+// Calculate total inventory value (stock * price)
+const totalInventoryValue = computed(() => {
+    if (!Array.isArray(products.value) || products.value.length === 0) {
+        return '$0.00'
+    }
+    
+    const total = products.value.reduce((sum, product) => {
+        const stock = Number(product.current_stock) || 0
+        const price = Number(product.selling_price) || 0
+        return sum + (stock * price)
+    }, 0)
+    
+    return total.toLocaleString('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2
+    })
+})
+
+// Reactive Variables
+const showForm = ref(false)
+const editingProduct = ref(null)
+const searchQuery = ref('')
+const categoryFilter = ref('')
+const statusFilter = ref('')
+const currentPage = ref(1)
+const itemsPerPage = 10
+const showDeleteConfirm = ref(false)
+const productToDelete = ref(null)
+
+const categories = computed(() => categoryStore.getCategories || [])
+    
+// Computed Properties
+const filteredProducts = computed(() => {
+    const source = Array.isArray(products.value) ? products.value : []
+    let filtered = source
+
+    // Apply search filter
+    if (searchQuery.value) {
+        const q = String(searchQuery.value || '').toLowerCase()
+        filtered = filtered.filter(product => {
+            const name = typeof product?.name === 'string' ? product.name.toLowerCase() : ''
+            const sku = typeof product?.sku === 'string' ? product.sku.toLowerCase() : ''
+            return name.includes(q) || sku.includes(q)
         })
-    });
+    }
 
-    const categories = computed(() => categoryStore.getCategories || []);
-    
-    // Filters
-    const searchQuery = ref('');
-    const categoryFilter = ref('');
-    const statusFilter = ref('');
-    const currentPage = ref(1);
-    const itemsPerPage = 10;
-    
-    // Computed properties
-    const filteredProducts = computed(() => {
-        const source = Array.isArray(products.value) ? products.value : [];
-        let filtered = source;
+    // Apply category filter
+    if (categoryFilter.value) {
+        filtered = filtered.filter(product => product?.category === categoryFilter.value)
+    }
 
-        // Apply search filter
-        if (searchQuery.value) {
-            const q = String(searchQuery.value || '').toLowerCase();
-            filtered = filtered.filter(product => {
-                const name = typeof product?.name === 'string' ? product.name.toLowerCase() : '';
-                const sku = typeof product?.sku === 'string' ? product.sku.toLowerCase() : '';
-                return name.includes(q) || sku.includes(q);
-            });
+    // Apply status filter
+    if (statusFilter.value) {
+        filtered = filtered.filter(product => product?.status === statusFilter.value)
+    }
+
+    return Array.isArray(filtered) ? filtered : []
+})
+
+const totalItems = computed(() => Array.isArray(filteredProducts.value) ? filteredProducts.value.length : 0)
+const totalPages = computed(() => Math.max(1, Math.ceil((totalItems.value || 0) / itemsPerPage)))
+const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage)
+const endIndex = computed(() => Math.min(startIndex.value + itemsPerPage, totalItems.value))
+
+// Form state
+const showAddForm = ref(false)
+const showEditForm = ref(false)
+const selectedProduct = ref(null)
+const showExportDropdown = ref(false)
+    
+// Methods
+const closeForm = () => {
+    showAddForm.value = false
+    showEditForm.value = false
+    selectedProduct.value = null
+}
+
+const handleFormSubmit = async (formData) => {
+    try {
+        if (showEditForm.value && selectedProduct.value?.id) {
+            await window.electronAPI?.products.update(selectedProduct.value.id, formData)
+        } else {
+            await window.electronAPI?.products.create(formData)
         }
+        // Refresh products from DB to ensure persistence
+        await ProductStore.getAllProducts?.()
+    } catch (e) {
+        console.error('Failed to save product', e)
+    } finally {
+        closeForm()
+    }
+}
 
-        // Apply category filter
-        if (categoryFilter.value) {
-            filtered = filtered.filter(product => product?.category === categoryFilter.value);
-        }
+// Edit product method
+const editProduct = (product) => {
+    selectedProduct.value = { ...product }
+    showEditForm.value = true
+}
 
-        // Apply status filter
-        if (statusFilter.value) {
-            filtered = filtered.filter(product => product?.status === statusFilter.value);
-        }
+// Delete product method
+const deleteProduct = (productId) => {
+    if (confirm('Are you sure you want to delete this product?')) {
+        products.value = products.value.filter(p => p.id !== productId)
+    }
+}
 
-        return Array.isArray(filtered) ? filtered : [];
-    });
-    
-    const totalItems = computed(() => Array.isArray(filteredProducts.value) ? filteredProducts.value.length : 0);
-    const totalPages = computed(() => Math.max(1, Math.ceil((totalItems.value || 0) / itemsPerPage)));
-    const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage);
-    const endIndex = computed(() => Math.min(startIndex.value + itemsPerPage, totalItems.value));
-        
-    // Form state
-    const showAddForm = ref(false);
-    const showEditForm = ref(false);
-    const selectedProduct = ref(null);
-    const showExportDropdown = ref(false);
-    
-    // Form methods
-    const closeForm = () => {
-        showAddForm.value = false;
-        showEditForm.value = false;
-        selectedProduct.value = null;
-    };
-    
-    const handleFormSubmit = async (formData) => {
-        try {
-            if (showEditForm.value && selectedProduct.value?.id) {
-                await window.electronAPI?.products.update(selectedProduct.value.id, formData);
-            } else {
-                await window.electronAPI?.products.create(formData);
-            }
-            // Refresh products from DB to ensure persistence
-            await ProductStore.getAllProducts?.();
-        } catch (e) {
-            console.error('Failed to save product', e);
-        } finally {
-            closeForm();
+// Export products
+const exportProductsData = async (format) => {
+    try {
+        const success = await exportProducts(products.value, format)
+        if (success) {
+            alert(`Products data exported successfully as ${format.toUpperCase()}`)
+        } else {
+            alert('Failed to export products data')
         }
-    };
-    
-    // Edit product method
-    const editProduct = (product) => {
-        selectedProduct.value = { ...product };
-        showEditForm.value = true;
-    };
-    
-    // Delete product method
-    const deleteProduct = (productId) => {
-        if (confirm('Are you sure you want to delete this product?')) {
-            products.value = products.value.filter(p => p.id !== productId);
-        }
-    };
+    } catch (error) {
+        console.error('Export error:', error)
+        alert('Error exporting products data')
+    }
+}
 
-    // Export products
-    const exportProductsData = async (format) => {
-        try {
-            const success = await exportProducts(products.value, format);
-            if (success) {
-                alert(`Products data exported successfully as ${format.toUpperCase()}`);
-            } else {
-                alert('Failed to export products data');
-            }
-        } catch (error) {
-            console.error('Export error:', error);
-            alert('Error exporting products data');
-        }
-    };
-
-    console.log(filteredProducts.value);
 </script>
 <style scoped>
 .btn {

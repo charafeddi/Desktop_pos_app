@@ -1,5 +1,6 @@
 <template>
   <div class="page-sidebar" :class="{ 'collapsed': isCollapsed }">
+    <!-- Logo and Toggle Section -->
     <div class="logo-box">
       <a href="#" class="logo-text" :class="{ 'hidden': isCollapsed }">Connect</a>
       <a href="#" class="sidebar-toggle" @click.prevent="toggleSidebar">
@@ -8,24 +9,29 @@
       </a>
     </div>
 
+    <!-- Main Navigation -->
     <div class="page-sidebar-inner slimscroll">
       <ul class="accordion-menu">
         <li class="sidebar-title" :class="{ 'hidden': isCollapsed }">
           Apps
         </li>
+        
+        <!-- Dashboard -->
         <li>
           <router-link
-            :to="{name: 'Dashboard'}"
+            :to="{ name: 'Dashboard' }"
             class="nav-link"
-            :class="{ 'active': $route.name === 'dashboard', 'icon-only': isCollapsed }"
+            :class="{ 'active': $route.name === 'Dashboard', 'icon-only': isCollapsed }"
           >
             <span class="material-icons-outlined">dashboard</span>
             <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.dashboard') }}</span>
           </router-link>
         </li>
+        
+        <!-- Products -->
         <li>
           <router-link
-            :to="{name: 'Product'}"
+            :to="{ name: 'Product' }"
             class="nav-link"
             :class="{ 'active': $route.path === '/products', 'icon-only': isCollapsed }"
           >
@@ -33,26 +39,20 @@
             <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.products') }}</span>
           </router-link>
         </li>
+        
+        <!-- Analytics -->
         <li>
           <router-link
-            :to="{name: 'Analytics'}"
+            :to="{ name: 'Analytics' }"
             class="nav-link"
-            :class="{ 'active': $route.path === '/categories', 'icon-only': isCollapsed }"
+            :class="{ 'active': $route.path === '/analytics', 'icon-only': isCollapsed }"
           >
             <span class="material-icons-outlined">query_stats</span>
             <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.analytics') }}</span>
           </router-link>
         </li>
-        <li>
-          <router-link
-            to="/orders"
-            class="nav-link"
-            :class="{ 'active': $route.path === '/orders', 'icon-only': isCollapsed }"
-          >
-            <span class="material-icons-outlined">shopping_cart</span>
-            <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.orders') }}</span>
-          </router-link>
-        </li>
+        
+        <!-- Customers -->
         <li>
           <router-link
             to="/customers"
@@ -63,70 +63,69 @@
             <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.customers') }}</span>
           </router-link>
         </li>
+        
+        <!-- Sales -->
         <li>
           <router-link
             to="/sales"
             class="nav-link"
-            :class="{ 'active': $route.path === '/reports', 'icon-only': isCollapsed }"
+            :class="{ 'active': $route.path === '/sales', 'icon-only': isCollapsed }"
           >
-            <span class="material-icons-outlined">
-              real_estate_agent
-            </span>
+            <span class="material-icons-outlined">real_estate_agent</span>
             <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.sales') }}</span>
           </router-link>
         </li>
+        
+        <!-- Returns -->
         <li>
           <router-link
             to="/returns"
             class="nav-link"
             :class="{ 'active': $route.path === '/returns', 'icon-only': isCollapsed }"
           >
-            <span class="material-icons-outlined">
-              assignment_return
-            </span>
+            <span class="material-icons-outlined">assignment_return</span>
             <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.returns') }}</span>
           </router-link>
-        </li> 
-               
+        </li>
+        
+        <!-- Categories -->
         <li>
           <router-link
             to="/category"
             class="nav-link"
             :class="{ 'active': $route.path === '/category', 'icon-only': isCollapsed }"
           >
-            <span class="material-icons-outlined">
-              category
-            </span>
+            <span class="material-icons-outlined">category</span>
             <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.categories') }}</span>
           </router-link>
         </li>
+        
+        <!-- Suppliers -->
         <li>
           <router-link
-            :to="{name:'Supplier'}"
+            :to="{ name: 'Supplier' }"
             class="nav-link"
             :class="{ 'active': $route.path === '/supplier', 'icon-only': isCollapsed }"
           >
-            <span class="material-icons-outlined">
-              local_shipping
-            </span>
+            <span class="material-icons-outlined">local_shipping</span>
             <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.supplier') }}</span>
           </router-link>
         </li>
+        
+        <!-- Inventory -->
         <li>
           <router-link
-            :to="{name:'Inventory'}"
+            :to="{ name: 'Inventory' }"
             class="nav-link"
             :class="{ 'active': $route.path === '/inventory', 'icon-only': isCollapsed }"
           >
-          <span class="material-icons-outlined">
-            inventory
-          </span>
+            <span class="material-icons-outlined">inventory</span>
             <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.inventory') }}</span>
           </router-link>
         </li>
       </ul>
 
-      <!-- Bottom section with settings -->
+      <!-- Bottom Settings Menu -->
       <ul class="accordion-menu mt-auto bottom-menu">
         <li>
           <router-link
@@ -144,10 +143,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-const { t } = useI18n()
 
+// Props and Emits
 const props = defineProps({
   isCollapsed: {
     type: Boolean,
@@ -157,26 +155,34 @@ const props = defineProps({
 
 const emit = defineEmits(['toggle-sidebar'])
 
-function toggleSidebar() {
+// Composables
+const { t } = useI18n()
+
+// Methods
+const toggleSidebar = () => {
   emit('toggle-sidebar', !props.isCollapsed)
 }
 </script>
 
-<style>
-/* Keep your original styles */
+<style scoped>
+/* ===== MAIN SIDEBAR CONTAINER ===== */
 .page-sidebar {
   width: 280px;
   position: relative;
-  background: var(--primary-color);
-  color: var(--color);
+  background: var(--color-surface);
+  color: var(--color-text);
   top: 0;
   bottom: 0;
   padding: 30px;
-  box-shadow: 0 0 1.25rem rgba(31,45,61,.15);
-  transition: all .3s ease-in-out;
+  box-shadow: 0 0 1.25rem rgba(31, 45, 61, 0.15);
+  transition: all 0.3s ease-in-out;
   backdrop-filter: blur(20px);
-  border-right: 1px solid hsla(0, 0%, 65%, 0.158);
+  border-right: 1px solid var(--color-border);
   z-index: 10;
+}
+
+[data-theme="dark"] .page-sidebar {
+  box-shadow: 0 0 1.25rem rgba(0, 0, 0, 0.3);
 }
 
 .page-sidebar.collapsed {
@@ -184,14 +190,15 @@ function toggleSidebar() {
   padding: 30px 15px;
 }
 
+/* ===== LOGO SECTION ===== */
 .logo-box {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 15px 20px;
-  border-bottom: 1px solid hsla(0, 0%, 65%, 0.158);
-  color: var(--color);
-  transition: all .3s ease-in-out;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  transition: all 0.3s ease-in-out;
 }
 
 .collapsed .logo-box {
@@ -202,16 +209,25 @@ function toggleSidebar() {
 .logo-text {
   font-size: 1.25rem;
   font-weight: 600;
-  transition: opacity .3s ease-in-out;
+  transition: opacity 0.3s ease-in-out;
 }
 
-.hidden {
-  opacity: 0;
-  width: 0;
-  visibility: hidden;
+.sidebar-toggle {
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease-in-out;
+  color: var(--color-text);
 }
 
-/* Navigation menu */
+.sidebar-toggle:hover {
+  opacity: 0.8;
+  color: var(--color-primary);
+}
+
+/* ===== NAVIGATION MENU ===== */
 .page-sidebar-inner {
   display: flex;
   flex-direction: column;
@@ -235,8 +251,8 @@ function toggleSidebar() {
   font-size: 0.75rem;
   text-transform: uppercase;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
-  transition: opacity .3s ease-in-out;
+  color: var(--color-text-secondary);
+  transition: opacity 0.3s ease-in-out;
 }
 
 .nav-link {
@@ -244,9 +260,10 @@ function toggleSidebar() {
   align-items: center;
   border-radius: 10px;
   padding: 0.75rem 1rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text);
   text-decoration: none;
-  transition: all .3s ease-in-out;
+  transition: all 0.3s ease-in-out;
+  margin: 0.25rem 0;
 }
 
 .nav-link.icon-only {
@@ -256,49 +273,41 @@ function toggleSidebar() {
 
 .nav-link:hover,
 .nav-link.active {
-  color: #535bf2;
-  background: rgba(255, 255, 255, 0.15);
   color: white;
+  background: var(--color-primary);
   border-radius: 10px;
 }
 
-/* Icon styles */
+/* ===== ICONS ===== */
 .material-icons-outlined {
   margin-right: 0.75rem;
-  transition: margin .3s ease-in-out;
+  transition: margin 0.3s ease-in-out;
   font-variation-settings:
-  'FILL' 0,
-  'wght' 400,
-  'GRAD' 0,
-  'opsz' 20
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 20;
 }
 
 .icon-only .material-icons-outlined {
   margin-right: 0;
 }
 
-/* Bottom menu styles */
+/* ===== UTILITY CLASSES ===== */
+.hidden {
+  opacity: 0;
+  width: 0;
+  visibility: hidden;
+}
+
+/* ===== BOTTOM MENU ===== */
 .bottom-menu {
   margin-top: auto;
   padding-top: 1rem;
-  border-top: 1px solid hsla(0, 0%, 65%, 0.158);
+  border-top: 1px solid var(--color-border);
 }
 
-/* Sidebar toggle button */
-.sidebar-toggle {
-  cursor: pointer;
-  padding: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all .3s ease-in-out;
-}
-
-.sidebar-toggle:hover {
-  opacity: 0.8;
-}
-
-/* Submenu styles */
+/* ===== SUBMENU (for future use) ===== */
 .sub-menu {
   list-style: none;
   padding-left: 3rem;

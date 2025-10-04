@@ -219,9 +219,11 @@ import PopularProducts from '@/components/product/popularProduct.vue'
 import SalesChart from '@/components/charts/SalesChart.vue'
 import ProductFinishedAboutTo from '@/components/product/productFinishedAboutTo.vue'
 
+// Composables
 const { t } = useI18n()
-
 const router = useRouter()
+
+// Stores
 const authStore = useAuthStore()
 const analyticsStore = useAnalyticsStore()
 const salesStore = useSalesStore()
@@ -229,10 +231,10 @@ const productStore = useProductStore()
 const customerStore = useCustomerStore()
 const returnsStore = useReturnsStore()
 
-// Loading state
+// Reactive Variables
 const loading = ref(true)
 
-// Dashboard data
+// Dashboard Data
 const dashboardData = ref({
   todayRevenue: 0,
   totalCustomers: 0,
@@ -248,17 +250,17 @@ const dashboardData = ref({
   aovChange: 0
 })
 
-// Recent activity
+// Recent Activity
 const recentActivity = ref([])
 
-// Computed properties from stores
+// Computed Properties
 const kpis = computed(() => analyticsStore.getKPIs)
 const sales = computed(() => salesStore.getSales)
 const products = computed(() => productStore.getProducts)
 const customers = computed(() => customerStore.getCustomers)
 const returns = computed(() => returnsStore.getReturns)
 
-// Format currency
+// Methods
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -306,7 +308,7 @@ const calculatePercentageChange = (current: number, previous: number) => {
   return ((current - previous) / previous) * 100
 }
 
-// Load dashboard data
+// Load Dashboard Data
 const loadDashboardData = async () => {
   try {
     loading.value = true
@@ -410,7 +412,7 @@ const generateRecentActivity = () => {
     .slice(0, 10)
 }
 
-// Load data on mount
+// Lifecycle Hooks
 onMounted(() => {
   loadDashboardData()
 })

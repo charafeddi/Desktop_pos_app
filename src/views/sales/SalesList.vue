@@ -6,6 +6,7 @@ import { useCustomerStore } from '@/stores/Customers.store'
 import { useReturnsStore } from '@/stores/returns.store'
 import { useI18n } from 'vue-i18n'
 import { exportSales } from '@/utils/exportUtils'
+import ReceiptPreview from '@/components/printer/ReceiptPreview.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -24,6 +25,13 @@ const selectedSale = ref(null)
 const showSaleDetailsModal = ref(false)
 const returnedSales = ref(new Set())
 const showExportDropdown = ref(false)
+
+// Receipt preview state
+const showReceiptPreview = ref(false)
+const currentReceiptText = ref('')
+const currentSaleData = ref(null)
+const currentCustomer = ref(null)
+const currentCashier = ref(null)
 
 // Load data on mount
 onMounted(async () => {
@@ -128,9 +136,7 @@ function getSaleStatusText(status, saleId) {
 // View sale details
 async function viewSaleDetails(saleId) {
   try {
-    console.log('Fetching sale details for ID:', saleId)
     selectedSale.value = await salesStore.getSaleById(saleId)
-    console.log('Selected sale data:', selectedSale.value)
     showSaleDetailsModal.value = true
     closeDropdown()
   } catch (error) {
@@ -140,10 +146,132 @@ async function viewSaleDetails(saleId) {
 }
 
 // Print receipt
-function printReceipt(sale) {
-  // TODO: Implement print functionality
-  console.log('Print receipt for sale:', sale.id)
-  closeDropdown()
+async function printReceipt(sale) {
+  try {
+    // Fetch sale details and items
+    const saleDetails = await window.electronAPI.sales.getById(sale.id)
+    const saleItems = await window.electronAPI.sales.getItems(sale.id)
+    
+    if (!saleDetails) {
+      alert('Sale not found')
+      return
+    }
+    
+    // Fetch customer details if exists
+    let customer = null
+    if (saleDetails.customer_id) {
+      customer = await window.electronAPI.customers.getByID(saleDetails.customer_id)
+    }
+    
+    // Generate receipt content using our receipt utility
+    const { createReceiptFromSale } = await import('@/utils/receiptUtils')
+    
+    // Prepare sale data for receipt generation
+    const saleData = {
+      ...saleDetails,
+      items: saleItems.map(item => ({
+        product_name: item.product_name || 'Unknown Product',
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        discount_amount: item.discount_amount || 0,
+        tax_rate: item.tax_rate || 0
+      })),
+      company_name: 'My POS Store',
+      company_address: '123 Main St, City, Country',
+      company_phone: '123-456-7890',
+      tax_rate: 10
+    }
+    
+    // Create receipt instance using the factory function
+    const receipt = createReceiptFromSale(saleData, customer, { name: 'Current User' })
+    
+    // Generate receipt text
+    const receiptText = receipt.generateTextReceipt()
+    
+    // Print the receipt
+    const printResult = await window.electronAPI.print.printReceipt(receiptText, '')
+    
+    if (printResult.success) {
+      alert('Receipt sent to printer successfully!')
+    } else {
+      alert(`Failed to print receipt: ${printResult.message}`)
+    }
+    
+    closeDropdown()
+  } catch (error) {
+    console.error('Error printing receipt:', error)
+    alert('Error printing receipt. Please try again.')
+    closeDropdown()
+  }
+}
+
+// Preview receipt
+async function previewReceipt(sale) {
+  try {
+    // Fetch sale details and items
+    const saleDetails = await window.electronAPI.sales.getById(sale.id)
+    const saleItems = await window.electronAPI.sales.getItems(sale.id)
+    
+    if (!saleDetails) {
+      alert('Sale not found')
+      return
+    }
+    
+    // Fetch customer details if exists
+    let customer = null
+    if (saleDetails.customer_id) {
+      customer = await window.electronAPI.customers.getByID(saleDetails.customer_id)
+    }
+    
+    // Generate receipt content using our receipt utility
+    const { createReceiptFromSale } = await import('@/utils/receiptUtils')
+    
+    // Prepare sale data for receipt generation
+    const saleData = {
+      ...saleDetails,
+      items: saleItems.map(item => ({
+        product_name: item.product_name || 'Unknown Product',
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        discount_amount: item.discount_amount || 0,
+        tax_rate: item.tax_rate || 0
+      })),
+      company_name: 'My POS Store',
+      company_address: '123 Main St, City, Country',
+      company_phone: '123-456-7890',
+      tax_rate: 10
+    }
+    
+    // Create receipt instance using the factory function
+    const receipt = createReceiptFromSale(saleData, customer, { name: 'Current User' })
+    
+    // Generate receipt text
+    const receiptText = receipt.generateTextReceipt()
+    
+    // Show receipt preview
+    showReceiptPreview.value = true
+    currentReceiptText.value = receiptText
+    currentSaleData.value = {
+      ...saleDetails,
+      items: saleItems.map(item => ({
+        product_id: item.product_id,
+        name: item.product_name || 'Unknown Product',
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_amount: item.total_amount,
+        tax_rate: item.tax_rate || 0,
+        discount_amount: item.discount_amount || 0
+      }))
+    }
+    currentCustomer.value = customer
+    currentCashier.value = { name: 'Current User' }
+    
+    closeDropdown()
+  } catch (error) {
+    console.error('Error previewing receipt:', error)
+    alert('Error previewing receipt. Please try again.')
+    closeDropdown()
+  }
 }
 
 // Refund sale
@@ -180,12 +308,7 @@ async function deleteSale(sale) {
 // Export sales
 async function exportSalesData(format) {
   try {
-    console.log('Export button clicked, format:', format)
-    console.log('Sales data:', sales.value)
-    console.log('Customers data:', customers.value)
-    
     const success = await exportSales(sales.value, customers.value, format)
-    console.log('Export result:', success)
     
     if (success) {
       alert(`Sales data exported successfully as ${format.toUpperCase()}`)
@@ -362,7 +485,7 @@ async function exportSalesData(format) {
                       <div class="py-1">
                         <button
                           @click="viewSaleDetails(sale.id)"
-                          class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          class="flex items-center w-full px-4 py-2 text-sm text-gray-700 bg-gray-100"
                         >
                           <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -372,7 +495,7 @@ async function exportSalesData(format) {
                         </button>
                         <button
                           @click="printReceipt(sale)"
-                          class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          class="flex items-center w-full px-4 py-2 text-sm text-gray-700 bg-gray-100"
                         >
                           <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
@@ -380,9 +503,19 @@ async function exportSalesData(format) {
                           Print Receipt
                         </button>
                         <button
+                          @click="previewReceipt(sale)"
+                          class="flex items-center w-full px-4 py-2 text-sm text-gray-700 bg-gray-100"
+                        >
+                          <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                          </svg>
+                          Preview Receipt
+                        </button>
+                        <button
                           v-if="!isSaleReturned(sale.id)"
                           @click="refundSale(sale)"
-                          class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          class="flex items-center w-full px-4 py-2 text-sm text-gray-700 bg-gray-100"
                         >
                           <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
@@ -401,7 +534,7 @@ async function exportSalesData(format) {
                         <hr class="my-1">
                         <button
                           @click="deleteSale(sale)"
-                          class="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                          class="flex items-center w-full px-4 py-2 text-sm text-red-600 bg-red-50"
                         >
                           <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -530,6 +663,16 @@ async function exportSalesData(format) {
 
     <!-- Click outside to close dropdown -->
     <div v-if="activeDropdown" class="fixed inset-0 z-40" @click="closeDropdown"></div>
+
+    <!-- Receipt Preview Modal -->
+    <ReceiptPreview
+      v-if="showReceiptPreview"
+      :receipt-text="currentReceiptText"
+      :sale-data="currentSaleData"
+      :customer="currentCustomer"
+      :cashier="currentCashier"
+      @close="showReceiptPreview = false"
+    />
   </div>
 </template>
 

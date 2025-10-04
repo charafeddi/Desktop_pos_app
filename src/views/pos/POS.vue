@@ -1,72 +1,112 @@
 <script setup>
-  import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue'
-  import { useProductStore } from '@/stores/product.store'
-  import { useCategoryStore } from '@/stores/category.store'
-  import {useCustomerStore } from '@/stores/Customers.store'
-  import { useSalesStore } from '@/stores/sales.store'
-  import {useI18n} from 'vue-i18n'
-  import Quagga from 'quagga'
+import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue'
+import { useProductStore } from '@/stores/product.store'
+import { useCategoryStore } from '@/stores/category.store'
+import { useCustomerStore } from '@/stores/Customers.store'
+import { useSalesStore } from '@/stores/sales.store'
+import { useSettingsStore } from '@/stores/settings.store'
+import { useI18n } from 'vue-i18n'
+import Quagga from 'quagga'
+import { Receipt, createReceiptFromSale } from '@/utils/receiptUtils'
+import ReceiptPreview from '@/components/printer/ReceiptPreview.vue'
 
-  const {t} = useI18n();
-  
-  const productStore = useProductStore()
-  const categoryStore = useCategoryStore()
-  const customerStore = useCustomerStore()
-  const salesStore = useSalesStore()
+// Composables
+const { t } = useI18n()
 
-  const cart = ref([])
-  const searchQuery = ref('')
-  const selectedCategory = ref('all')
-  const barcodeInput = ref('')
-  const showQuantityModal = ref(false)
-  const selectedProduct = ref(null)
-  const quantityInput = ref(1)
-  const customPriceInput = ref(0)
-  const showCustomPrice = ref(false)
-  const customerName = ref('')
-  const selectedCustomerId = ref(null)
-  const discountPercentage = ref(0)
-  const paymentMethod = ref('cash')
-  const cashReceived = ref(0)
-  const showPaymentModal = ref(false)
-  const showScannerModal = ref(false)
-  const isScanning = ref(false)
-  const scannerError = ref('')
-  
-  const products = computed(() => productStore.getProducts)
-  const customers = computed(() => customerStore.getCustomers)
-  const categories = computed(() => {
-    const cats = ['all', ...new Set(products.value.map(p => p.category_id))]
-    return cats
+// Stores
+const productStore = useProductStore()
+const categoryStore = useCategoryStore()
+const customerStore = useCustomerStore()
+const salesStore = useSalesStore()
+const settingsStore = useSettingsStore()
+
+// Reactive Variables
+const cart = ref([])
+const searchQuery = ref('')
+const selectedCategory = ref('all')
+const barcodeInput = ref('')
+const showQuantityModal = ref(false)
+const selectedProduct = ref(null)
+const quantityInput = ref(1)
+const customPriceInput = ref(0)
+const showCustomPrice = ref(false)
+const selectedTaxRate = ref(null)
+const customerName = ref('')
+const selectedCustomerId = ref(null)
+const discountPercentage = ref(0)
+const paymentMethod = ref('cash')
+const cashReceived = ref(0)
+const showPaymentModal = ref(false)
+const showScannerModal = ref(false)
+const isScanning = ref(false)
+const scannerError = ref('')
+const showReceiptPreview = ref(false)
+// Computed Properties
+const products = computed(() => productStore.getProducts)
+const customers = computed(() => customerStore.getCustomers)
+const categories = computed(() => {
+  const cats = ['all', ...new Set(products.value.map(p => p.category_id))]
+  return cats
+})
+const filteredProducts = computed(() => {
+  return products.value.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+                         product.sku.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+                         product.barcode.includes(searchQuery.value)
+    const matchesCategory = selectedCategory.value === 'all' || product.category_id.toString() === selectedCategory.value
+    const isActive = product.is_active !== false
+    return matchesSearch && matchesCategory && isActive
   })
-  
-  const filteredProducts = computed(() => {
-    return products.value.filter(product => {
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-                           product.sku.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-                           product.barcode.includes(searchQuery.value)
-      const matchesCategory = selectedCategory.value === 'all' || product.category_id.toString() === selectedCategory.value
-      const isActive = product.is_active !== false
-      return matchesSearch && matchesCategory && isActive
-    })
-  })
-  
-  const cartSubtotal = computed(() => {
-    return cart.value.reduce((total, item) => {
-      const price = item.customPrice || item.selling_price
-      const discount = item.discount || 0
-      const discountedPrice = price * (1 - discount / 100)
-      return total + (discountedPrice * item.quantity)
-    }, 0)
-  })
+})
+
+const cartSubtotal = computed(() => {
+  return cart.value.reduce((total, item) => {
+    const price = item.customPrice || item.selling_price
+    const discount = item.discount || 0
+    const discountedPrice = price * (1 - discount / 100)
+    return total + (discountedPrice * item.quantity)
+  }, 0)
+})
   
   const cartTax = computed(() => {
     return cart.value.reduce((total, item) => {
       const price = item.customPrice || item.selling_price
       const discount = item.discount || 0
       const discountedPrice = price * (1 - discount / 100)
-      return total + (discountedPrice * item.quantity * item.tax_rate / 100)
+      const itemSubtotal = discountedPrice * item.quantity
+      
+      // Use item-specific tax rate if available, otherwise use default
+      const taxRate = item.taxRate || (settingsStore.getDefaultTaxRate?.rate || 0)
+      
+      return total + (itemSubtotal * taxRate / 100)
     }, 0)
+  })
+  
+  // Calculate tax breakdown by rate
+  const taxBreakdown = computed(() => {
+    const breakdown = new Map()
+    
+    cart.value.forEach(item => {
+      const price = item.customPrice || item.selling_price
+      const discount = item.discount || 0
+      const discountedPrice = price * (1 - discount / 100)
+      const itemSubtotal = discountedPrice * item.quantity
+      
+      // Use item-specific tax rate if available, otherwise use default
+      const taxRate = item.taxRate || (settingsStore.getDefaultTaxRate?.rate || 0)
+      
+      if (taxRate > 0) {
+        const taxAmount = itemSubtotal * taxRate / 100
+        const existingAmount = breakdown.get(taxRate) || 0
+        breakdown.set(taxRate, existingAmount + taxAmount)
+      }
+    })
+    
+    return Array.from(breakdown.entries()).map(([rate, amount]) => ({
+      rate,
+      amount,
+      name: settingsStore.getTaxRates.find(tr => tr.rate === rate)?.name || `${rate}% Tax`
+    }))
   })
   
   const cartTotal = computed(() => {
@@ -82,14 +122,14 @@
     await productStore.getAllProducts()
     await categoryStore.fetchCategories()
     await customerStore.fetchCustomers()
-    console.log('Customers loaded:', customers.value)
-  })
-  
-  function addToCart(product, quantity = 1) {
-    if (product.current_stock < quantity) {
-      alert(`Only ${product.current_stock} items available in stock`)
-      return
-    }
+})
+
+// Methods
+function addToCart(product, quantity = 1) {
+  if (product.current_stock < quantity) {
+    alert(`Only ${product.current_stock} items available in stock`)
+    return
+  }
     
     const existingItem = cart.value.find(item => item.id === product.id)
     if (existingItem) {
@@ -99,7 +139,13 @@
       }
       existingItem.quantity += quantity
     } else {
-      cart.value.push({ ...product, quantity })
+      // Add product with default tax rate from settings
+      const defaultTaxRate = settingsStore.getDefaultTaxRate?.rate || 0
+      cart.value.push({ 
+        ...product, 
+        quantity,
+        taxRate: defaultTaxRate
+      })
     }
   }
   
@@ -107,6 +153,7 @@
     selectedProduct.value = product
     quantityInput.value = 1
     customPriceInput.value = product.selling_price
+    selectedTaxRate.value = settingsStore.getDefaultTaxRate?.rate || 0
     showQuantityModal.value = true
     nextTick(() => {
       document.getElementById('quantity-input')?.focus()
@@ -115,7 +162,38 @@
   
   function confirmAddToCart() {
     if (selectedProduct.value) {
-      addToCart(selectedProduct.value, quantityInput.value)
+      const product = selectedProduct.value
+      const quantity = quantityInput.value
+      const customPrice = customPriceInput.value
+      const taxRate = selectedTaxRate.value
+      
+      if (product.current_stock < quantity) {
+        alert(`Only ${product.current_stock} items available in stock`)
+        return
+      }
+      
+      const existingItem = cart.value.find(item => item.id === product.id)
+      if (existingItem) {
+        if (existingItem.quantity + quantity > product.current_stock) {
+          alert(`Only ${product.current_stock} items available in stock`)
+          return
+        }
+        existingItem.quantity += quantity
+        if (customPrice !== product.selling_price) {
+          existingItem.customPrice = customPrice
+        }
+        if (taxRate !== (settingsStore.getDefaultTaxRate?.rate || 0)) {
+          existingItem.taxRate = taxRate
+        }
+      } else {
+        cart.value.push({ 
+          ...product, 
+          quantity,
+          customPrice: customPrice !== product.selling_price ? customPrice : undefined,
+          taxRate: taxRate
+        })
+      }
+      
       showQuantityModal.value = false
       selectedProduct.value = null
     }
@@ -224,14 +302,12 @@
         isScanning.value = false
         return
       }
-      console.log("Scanner initialized successfully")
       Quagga.start()
     })
 
     // Handle successful barcode detection
     Quagga.onDetected(function(result) {
       const code = result.codeResult.code
-      console.log('Barcode detected:', code)
       
       // Find product by barcode
       const product = products.value.find(p => p.barcode === code)
@@ -285,16 +361,21 @@
           quantity: item.quantity,
           unit_price: item.customPrice || item.selling_price,
           total_amount: (item.customPrice || item.selling_price) * item.quantity,
-          tax_rate: item.tax_rate || 0
+          tax_rate: settingsStore.getDefaultTaxRate?.rate || 0
         }))
       }
       
-      console.log('Processing sale:', saleData)
       
       // Create the sale in the database
       const newSale = await salesStore.createSale(saleData)
       
-      console.log('Sale created successfully:', newSale)
+      
+      // Get customer and cashier info for receipt
+      const customerInfo = selectedCustomerId.value ? 
+        customers.value.find(c => c.id === selectedCustomerId.value) : null
+      
+      // Show receipt preview with sale data
+      showReceiptPreview.value = true
       
       // Clear cart and reset form
       cart.value = []
@@ -303,7 +384,7 @@
       discountPercentage.value = 0
       showPaymentModal.value = false
       
-      alert('Sale completed successfully!')
+      alert('Sale completed successfully! Check receipt preview.')
     } catch (error) {
       console.error('Error processing payment:', error)
       alert('Error processing payment. Please try again.')
@@ -320,7 +401,6 @@
     // Find customer by name and set the ID
     const customer = customers.value.find(c => c.name === customerName.value)
     selectedCustomerId.value = customer ? customer.id : null
-    console.log('Customer selected:', customer, 'ID:', selectedCustomerId.value)
   }
   
   // Keyboard shortcuts
@@ -564,10 +644,21 @@
               <span class="text-gray-400">Subtotal:</span>
               <span class="font-medium">{{ formatCurrency(cartSubtotal) }}</span>
             </div>
-            <div class="flex justify-between text-sm">
+            
+            <!-- Tax Breakdown -->
+            <div v-if="taxBreakdown.length > 0">
+              <div v-for="tax in taxBreakdown" :key="tax.rate" class="flex justify-between text-sm">
+                <span class="text-gray-400">{{ tax.name }}:</span>
+                <span class="font-medium">{{ formatCurrency(tax.amount) }}</span>
+              </div>
+            </div>
+            
+            <!-- Single Tax Line (if no breakdown) -->
+            <div v-else-if="cartTax > 0" class="flex justify-between text-sm">
               <span class="text-gray-400">Tax:</span>
               <span class="font-medium">{{ formatCurrency(cartTax) }}</span>
             </div>
+            
             <div class="flex justify-between text-lg font-bold border-t pt-2">
               <span>Total:</span>
               <span class="text-blue-600">{{ formatCurrency(cartTotal) }}</span>
@@ -614,6 +705,23 @@
                 :max="selectedProduct.current_stock"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tax Rate</label>
+              <select
+                v-model="selectedTaxRate"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="0">No Tax (0%)</option>
+                <option 
+                  v-for="taxRate in settingsStore.getTaxRates" 
+                  :key="taxRate.id" 
+                  :value="taxRate.rate"
+                >
+                  {{ taxRate.name }} ({{ taxRate.rate }}%)
+                </option>
+              </select>
             </div>
             
             <div>
@@ -816,5 +924,30 @@
         </div>
       </div>
     </div>
+
+    <!-- Receipt Preview Modal -->
+    <ReceiptPreview 
+      v-if="showReceiptPreview"
+      :sale-data="{
+        customer_id: selectedCustomerId.value,
+        total_amount: cartSubtotal.value,
+        discount_amount: 0,
+        tax_amount: cartTax.value,
+        final_amount: cartTotal.value,
+        payment_method: paymentMethod.value,
+        items: cart.value.map(item => ({
+          product_id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          unit_price: item.customPrice || item.selling_price,
+          total_amount: (item.customPrice || item.selling_price) * item.quantity,
+          tax_rate: settingsStore.getDefaultTaxRate?.rate || 0,
+          discount_amount: item.discount || 0
+        }))
+      }"
+      :customer="selectedCustomerId.value ? customers.find(c => c.id === selectedCustomerId.value) : null"
+      :cashier="{ name: 'Current User' }"
+      @close="showReceiptPreview = false"
+    />
   </div>
 </template>

@@ -572,12 +572,15 @@ import { useSalesStore } from '@/stores/sales.store'
 import { useI18n } from 'vue-i18n'
 import { exportReturns } from '@/utils/exportUtils'
 
+// Composables
 const { t } = useI18n()
 const route = useRoute()
+
+// Stores
 const returnsStore = useReturnsStore()
 const salesStore = useSalesStore()
 
-// Reactive data
+// Reactive Variables
 const showCreateModal = ref(false)
 const showDetailsModal = ref(false)
 const availableSales = ref([])
@@ -608,7 +611,7 @@ const newReturn = ref({
   items: []
 })
 
-// Computed properties
+// Computed Properties
 const returns = computed(() => returnsStore.getReturns)
 const returnItems = computed(() => returnsStore.getReturnItems)
 const selectedReturn = computed(() => returnsStore.getSelectedReturn)
@@ -856,7 +859,7 @@ watch(() => route.query.saleId, async (saleId) => {
   }
 }, { immediate: true })
 
-// Lifecycle
+// Lifecycle Hooks
 onMounted(async () => {
   await returnsStore.fetchReturns()
   
