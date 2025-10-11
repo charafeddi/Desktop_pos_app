@@ -19,6 +19,7 @@ final-build/
 pos-app-build/
 build-output/
 release/
+packaged-app/
 
 # Editor directories and files
 .vscode/*
