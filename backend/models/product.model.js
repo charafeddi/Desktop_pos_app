@@ -9,27 +9,31 @@ class Product {
             tax_rate, min_stock_level, current_stock
         } = productData;
 
-        return new Promise((resolve, reject) => {
-            db.run(
-                `INSERT INTO products (
+        try {
+            const stmt = db.prepare(`
+                INSERT INTO products (
                     name, sku, barcode, description,
                     category_id, product_type_id, product_unit_id,
                     supplier_id, purchase_price, selling_price,
                     tax_rate, min_stock_level, current_stock
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [name, sku, barcode, description, category_id, product_type_id, product_unit_id, supplier_id, purchase_price, selling_price, tax_rate, min_stock_level, current_stock],
-                function(err) {
-                    if (err) reject(err);
-                    else resolve(this.lastID);
-                }
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            const result = stmt.run(
+                name, sku, barcode, description,
+                category_id, product_type_id, product_unit_id,
+                supplier_id, purchase_price, selling_price,
+                tax_rate, min_stock_level, current_stock
             );
-        });
+            return result.lastInsertRowid;
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async findById(id) {
-        return new Promise((resolve, reject) => {
-            db.get(
-                `SELECT p.*, 
+        try {
+            const stmt = db.prepare(`
+                SELECT p.*, 
                     c.name as category_name,
                     pt.name as product_type_name,
                     pu.name as product_unit_name,
@@ -40,32 +44,30 @@ class Product {
                 LEFT JOIN product_types pt ON p.product_type_id = pt.id
                 LEFT JOIN product_units pu ON p.product_unit_id = pu.id
                 LEFT JOIN suppliers s ON p.supplier_id = s.id
-                WHERE p.id = ?`,
-                [id],
-                (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                }
-            );
-        });
+                WHERE p.id = ?
+            `);
+            return stmt.get(id);
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async findBySku(sku) {
-        return new Promise((resolve, reject) => {
-            db.get('SELECT * FROM products WHERE sku = ?', [sku], (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-            });
-        });
+        try {
+            const stmt = db.prepare('SELECT * FROM products WHERE sku = ?');
+            return stmt.get(sku);
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async findByBarcode(barcode) {
-        return new Promise((resolve, reject) => {
-            db.get('SELECT * FROM products WHERE barcode = ?', [barcode], (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-            });
-        });
+        try {
+            const stmt = db.prepare('SELECT * FROM products WHERE barcode = ?');
+            return stmt.get(barcode);
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async update(id, productData) {
@@ -76,37 +78,49 @@ class Product {
             tax_rate, min_stock_level, current_stock
         } = productData;
 
-        return new Promise((resolve, reject) => {
-            db.run(
-                `UPDATE products 
-                SET name = ?, sku = ?, barcode = ?, description = ?,
-                    category_id = ?, product_type_id = ?, product_unit_id = ?,
-                    supplier_id = ?, purchase_price = ?, selling_price = ?,
-                    tax_rate = ?, min_stock_level = ?, current_stock = ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?`,
-                [name, sku, barcode, description, category_id, product_type_id, product_unit_id, supplier_id, purchase_price, selling_price, tax_rate, min_stock_level, current_stock, id],
-                function(err) {
-                    if (err) reject(err);
-                    else resolve(this.changes);
-                }
-            );
-        });
+        try {
+            const updateFields = [];
+            const values = [];
+            
+            if (name !== undefined) { updateFields.push('name = ?'); values.push(name); }
+            if (sku !== undefined) { updateFields.push('sku = ?'); values.push(sku); }
+            if (barcode !== undefined) { updateFields.push('barcode = ?'); values.push(barcode); }
+            if (description !== undefined) { updateFields.push('description = ?'); values.push(description); }
+            if (category_id !== undefined) { updateFields.push('category_id = ?'); values.push(category_id); }
+            if (product_type_id !== undefined) { updateFields.push('product_type_id = ?'); values.push(product_type_id); }
+            if (product_unit_id !== undefined) { updateFields.push('product_unit_id = ?'); values.push(product_unit_id); }
+            if (supplier_id !== undefined) { updateFields.push('supplier_id = ?'); values.push(supplier_id); }
+            if (purchase_price !== undefined) { updateFields.push('purchase_price = ?'); values.push(purchase_price); }
+            if (selling_price !== undefined) { updateFields.push('selling_price = ?'); values.push(selling_price); }
+            if (tax_rate !== undefined) { updateFields.push('tax_rate = ?'); values.push(tax_rate); }
+            if (min_stock_level !== undefined) { updateFields.push('min_stock_level = ?'); values.push(min_stock_level); }
+            if (current_stock !== undefined) { updateFields.push('current_stock = ?'); values.push(current_stock); }
+            
+            updateFields.push('updated_at = CURRENT_TIMESTAMP');
+            values.push(id);
+
+            const stmt = db.prepare(`UPDATE products SET ${updateFields.join(', ')} WHERE id = ?`);
+            const result = stmt.run(...values);
+            return result.changes;
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async delete(id) {
-        return new Promise((resolve, reject) => {
-            db.run('DELETE FROM products WHERE id = ?', [id], function(err) {
-                if (err) reject(err);
-                else resolve(this.changes);
-            });
-        });
+        try {
+            const stmt = db.prepare('DELETE FROM products WHERE id = ?');
+            const result = stmt.run(id);
+            return result.changes;
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async getAll() {
-        return new Promise((resolve, reject) => {
-            db.all(
-                `SELECT p.*, 
+        try {
+            const stmt = db.prepare(`
+                SELECT p.*, 
                     c.name as category_name,
                     pt.name as product_type_name,
                     pu.name as product_unit_name,
@@ -117,20 +131,18 @@ class Product {
                 LEFT JOIN product_types pt ON p.product_type_id = pt.id
                 LEFT JOIN product_units pu ON p.product_unit_id = pu.id
                 LEFT JOIN suppliers s ON p.supplier_id = s.id
-                ORDER BY p.name ASC`,
-                [],
-                (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                }
-            );
-        });
+                ORDER BY p.name ASC
+            `);
+            return stmt.all();
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async getLowStock() {
-        return new Promise((resolve, reject) => {
-            db.all(
-                `SELECT p.*, 
+        try {
+            const stmt = db.prepare(`
+                SELECT p.*, 
                     c.name as category_name,
                     pt.name as product_type_name,
                     pu.name as product_unit_name,
@@ -142,122 +154,76 @@ class Product {
                 LEFT JOIN product_units pu ON p.product_unit_id = pu.id
                 LEFT JOIN suppliers s ON p.supplier_id = s.id
                 WHERE p.current_stock <= p.min_stock_level
-                ORDER BY p.current_stock ASC`,
-                [],
-                (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                }
-            );
-        });
+                ORDER BY p.current_stock ASC
+            `);
+            return stmt.all();
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async getPopularProducts(limit = 10, period = null) {
-        return new Promise((resolve, reject) => {
+        try {
             let dateFilter = '';
-            let params = [];
-            
-            // Add date filtering if period is specified
             if (period) {
-                switch (period.toLowerCase()) {
-                    case 'today':
-                        dateFilter = 'AND DATE(s.created_at) = DATE("now")';
-                        break;
-                    case 'week':
-                        dateFilter = 'AND s.created_at >= datetime("now", "-7 days")';
-                        break;
-                    case 'month':
-                        dateFilter = 'AND s.created_at >= datetime("now", "-30 days")';
-                        break;
-                    case 'year':
-                        dateFilter = 'AND s.created_at >= datetime("now", "-365 days")';
-                        break;
-                    default:
-                        // No filter
-                        break;
-                }
+                const date = new Date();
+                date.setDate(date.getDate() - period);
+                dateFilter = `AND sales.created_at >= '${date.toISOString().split('T')[0]}'`;
             }
 
-            const sql = `
+            const stmt = db.prepare(`
                 SELECT p.*, 
                     c.name as category_name,
                     pt.name as product_type_name,
                     pu.name as product_unit_name,
                     pu.symbol as product_unit_symbol,
-                    sup.name as supplier_name,
-                    COALESCE(SUM(si.quantity), 0) as total_sold,
-                    COALESCE(COUNT(si.id), 0) as sale_count,
-                    COALESCE(SUM(si.total_amount), 0) as total_revenue
+                    s.name as supplier_name,
+                    COALESCE(SUM(si.quantity), 0) as total_sold
                 FROM products p
                 LEFT JOIN categories c ON p.category_id = c.id
                 LEFT JOIN product_types pt ON p.product_type_id = pt.id
                 LEFT JOIN product_units pu ON p.product_unit_id = pu.id
-                LEFT JOIN suppliers sup ON p.supplier_id = sup.id
+                LEFT JOIN suppliers s ON p.supplier_id = s.id
                 LEFT JOIN sale_items si ON p.id = si.product_id
-                LEFT JOIN sales s ON si.sale_id = s.id
-                WHERE p.id IS NOT NULL ${dateFilter}
+                LEFT JOIN sales ON si.sale_id = sales.id
+                WHERE 1=1 ${dateFilter}
                 GROUP BY p.id
-                ORDER BY total_sold DESC, total_revenue DESC
+                ORDER BY total_sold DESC
                 LIMIT ?
-            `;
-
-            db.all(sql, [limit], (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows);
-            });
-        });
+            `);
+            return stmt.all(limit);
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async getByCategory(categoryId) {
-        return new Promise((resolve, reject) => {
-            db.all(
-                `SELECT p.*, 
+        try {
+            const stmt = db.prepare(`
+                SELECT p.*, 
+                    c.name as category_name,
                     pt.name as product_type_name,
                     pu.name as product_unit_name,
                     pu.symbol as product_unit_symbol,
                     s.name as supplier_name
                 FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
                 LEFT JOIN product_types pt ON p.product_type_id = pt.id
                 LEFT JOIN product_units pu ON p.product_unit_id = pu.id
                 LEFT JOIN suppliers s ON p.supplier_id = s.id
                 WHERE p.category_id = ?
-                ORDER BY p.name ASC`,
-                [categoryId],
-                (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                }
-            );
-        });
+                ORDER BY p.name ASC
+            `);
+            return stmt.all(categoryId);
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async getBySupplier(supplierId) {
-        return new Promise((resolve, reject) => {
-            db.all(
-                `SELECT p.*, 
-                    c.name as category_name,
-                    pt.name as product_type_name,
-                    pu.name as product_unit_name,
-                    pu.symbol as product_unit_symbol
-                FROM products p
-                LEFT JOIN categories c ON p.category_id = c.id
-                LEFT JOIN product_types pt ON p.product_type_id = pt.id
-                LEFT JOIN product_units pu ON p.product_unit_id = pu.id
-                WHERE p.supplier_id = ?
-                ORDER BY p.name ASC`,
-                [supplierId],
-                (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                }
-            );
-        });
-    }
-
-    static async search(query) {
-        return new Promise((resolve, reject) => {
-            db.all(
-                `SELECT p.*, 
+        try {
+            const stmt = db.prepare(`
+                SELECT p.*, 
                     c.name as category_name,
                     pt.name as product_type_name,
                     pu.name as product_unit_name,
@@ -268,57 +234,81 @@ class Product {
                 LEFT JOIN product_types pt ON p.product_type_id = pt.id
                 LEFT JOIN product_units pu ON p.product_unit_id = pu.id
                 LEFT JOIN suppliers s ON p.supplier_id = s.id
-                WHERE p.name LIKE ? OR p.sku LIKE ? OR p.barcode LIKE ?
-                ORDER BY p.name ASC`,
-                [`%${query}%`, `%${query}%`, `%${query}%`],
-                (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                }
-            );
-        });
+                WHERE p.supplier_id = ?
+                ORDER BY p.name ASC
+            `);
+            return stmt.all(supplierId);
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    static async search(query) {
+        try {
+            const stmt = db.prepare(`
+                SELECT p.*, 
+                    c.name as category_name,
+                    pt.name as product_type_name,
+                    pu.name as product_unit_name,
+                    pu.symbol as product_unit_symbol,
+                    s.name as supplier_name
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN product_types pt ON p.product_type_id = pt.id
+                LEFT JOIN product_units pu ON p.product_unit_id = pu.id
+                LEFT JOIN suppliers s ON p.supplier_id = s.id
+                WHERE p.name LIKE ? OR p.sku LIKE ? OR p.barcode LIKE ? OR p.description LIKE ?
+                ORDER BY p.name ASC
+            `);
+            return stmt.all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`);
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async getProductStock(id) {
-        return new Promise((resolve, reject) => {
-            db.get(
-                `SELECT p.id, p.name, p.sku, p.current_stock, p.min_stock_level, p.max_stock_level,
-                    pu.name as unit_name, pu.symbol as unit_symbol,
-                    c.name as category_name,
-                    s.name as supplier_name,
-                    CASE 
-                        WHEN p.current_stock <= p.min_stock_level THEN 'low'
-                        WHEN p.current_stock = 0 THEN 'out'
-                        ELSE 'normal'
-                    END as stock_status,
-                    (p.current_stock - p.min_stock_level) as stock_above_min,
-                    (p.max_stock_level - p.current_stock) as stock_below_max
+        try {
+            const stmt = db.prepare(`
+                SELECT 
+                    p.id,
+                    p.name,
+                    p.sku,
+                    p.current_stock,
+                    p.min_stock_level,
+                    COALESCE(SUM(si.quantity), 0) as total_sold,
+                    COALESCE(SUM(CASE WHEN s.created_at >= date('now', '-30 days') THEN si.quantity ELSE 0 END), 0) as sold_last_30_days
                 FROM products p
-                LEFT JOIN product_units pu ON p.product_unit_id = pu.id
-                LEFT JOIN categories c ON p.category_id = c.id
-                LEFT JOIN suppliers s ON p.supplier_id = s.id
-                WHERE p.id = ?`,
-                [id],
-                (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                }
-            );
-        });
+                LEFT JOIN sale_items si ON p.id = si.product_id
+                LEFT JOIN sales s ON si.sale_id = s.id
+                WHERE p.id = ?
+                GROUP BY p.id, p.name, p.sku, p.current_stock, p.min_stock_level
+            `);
+            return stmt.get(id);
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async updateStock(id, quantity, operation = 'add') {
-        return new Promise((resolve, reject) => {
-            const sql = operation === 'add' 
-                ? 'UPDATE products SET current_stock = current_stock + ? WHERE id = ?'
-                : 'UPDATE products SET current_stock = current_stock - ? WHERE id = ?';
-            
-            db.run(sql, [quantity, id], function(err) {
-                if (err) reject(err);
-                else resolve(this.changes);
-            });
-        });
+        try {
+            let sql;
+            if (operation === 'add') {
+                sql = 'UPDATE products SET current_stock = current_stock + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?';
+            } else if (operation === 'subtract') {
+                sql = 'UPDATE products SET current_stock = current_stock - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?';
+            } else if (operation === 'set') {
+                sql = 'UPDATE products SET current_stock = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?';
+            } else {
+                throw new Error('Invalid operation. Use "add", "subtract", or "set"');
+            }
+
+            const stmt = db.prepare(sql);
+            const result = stmt.run(quantity, id);
+            return result.changes;
+        } catch (error) {
+            throw error;
+        }
     }
 }
 
-module.exports = Product; 
+module.exports = Product;

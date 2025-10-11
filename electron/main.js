@@ -47,6 +47,7 @@ const setupSaleItemHandlers = require('../backend/ipc/saleItem.handlers');
 const setupSupplierHandlers = require('../backend/ipc/supplier.handlers');
 // Import todo handlers
 const setupTodoHandlers = require('../backend/ipc/todo.handlers');
+const setupUserProfileHandlers = require('../backend/ipc/userProfile.handlers');
 
 let mainWindow = null;
 
@@ -58,8 +59,8 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'dist/preload.js'),
-      webSecurity: process.env.NODE_ENV === 'production', // Disable web security in development
-      allowRunningInsecureContent: process.env.NODE_ENV === 'development',
+      webSecurity: false, // Disable web security to allow local file loading
+      allowRunningInsecureContent: true,
     },
   });
 
@@ -103,11 +104,38 @@ function createWindow() {
     }
   });
 
-  // Load the local URL for development
-  mainWindow.loadURL('http://localhost:5173');
+  // Load the appropriate URL based on environment
+  const isDevelopment = process.env.NODE_ENV === 'development' && 
+                        process.argv[0].includes('electron');
+  
+  console.log('Environment detection:', {
+    NODE_ENV: process.env.NODE_ENV,
+    argv0: process.argv[0],
+    isDevelopment: isDevelopment
+  });
+
+  // ✅ Smart loading: dev server OR built files
+  const indexPath = path.join(__dirname, '../dist/index.html');
+  
+  console.log('Checking for built files at:', indexPath);
+  
+  if (fs.existsSync(indexPath)) {
+    // ✅ Production: Load built Vue app
+    console.log('✅ Loading built Vue app from:', indexPath);
+    mainWindow.loadFile(indexPath);
+  } else {
+    // ✅ Development: Load Vue dev server
+    console.log('⚠️ Built files not found, loading dev server...');
+    if (isDevelopment) {
+      mainWindow.loadURL('http://localhost:5173');
+    } else {
+      console.error('❌ No built files and not in development mode!');
+      mainWindow.loadURL('data:text/html,<h1>Error: Vue.js build not found</h1><p>Please run: npm run build</p>');
+    }
+  }
 
   // Open DevTools in development
-  if (process.env.NODE_ENV === 'development') {
+  if (isDevelopment) {
     mainWindow.webContents.openDevTools();
   }
 
@@ -169,6 +197,7 @@ function createWindow() {
     }
   });
   setupTodoHandlers();
+  setupUserProfileHandlers();
 
   // Printers: provide list of available printers
   ipcMain.handle('printers:get-all', async (event) => {
@@ -445,27 +474,6 @@ function createWindow() {
   return mainWindow;
 }
 
-const appServer = express();
-const port = 3010; // Choose a port for your server
-
-// Middleware to parse JSON requests
-appServer.use(express.json());
-
-// Define a route to get todos
-appServer.get('/todos', async (req, res) => {
-  try {
-    const todos = []; // Placeholder; avoid using ipcRenderer in main process
-    res.json(todos); // Send todos as JSON response
-  } catch (error) {
-    res.status(500).json({ error: 'Error fetching todos' });
-  }
-});
-
-// Start the server
-appServer.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
-
 app.whenReady().then(() => {
   createWindow();
   app.on('activate', function () {
@@ -476,5 +484,16 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+// App control handlers
+ipcMain.handle('app:close', async () => {
+  try {
+    app.quit();
+    return { success: true };
+  } catch (error) {
+    console.error('Error closing app:', error);
+    return { success: false, error: error.message };
   }
 });

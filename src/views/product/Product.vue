@@ -187,7 +187,7 @@
                                                 <img class="h-10 w-10 rounded-full" :src="product.image" :alt="product.name">
                                             </div>
                                             <div v-else>
-                                                <img class="h-10 w-10 rounded-full" src="../../assets/img/product-no-image.png" alt="image">
+                                                <img class="h-10 w-10 rounded-full" src="/assets/img/product-no-image.png" alt="image">
                                             </div>
                                         </div>
                                         <div class="ml-4">

@@ -4,25 +4,25 @@
             <li class="menu-item" @click="toggleDropdown('file')">
                 {{ t('menu.file') }} 
                 <ul class="dropDown" v-if="activeDropdown === 'file'">
-                    <li class="item-dropdown">{{ t('menu.new') }}</li>
-                    <li class="item-dropdown">{{ t('menu.open') }}</li>
-                    <li class="item-dropdown">{{ t('menu.save') }}</li>
-                    <li class="item-dropdown">{{ t('menu.save_as') }}</li>
-                    <li class="item-dropdown">{{ t('menu.exit') }}</li>
+                    <li class="item-dropdown" @click="handleNew">{{ t('menu.new') }}</li>
+                    <li class="item-dropdown" @click="handleOpen">{{ t('menu.open') }}</li>
+                    <li class="item-dropdown" @click="handleSave">{{ t('menu.save') }}</li>
+                    <li class="item-dropdown" @click="handleSaveAs">{{ t('menu.save_as') }}</li>
+                    <li class="item-dropdown" @click="handleExit">{{ t('menu.exit') }}</li>
                 </ul>
             </li>
             <li class="menu-item" @click="toggleDropdown('edit')">
                 {{ t('menu.edit') }}
                 <ul class="dropDown" v-if="activeDropdown === 'edit'">
-                    <li class="item-dropdown">{{ t('menu.cut') }}</li>
-                    <li class="item-dropdown">{{ t('menu.copy') }}</li>
-                    <li class="item-dropdown">{{ t('menu.paste') }}</li>
+                    <li class="item-dropdown" @click="handleCut">{{ t('menu.cut') }}</li>
+                    <li class="item-dropdown" @click="handleCopy">{{ t('menu.copy') }}</li>
+                    <li class="item-dropdown" @click="handlePaste">{{ t('menu.paste') }}</li>
                 </ul>
             </li>
             <li class="menu-item" @click="toggleDropdown('view')">
                 {{ t('menu.view') }}
                 <ul class="dropDown" v-if="activeDropdown === 'view' || activeDropdown === 'language'">
-                    <li class="item-dropdown">{{ t('menu.toolbar') }}</li>
+                    <li class="item-dropdown" @click="handleToolbar">{{ t('menu.toolbar') }}</li>
                     <li class="menu-item submenu-item" @click.stop="toggleDropdown('language')">
                         {{ t('menu.language') }}
                         <svg v-if="activeDropdown === 'language'" class="inline ml-1 arrow-down" width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
@@ -40,14 +40,14 @@
                             </li>
                         </ul>
                     </li>
-                    <li class="item-dropdown">{{ t('menu.status_bar') }}</li>
+                    <li class="item-dropdown" @click="handleStatusBar">{{ t('menu.status_bar') }}</li>
                 </ul>
             </li>
             <li class="menu-item" @click="toggleDropdown('help')">
                 {{ t('menu.help') }}
                 <ul class="dropDown" v-if="activeDropdown === 'help'">
-                    <li class="item-dropdown">{{ t('menu.about') }}</li>
-                    <li class="item-dropdown">{{ t('menu.documentation') }}</li>
+                    <li class="item-dropdown" @click="handleAbout">{{ t('menu.about') }}</li>
+                    <li class="item-dropdown" @click="handleDocumentation">{{ t('menu.documentation') }}</li>
                 </ul>
             </li>
         </ul>
@@ -56,8 +56,12 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth.store'
 
 const { t, locale } = useI18n()
+const router = useRouter()
+const authStore = useAuthStore()
 
 const activeDropdown = ref(null)
 const currentLocale = ref(locale.value)
@@ -77,6 +81,101 @@ const changeLanguage = (lang) => {
     activeDropdown.value = null // Close language dropdown after selection
     // Store language preference in localStorage
     localStorage.setItem('language', lang)
+}
+
+// File menu actions
+const handleNew = () => {
+    // Navigate to POS for new sale
+    router.push('/pos')
+    activeDropdown.value = null
+}
+
+const handleOpen = () => {
+    // Navigate to sales list to view/open saved sales
+    router.push('/sales')
+    activeDropdown.value = null
+}
+
+const handleSave = () => {
+    // Save current document (if in POS, save current sale)
+    if (router.currentRoute.value.path === '/pos') {
+        // Trigger save functionality in POS component
+        window.dispatchEvent(new CustomEvent('save-current-sale'))
+    }
+    activeDropdown.value = null
+}
+
+const handleSaveAs = () => {
+    // Save as new document
+    if (router.currentRoute.value.path === '/pos') {
+        // Trigger save as functionality in POS component
+        window.dispatchEvent(new CustomEvent('save-as-sale'))
+    }
+    activeDropdown.value = null
+}
+
+const handleExit = async () => {
+    try {
+        // Logout user
+        authStore.logout()
+        // Close the Electron app
+        if (window.electronAPI && window.electronAPI.closeApp) {
+            await window.electronAPI.closeApp()
+        } else {
+            // Fallback: redirect to login
+            router.push('/login')
+        }
+    } catch (error) {
+        console.error('Error during exit:', error)
+        // Fallback: redirect to login
+        router.push('/login')
+    }
+    activeDropdown.value = null
+}
+
+// Edit menu actions
+const handleCut = () => {
+    // Implement cut functionality
+    document.execCommand('cut')
+    activeDropdown.value = null
+}
+
+const handleCopy = () => {
+    // Implement copy functionality
+    document.execCommand('copy')
+    activeDropdown.value = null
+}
+
+const handlePaste = () => {
+    // Implement paste functionality
+    document.execCommand('paste')
+    activeDropdown.value = null
+}
+
+// View menu actions
+const handleToolbar = () => {
+    // Toggle toolbar visibility
+    window.dispatchEvent(new CustomEvent('toggle-toolbar'))
+    activeDropdown.value = null
+}
+
+const handleStatusBar = () => {
+    // Toggle status bar visibility
+    window.dispatchEvent(new CustomEvent('toggle-status-bar'))
+    activeDropdown.value = null
+}
+
+// Help menu actions
+const handleAbout = () => {
+    // Show about dialog
+    alert('POS System v1.0.0\nDeveloped for Point of Sale Management')
+    activeDropdown.value = null
+}
+
+const handleDocumentation = () => {
+    // Open documentation (could be a local file or web URL)
+    window.open('https://github.com/your-repo/pos-system', '_blank')
+    activeDropdown.value = null
 }
 
 // Memoize selector for better performance

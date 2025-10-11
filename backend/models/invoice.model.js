@@ -1,67 +1,62 @@
-const db = require('../config/database'); // Import the existing database connection
+const db = require('../config/database');
 
 class Invoice {
     async create(invoiceData) {
-        return new Promise((resolve, reject) => {
-            const sql = `
+        try {
+            const stmt = db.prepare(`
                 INSERT INTO invoices (client_id, total_amount, status, created_at)
                 VALUES (?, ?, ?, ?)
-            `;
-            const params = [invoiceData.client_id, invoiceData.total_amount, invoiceData.status, new Date()];
-            db.run(sql, params, function(err) {
-                if (err) reject(err);
-                else resolve(this.lastID);
-            });
-        });
+            `);
+            const result = stmt.run(invoiceData.client_id, invoiceData.total_amount, invoiceData.status, new Date());
+            return result.lastInsertRowid;
+        } catch (error) {
+            throw error;
+        }
     }
 
     async getAll() {
-        return new Promise((resolve, reject) => {
-            const sql = `SELECT * FROM invoices`;
-            db.all(sql, [], (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows);
-            });
-        });
+        try {
+            const stmt = db.prepare('SELECT * FROM invoices');
+            return stmt.all();
+        } catch (error) {
+            throw error;
+        }
     }
 
     async getById(id) {
-        return new Promise((resolve, reject) => {
-            const sql = `SELECT * FROM invoices WHERE id = ?`;
-            db.get(sql, [id], (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-            });
-        });
+        try {
+            const stmt = db.prepare('SELECT * FROM invoices WHERE id = ?');
+            return stmt.get(id);
+        } catch (error) {
+            throw error;
+        }
     }
 
     async update(id, invoiceData) {
-        return new Promise((resolve, reject) => {
-            const sql = `
+        try {
+            const stmt = db.prepare(`
                 UPDATE invoices SET
                     client_id = ?,
-                total_amount = ?,
-                status = ?
-            WHERE id = ?
-        `;
-            const params = [invoiceData.client_id, invoiceData.total_amount, invoiceData.status, id];
-            db.run(sql, params, function(err) {
-                if (err) reject(err);
-                else resolve(this.changes);
-            });
-        });
+                    total_amount = ?,
+                    status = ?
+                WHERE id = ?
+            `);
+            const result = stmt.run(invoiceData.client_id, invoiceData.total_amount, invoiceData.status, id);
+            return result.changes;
+        } catch (error) {
+            throw error;
+        }
     }
 
     async delete(id) {
-        return new Promise((resolve, reject) => {
-            const sql = `DELETE FROM invoices WHERE id = ?`;
-            db.run(sql, [id], function(err) {
-                if (err) reject(err);
-                else resolve(this.changes);
-            });
-        });
+        try {
+            const stmt = db.prepare('DELETE FROM invoices WHERE id = ?');
+            const result = stmt.run(id);
+            return result.changes;
+        } catch (error) {
+            throw error;
+        }
     }
 }
 
-// Export an instance of the Invoice class
-module.exports = new Invoice(); 
+module.exports = new Invoice();

@@ -14,15 +14,28 @@ import { i18n } from './i18n'
 // Theme store
 import { useThemeStore } from './stores/theme.store'
 
-const app = createApp(App)
-const pinia = createPinia()
+try {
+  const app = createApp(App)
+  const pinia = createPinia()
 
-app.use(pinia)
-app.use(router)
-app.use(i18n)
+  app.use(pinia)
+  app.use(router)
+  app.use(i18n)
 
-// Initialize theme after pinia is set up
-const themeStore = useThemeStore()
-themeStore.loadTheme()
+  // Initialize theme after pinia is set up
+  const themeStore = useThemeStore()
+  themeStore.loadTheme()
 
-app.mount('#app')
+  app.mount('#app')
+  console.log('✅ Vue app mounted successfully')
+} catch (error) {
+  console.error('❌ Vue app mounting error:', error)
+  // Show error message in the app
+  document.getElementById('app')!.innerHTML = `
+    <div style="padding: 20px; color: red; font-family: Arial;">
+      <h2>Application Error</h2>
+      <p>Failed to initialize the application:</p>
+      <pre>${error}</pre>
+    </div>
+  `
+}

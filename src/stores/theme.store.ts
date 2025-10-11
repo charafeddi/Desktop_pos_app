@@ -18,7 +18,7 @@ interface ThemeState {
 
 export const useThemeStore = defineStore('theme', {
   state: (): ThemeState => ({
-    isDarkMode: JSON.parse(localStorage.getItem('theme_dark_mode') || 'true'),
+    isDarkMode: true, // Default to dark mode, will be updated in loadTheme()
     // Unified color palette
     primaryColor: '#535bf2',
     secondaryColor: '#646cff',
@@ -114,12 +114,17 @@ export const useThemeStore = defineStore('theme', {
 
     // Load theme preference from localStorage
     loadTheme() {
-      const savedTheme = localStorage.getItem('theme_dark_mode')
-      if (savedTheme !== null) {
-        this.isDarkMode = JSON.parse(savedTheme)
-      } else {
-        // Default to system preference
-        this.isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+      try {
+        const savedTheme = localStorage.getItem('theme_dark_mode')
+        if (savedTheme !== null) {
+          this.isDarkMode = JSON.parse(savedTheme)
+        } else {
+          // Default to dark mode if localStorage not available
+          this.isDarkMode = true
+        }
+      } catch (error) {
+        console.warn('Theme loading error:', error)
+        this.isDarkMode = true
       }
       this.applyTheme()
     },

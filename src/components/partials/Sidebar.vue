@@ -41,7 +41,7 @@
         </li>
         
         <!-- Analytics -->
-        <li>
+        <li v-if="canAccessAnalytics">
           <router-link
             :to="{ name: 'Analytics' }"
             class="nav-link"
@@ -144,6 +144,8 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '@/stores/auth.store'
+import { computed } from 'vue'
 
 // Props and Emits
 const props = defineProps({
@@ -157,6 +159,14 @@ const emit = defineEmits(['toggle-sidebar'])
 
 // Composables
 const { t } = useI18n()
+const authStore = useAuthStore()
+
+// Computed properties
+const canAccessAnalytics = computed(() => {
+  const userRole = authStore.user?.role
+  const allowedRoles = ['admin', 'manager']
+  return userRole && allowedRoles.includes(userRole)
+})
 
 // Methods
 const toggleSidebar = () => {

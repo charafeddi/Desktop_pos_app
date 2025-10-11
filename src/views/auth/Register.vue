@@ -3,7 +3,7 @@
     <div class="register-container">
       <div class="circle circle-one"></div>
       <div class="form-container">
-        <img :src="illustration" alt="Login Illustration" class="illustration" />
+        <img src="/assets/img/Sign up-cuate.png" alt="Register Illustration" class="illustration" />
         <h1 class="opacity">REGISTER</h1>
         <form @submit.prevent="handleRegister" class="register-form">
           <div class="form-group">
@@ -82,7 +82,6 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
-import illustration from '../../assets/img/Sign up-cuate.png'
 
 // Composables
 const router = useRouter()

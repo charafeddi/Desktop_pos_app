@@ -1,9 +1,9 @@
 <script>
-import illustration from '../assets/img/illustration.png'
+// Image is now served from public directory
 </script>
 
 <template>
-  <img :src="illustration" alt="Login Illustration">
+  <img src="/assets/img/illustration.png" alt="Login Illustration">
 </template>
 
 <style>

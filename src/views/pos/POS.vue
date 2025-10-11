@@ -525,7 +525,7 @@ function addToCart(product, quantity = 1) {
                   class="w-full h-full object-cover rounded-t-xl"
                 >
                 <div v-else class="text-gray-400">
-                  <img src="../../assets/img/product-no-image.png" alt="Product" class="w-12 h-12 mx-auto">
+                  <img src="/assets/img/product-no-image.png" alt="Product" class="w-12 h-12 mx-auto">
                 </div>
               </div>
               

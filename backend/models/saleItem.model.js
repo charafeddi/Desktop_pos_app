@@ -1,68 +1,63 @@
-const db = require('../config/database'); // Import the existing database connection
+const db = require('../config/database');
 
 class SaleItem {
     async create(saleItemData) {
-        return new Promise((resolve, reject) => {
-            const sql = `
+        try {
+            const stmt = db.prepare(`
                 INSERT INTO sale_items (sale_id, product_id, quantity, price)
                 VALUES (?, ?, ?, ?)
-            `;
-            const params = [saleItemData.sale_id, saleItemData.product_id, saleItemData.quantity, saleItemData.price];
-            db.run(sql, params, function(err) {
-                if (err) reject(err);
-                else resolve(this.lastID);
-            });
-        });
+            `);
+            const result = stmt.run(saleItemData.sale_id, saleItemData.product_id, saleItemData.quantity, saleItemData.price);
+            return result.lastInsertRowid;
+        } catch (error) {
+            throw error;
+        }
     }
 
     async getAll() {
-        return new Promise((resolve, reject) => {
-            const sql = `SELECT * FROM sale_items`;
-            db.all(sql, [], (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows);
-            });
-        });
+        try {
+            const stmt = db.prepare('SELECT * FROM sale_items');
+            return stmt.all();
+        } catch (error) {
+            throw error;
+        }
     }
 
     async getById(id) {
-        return new Promise((resolve, reject) => {
-            const sql = `SELECT * FROM sale_items WHERE id = ?`;
-            db.get(sql, [id], (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-            });
-        });
+        try {
+            const stmt = db.prepare('SELECT * FROM sale_items WHERE id = ?');
+            return stmt.get(id);
+        } catch (error) {
+            throw error;
+        }
     }
 
     async update(id, saleItemData) {
-        return new Promise((resolve, reject) => {
-            const sql = `
+        try {
+            const stmt = db.prepare(`
                 UPDATE sale_items SET
                     sale_id = ?,
                     product_id = ?,
                     quantity = ?,
                     price = ?
-            WHERE id = ?
-        `;
-            const params = [saleItemData.sale_id, saleItemData.product_id, saleItemData.quantity, saleItemData.price, id];
-            db.run(sql, params, function(err) {
-                if (err) reject(err);
-                else resolve(this.changes);
-            });
-        });
+                WHERE id = ?
+            `);
+            const result = stmt.run(saleItemData.sale_id, saleItemData.product_id, saleItemData.quantity, saleItemData.price, id);
+            return result.changes;
+        } catch (error) {
+            throw error;
+        }
     }
 
     async delete(id) {
-        return new Promise((resolve, reject) => {
-            const sql = `DELETE FROM sale_items WHERE id = ?`;
-            db.run(sql, [id], function(err) {
-                if (err) reject(err);
-                else resolve(this.changes);
-            });
-        });
+        try {
+            const stmt = db.prepare('DELETE FROM sale_items WHERE id = ?');
+            const result = stmt.run(id);
+            return result.changes;
+        } catch (error) {
+            throw error;
+        }
     }
 }
 
-// Export an instance of the SaleItem class
-module.exports = new SaleItem(); 
+module.exports = new SaleItem();

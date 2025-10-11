@@ -3,7 +3,7 @@
     <div class="login-container">
       <div class="circle circle-one"></div>
       <div class="form-container">
-        <img :src="illustration" alt="Login Illustration" class="illustration" />
+        <img src="/assets/img/Mobile login-cuate.png" alt="Login Illustration" class="illustration" />
         <h1 class="opacity">LOGIN</h1>
         <form @submit.prevent="handleLogin">
           <input 
@@ -37,7 +37,6 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
-import illustration from '../../assets/img/Mobile login-cuate.png'
 
 // Composables
 const router = useRouter()

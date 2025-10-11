@@ -5,12 +5,14 @@ const fs = require('fs');
 // Determine if we're in a packaged app or development
 const isPackaged = process.env.NODE_ENV === 'production' || 
                    process.resourcesPath !== undefined ||
-                   (process.argv && process.argv[0] && process.argv[0].includes('POS System.exe'));
+                   (process.argv && process.argv[0] && process.argv[0].includes('POS System.exe')) ||
+                   (process.execPath && process.execPath.includes('POS System.exe'));
 
 console.log('Environment check:', {
     NODE_ENV: process.env.NODE_ENV,
     resourcesPath: process.resourcesPath,
     argv0: process.argv[0],
+    execPath: process.execPath,
     isPackaged: isPackaged
 });
 
@@ -18,23 +20,64 @@ console.log('Environment check:', {
 let dataDir;
 if (isPackaged) {
     // In packaged app, use user's AppData directory
-    dataDir = path.join(process.env.APPDATA || process.env.HOME, 'POS-System', 'data');
+    const appDataPath = process.env.APPDATA || process.env.HOME || process.env.USERPROFILE;
+    dataDir = path.join(appDataPath, 'POS-System', 'data');
+    console.log('Using packaged app data directory:', dataDir);
 } else {
     // In development, use local data directory
     dataDir = path.join(__dirname, '..', 'data');
+    console.log('Using development data directory:', dataDir);
 }
 
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+// Ensure data directory exists
+try {
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+        console.log('Created data directory:', dataDir);
+    }
+} catch (error) {
+    console.error('Error creating data directory:', error);
+    // Fallback to current directory
+    dataDir = path.join(process.cwd(), 'data');
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+    }
+    console.log('Using fallback data directory:', dataDir);
 }
 
 // Database file path
 const dbPath = path.join(dataDir, 'pos.db');
 console.log('Database path:', dbPath);
 
-// Create database connection
-const db = new Database(dbPath);
-console.log('Connected to SQLite database');
+// Create database connection with error handling
+let db;
+try {
+    db = new Database(dbPath);
+    console.log('Connected to SQLite database successfully');
+} catch (error) {
+    console.error('Error connecting to database:', error);
+    console.error('Database path:', dbPath);
+    console.error('Directory exists:', fs.existsSync(dataDir));
+    console.error('Directory writable:', fs.accessSync ? (() => {
+        try {
+            fs.accessSync(dataDir, fs.constants.W_OK);
+            return true;
+        } catch {
+            return false;
+        }
+    })() : 'unknown');
+    
+    // Try alternative path
+    const altPath = path.join(process.cwd(), 'pos.db');
+    console.log('Trying alternative path:', altPath);
+    try {
+        db = new Database(altPath);
+        console.log('Connected to database using alternative path');
+    } catch (altError) {
+        console.error('Alternative path also failed:', altError);
+        throw new Error(`Cannot connect to database. Original error: ${error.message}`);
+    }
+}
 
 // Enable foreign keys
 db.pragma('foreign_keys = ON');

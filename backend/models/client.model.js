@@ -7,28 +7,27 @@ class Customer {
             city, country, postal_code, tax_number, is_active = 1
         } = customerData;
 
-        return new Promise((resolve, reject) => {
-            db.run(
-                `INSERT INTO customers (
+        try {
+            const stmt = db.prepare(`
+                INSERT INTO customers (
                     name, email, phone, address,
                     city, country, postal_code, tax_number, is_active
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [name, email, phone, address, city, country, postal_code, tax_number, is_active],
-                function(err) {
-                    if (err) reject(err);
-                    else resolve(this.lastID);
-                }
-            );
-        });
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            const result = stmt.run(name, email, phone, address, city, country, postal_code, tax_number, is_active);
+            return result.lastInsertRowid;
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async findById(id) {
-        return new Promise((resolve, reject) => {
-            db.get('SELECT * FROM customers WHERE id = ?', [id], (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-            });
-        });
+        try {
+            const stmt = db.prepare('SELECT * FROM customers WHERE id = ?');
+            return stmt.get(id);
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async update(id, customerData) {
@@ -37,7 +36,7 @@ class Customer {
             city, country, postal_code, tax_number, is_active
         } = customerData;
 
-        return new Promise((resolve, reject) => {
+        try {
             const updateFields = [];
             const values = [];
             
@@ -54,92 +53,83 @@ class Customer {
             updateFields.push('updated_at = CURRENT_TIMESTAMP');
             values.push(id);
 
-            db.run(
-                `UPDATE customers SET ${updateFields.join(', ')} WHERE id = ?`,
-                values,
-                function(err) {
-                    if (err) reject(err);
-                    else resolve(this.changes);
-                }
-            );
-        });
+            const stmt = db.prepare(`UPDATE customers SET ${updateFields.join(', ')} WHERE id = ?`);
+            const result = stmt.run(...values);
+            return result.changes;
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async delete(id) {
-        return new Promise((resolve, reject) => {
-            db.run('DELETE FROM customers WHERE id = ?', [id], function(err) {
-                if (err) reject(err);
-                else resolve(this.changes);
-            });
-        });
+        try {
+            const stmt = db.prepare('DELETE FROM customers WHERE id = ?');
+            const result = stmt.run(id);
+            return result.changes;
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async getAll() {
-        return new Promise((resolve, reject) => {
-            db.all(
-                `SELECT c.*, 
+        try {
+            const stmt = db.prepare(`
+                SELECT c.*, 
                     (SELECT COUNT(*) FROM sales WHERE customer_id = c.id) as sale_count,
                     (SELECT COALESCE(SUM(total_amount), 0) FROM sales WHERE customer_id = c.id) as total_amount_count
                 FROM customers c
-                ORDER BY c.name ASC`,
-                [],
-                (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                }
-            );
-        });
+                ORDER BY c.name ASC
+            `);
+            return stmt.all();
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async getSales(id) {
-        return new Promise((resolve, reject) => {
-            db.all(
-                `SELECT s.*, u.name as user_name
+        try {
+            const stmt = db.prepare(`
+                SELECT s.*, u.name as user_name
                 FROM sales s
                 LEFT JOIN users u ON s.user_id = u.id
                 WHERE s.customer_id = ?
-                ORDER BY s.created_at DESC`,
-                [id],
-                (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                }
-            );
-        });
+                ORDER BY s.created_at DESC
+            `);
+            return stmt.all(id);
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async getReturns(id) {
-        return new Promise((resolve, reject) => {
-            db.all(
-                `SELECT r.*, u.name as user_name
+        try {
+            const stmt = db.prepare(`
+                SELECT r.*, u.name as user_name
                 FROM returns r
                 LEFT JOIN users u ON r.user_id = u.id
                 WHERE r.customer_id = ?
-                ORDER BY r.created_at DESC`,
-                [id],
-                (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                }
-            );
-        });
+                ORDER BY r.created_at DESC
+            `);
+            return stmt.all(id);
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async toggleStatus(id) {
-        return new Promise((resolve, reject) => {
-            db.run(
-                `UPDATE customers 
+        try {
+            const stmt = db.prepare(`
+                UPDATE customers 
                 SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?`,
-                [id],
-                function(err) {
-                    if (err) reject(err);
-                    else resolve(this.changes);
-                }
-            );
-        });
+                WHERE id = ?
+            `);
+            const result = stmt.run(id);
+            return result.changes;
+        } catch (error) {
+            throw error;
+        }
     }
 }
 
-module.exports = Customer; 
+module.exports = Customer;

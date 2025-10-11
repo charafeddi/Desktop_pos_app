@@ -144,6 +144,15 @@ contextBridge.exposeInMainWorld(
       printReceipt: (receiptText: string, printerName?: string) => ipcRenderer.invoke('print-receipt', { receiptText, printerName }),
       getPrinters: () => ipcRenderer.invoke('get-printers'),
       testPrint: (printerName?: string) => ipcRenderer.invoke('test-print', { printerName })
-    }
+    },
+
+    // User Profile methods
+    getUserStats: (userId: number) => ipcRenderer.invoke('get-user-stats', userId),
+    getUserActivity: (userId: number, limit?: number) => ipcRenderer.invoke('get-user-activity', userId, limit),
+    updateUserProfile: (userId: number, profileData: any) => ipcRenderer.invoke('update-user-profile', userId, profileData),
+    changeUserPassword: (userId: number, passwordData: any) => ipcRenderer.invoke('change-user-password', userId, passwordData),
+
+    // App control methods
+    closeApp: () => ipcRenderer.invoke('app:close')
   }
 ) 

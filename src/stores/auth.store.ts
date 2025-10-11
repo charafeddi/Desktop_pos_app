@@ -19,11 +19,34 @@ interface AuthState {
 }
 
 export const useAuthStore = defineStore('auth', {
-  state: (): AuthState => ({
-    user: JSON.parse(localStorage.getItem('auth_user') || 'null'),
-    token: localStorage.getItem('auth_token'),
-    loading: false
-  }),
+  state: (): AuthState => {
+    // Safe localStorage access with error handling
+    let user = null
+    let token = null
+    
+    try {
+      const storedUser = localStorage.getItem('auth_user')
+      const storedToken = localStorage.getItem('auth_token')
+      
+      if (storedUser && storedUser !== 'null') {
+        user = JSON.parse(storedUser)
+      }
+      if (storedToken && storedToken !== 'null') {
+        token = storedToken
+      }
+    } catch (error) {
+      console.error('Error loading auth state from localStorage:', error)
+      // Clear invalid data
+      localStorage.removeItem('auth_user')
+      localStorage.removeItem('auth_token')
+    }
+    
+    return {
+      user,
+      token,
+      loading: false
+    }
+  },
 
   getters: {
     isAuthenticated: (state) => !!state.token,

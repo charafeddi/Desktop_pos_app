@@ -7,28 +7,27 @@ class Supplier {
             address, city, country, postal_code
         } = supplierData;
 
-        return new Promise((resolve, reject) => {
-            db.run(
-                `INSERT INTO suppliers (
+        try {
+            const stmt = db.prepare(`
+                INSERT INTO suppliers (
                     name, contact_person, email, phone,
                     address, city, country, postal_code
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                [name, contact_person, email, phone, address, city, country, postal_code],
-                function(err) {
-                    if (err) reject(err);
-                    else resolve(this.lastID);
-                }
-            );
-        });
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            const result = stmt.run(name, contact_person, email, phone, address, city, country, postal_code);
+            return result.lastInsertRowid;
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async findById(id) {
-        return new Promise((resolve, reject) => {
-            db.get('SELECT * FROM suppliers WHERE id = ?', [id], (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-            });
-        });
+        try {
+            const stmt = db.prepare('SELECT * FROM suppliers WHERE id = ?');
+            return stmt.get(id);
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async update(id, supplierData) {
@@ -37,52 +36,50 @@ class Supplier {
             address, city, country, postal_code
         } = supplierData;
 
-        return new Promise((resolve, reject) => {
-            db.run(
-                `UPDATE suppliers 
+        try {
+            const stmt = db.prepare(`
+                UPDATE suppliers 
                 SET name = ?, contact_person = ?, email = ?, phone = ?,
                     address = ?, city = ?, country = ?, postal_code = ?,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?`,
-                [name, contact_person, email, phone, address, city, country, postal_code, id],
-                function(err) {
-                    if (err) reject(err);
-                    else resolve(this.changes);
-                }
-            );
-        });
+                WHERE id = ?
+            `);
+            const result = stmt.run(name, contact_person, email, phone, address, city, country, postal_code, id);
+            return result.changes;
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async delete(id) {
-        return new Promise((resolve, reject) => {
-            db.run('DELETE FROM suppliers WHERE id = ?', [id], function(err) {
-                if (err) reject(err);
-                else resolve(this.changes);
-            });
-        });
+        try {
+            const stmt = db.prepare('DELETE FROM suppliers WHERE id = ?');
+            const result = stmt.run(id);
+            return result.changes;
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async getAll() {
-        return new Promise((resolve, reject) => {
-            db.all(
-                `SELECT s.*, 
+        try {
+            const stmt = db.prepare(`
+                SELECT s.*, 
                     (SELECT COUNT(*) FROM products WHERE supplier_id = s.id) as product_count,
                     (SELECT COALESCE(SUM(purchase_price), 0) FROM products WHERE supplier_id = s.id) as total_amount_count
                 FROM suppliers s
-                ORDER BY s.name ASC`,
-                [],
-                (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                }
-            );
-        });
+                ORDER BY s.name ASC
+            `);
+            return stmt.all();
+        } catch (error) {
+            throw error;
+        }
     }
 
     static async getProducts(id) {
-        return new Promise((resolve, reject) => {
-            db.all(
-                `SELECT p.*, 
+        try {
+            const stmt = db.prepare(`
+                SELECT p.*, 
                     c.name as category_name,
                     pt.name as product_type_name,
                     pu.name as product_unit_name,
@@ -94,15 +91,13 @@ class Supplier {
                 LEFT JOIN product_units pu ON p.product_unit_id = pu.id
                 LEFT JOIN inventory i ON p.id = i.product_id
                 WHERE p.supplier_id = ?
-                ORDER BY p.name ASC`,
-                [id],
-                (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                }
-            );
-        });
+                ORDER BY p.name ASC
+            `);
+            return stmt.all(id);
+        } catch (error) {
+            throw error;
+        }
     }
 }
 
-module.exports = Supplier; 
+module.exports = Supplier;

@@ -55,108 +55,6 @@
         </div>
       </div>
 
-      <!-- Search Section -->
-      <div class="bg-white shadow rounded-lg mb-6">
-        <div class="px-4 py-5 sm:p-6">
-          <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-            Search Returns
-          </h3>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
-              <input 
-                v-model="searchParams.customer_name"
-                type="text" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="Search by customer name"
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Sale Invoice</label>
-              <input 
-                v-model="searchParams.sale_invoice"
-                type="text" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="Search by invoice number"
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Return Number</label>
-              <input 
-                v-model="searchParams.return_number"
-                type="text" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="Search by return number"
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select 
-                v-model="searchParams.status"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                <option value="">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-          </div>
-          
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-              <input 
-                v-model="searchParams.reason"
-                type="text" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="Search by reason"
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-              <input 
-                v-model="searchParams.start_date"
-                type="date" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-              <input 
-                v-model="searchParams.end_date"
-                type="date" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-          </div>
-          
-          <div class="flex gap-2">
-            <button 
-              @click="performSearch"
-              :disabled="loading"
-              class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span v-if="loading" class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
-              Search
-            </button>
-            <button 
-              @click="clearSearch"
-              :disabled="loading"
-              class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      </div>
-
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
@@ -175,107 +73,9 @@
         </div>
       </div>
 
-      <!-- Returns List -->
-      <div v-else class="bg-white shadow rounded-lg">
-        <div class="px-4 py-5 sm:p-6">
-          <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-            {{ t('Returns.returns_history') }}
-          </h3>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
-              <input 
-                v-model="searchParams.customer_name"
-                type="text" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="Search by customer name"
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Sale Invoice</label>
-              <input 
-                v-model="searchParams.sale_invoice"
-                type="text" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="Search by invoice number"
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Return Number</label>
-              <input 
-                v-model="searchParams.return_number"
-                type="text" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="Search by return number"
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select 
-                v-model="searchParams.status"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                <option value="">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-          </div>
-          
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-              <input 
-                v-model="searchParams.reason"
-                type="text" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="Search by reason"
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-              <input 
-                v-model="searchParams.start_date"
-                type="date" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-              <input 
-                v-model="searchParams.end_date"
-                type="date" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-          </div>
-          
-          <div class="flex gap-2">
-            <button 
-              @click="performSearch"
-              class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Search
-            </button>
-            <button 
-              @click="clearSearch"
-              class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      </div>
 
       <!-- Returns List -->
-      <div v-else class="bg-white shadow rounded-lg">
+      <div class="bg-white shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
           <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
             {{ t('Returns.returns_history') }}
@@ -587,16 +387,6 @@ const availableSales = ref([])
 const selectedSaleItems = ref([])
 const showExportDropdown = ref(false)
 
-// Search parameters
-const searchParams = ref({
-  customer_name: '',
-  sale_invoice: '',
-  reason: '',
-  start_date: '',
-  end_date: '',
-  return_number: '',
-  status: ''
-})
 
 // New return form data
 const newReturn = ref({
@@ -800,35 +590,6 @@ const resetNewReturn = () => {
   selectedSaleItems.value = []
 }
 
-// Search functions
-const performSearch = async () => {
-  try {
-    // Filter out empty values
-    const filteredParams = Object.fromEntries(
-      Object.entries(searchParams.value).filter(([_, value]) => value !== '')
-    )
-    
-    await returnsStore.searchReturns(filteredParams)
-  } catch (error) {
-    console.error('Error searching returns:', error)
-  }
-}
-
-const clearSearch = async () => {
-  // Reset search parameters
-  searchParams.value = {
-    customer_name: '',
-    sale_invoice: '',
-    reason: '',
-    start_date: '',
-    end_date: '',
-    return_number: '',
-    status: ''
-  }
-  
-  // Load all returns
-  await returnsStore.fetchReturns()
-}
 
 // Export returns
 const exportReturnsData = async (format) => {

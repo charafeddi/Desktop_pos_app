@@ -11,12 +11,15 @@
   "homepage": "./",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node fix-paths.js",
     "build:check": "vue-tsc --noEmit",
     "preview": "vite preview",
+    "postinstall": "electron-rebuild",
     "electron:dev": "node electron-start.js",
     "electron:build": "npm run build:preload && npm run build && electron-builder",
     "electron:build:win": "npm run build:preload && npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win",
+    "electron:build:win:http": "npm run build:preload && npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --config.win.target=dir",
+    "electron:pack:win": "npm run build:preload && npm run build && electron-packager . \"POS System\" --platform=win32 --arch=x64 --out=packaged-app --overwrite",
     "electron:build:win:dir": "npm run build:preload && npm run build && electron-builder --win --dir",
     "electron:build:win:portable": "npm run build:preload && npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --config.win.target=portable",
     "electron:build:mac": "npm run build:preload && npm run build && electron-builder --mac",
@@ -40,8 +43,10 @@
     "date-fns": "^4.1.0",
     "express": "^4.21.2",
     "file-saver": "^2.0.5",
+    "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
+    "nodemailer": "^7.0.9",
     "papaparse": "^5.5.3",
     "pinia": "^2.1.7",
     "quagga": "^0.12.1",
@@ -51,6 +56,7 @@
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.1",
     "@types/electron": "^1.4.38",
     "@types/node": "^20.17.27",
     "@vitejs/plugin-vue": "^5.0.3",
@@ -58,6 +64,7 @@
     "cross-env": "^10.1.0",
     "electron": "^28.2.0",
     "electron-builder": "^24.9.1",
+    "electron-packager": "^17.1.2",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.8.2",
@@ -71,7 +78,7 @@
     "productName": "POS System",
     "copyright": "Copyright © 2024 POS System",
     "directories": {
-      "output": "pos-app-build",
+      "output": "desktop-app",
       "buildResources": "build"
     },
     "files": [

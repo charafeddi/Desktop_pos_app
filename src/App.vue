@@ -1,8 +1,15 @@
 <!-- Root template with authentication check -->
 <template>
   <Menu />
+  
+  <!-- Loading state -->
+  <div v-if="isLoading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Loading...</p>
+  </div>
+  
   <!-- Login/Register view when not authenticated -->
-  <div v-if="!isAuthenticated" class="w-full h-full">
+  <div v-else-if="!isAuthenticated" class="w-full h-full">
     <router-view></router-view>
   </div>
   
@@ -49,8 +56,36 @@ const handleSidebarToggle = (collapsed: boolean) => {
   isSidebarCollapsed.value = collapsed
 }
 
+// Loading state for initial auth check
+const isLoading = ref(true)
+
 // Computed property to check if user is authenticated
 const isAuthenticated = computed(() => authStore.isAuthenticated)
+
+// Initialize authentication state
+onMounted(async () => {
+  try {
+    // Check if we have stored auth data
+    const token = localStorage.getItem('auth_token')
+    const user = localStorage.getItem('auth_user')
+    
+    if (token && user) {
+      // Restore auth state
+      authStore.setToken(token)
+      authStore.setUser(JSON.parse(user))
+    }
+  } catch (error) {
+    console.error('❌ Authentication initialization error:', error)
+    // Clear invalid data
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('auth_user')
+  } finally {
+    // Always finish loading after auth check
+    setTimeout(() => {
+      isLoading.value = false
+    }, 100)
+  }
+})
 
 // Logout handler function
 async function handleLogout() {
@@ -150,6 +185,36 @@ html, body {
 .origin-top-right[v-show="false"] {
   transform: scale(0.95);
   opacity: 0;
+}
+
+/* Loading styles */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f8f9fa;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  color: #6b7280;
+  font-size: 16px;
 }
 
 /* Responsive adjustments */
