@@ -43,6 +43,7 @@
     "date-fns": "^4.1.0",
     "express": "^4.21.2",
     "file-saver": "^2.0.5",
+    "googleapis": "^162.0.0",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
@@ -77,6 +78,7 @@
     "appId": "com.pos.desktop",
     "productName": "POS System",
     "copyright": "Copyright © 2024 POS System",
+    "icon": "public/assets/img/logo.png",
     "directories": {
       "output": "desktop-app",
       "buildResources": "build"

@@ -53,6 +53,15 @@ contextBridge.exposeInMainWorld(
       delete: (id: number) => ipcRenderer.invoke('delete-category', id)
     },
 
+    // Todo methods
+    todos: {
+    getTodos: () => ipcRenderer.invoke('get-todos'),
+    getTodoById: (id: number) => ipcRenderer.invoke('get-todo-by-id', id),
+    createTodo: (data: any) => ipcRenderer.invoke('create-todo', data),
+    updateTodo: (data: any) => ipcRenderer.invoke('update-todo', data.id, data),
+    deleteTodo: (id: number) => ipcRenderer.invoke('delete-todo', id),
+    },
+    
     suppliers: {
       getAll: () => ipcRenderer.invoke('get-suppliers'),
       getByID: (id: number) => ipcRenderer.invoke('get-supplier-by-id', id),
@@ -153,6 +162,31 @@ contextBridge.exposeInMainWorld(
     changeUserPassword: (userId: number, passwordData: any) => ipcRenderer.invoke('change-user-password', userId, passwordData),
 
     // App control methods
-    closeApp: () => ipcRenderer.invoke('app:close')
+    closeApp: () => ipcRenderer.invoke('app:close'),
+
+    // Email methods
+    email: {
+      sendPasswordReset: (email: string) => ipcRenderer.invoke('email:send-password-reset', email),
+      verifyResetToken: (token: string) => ipcRenderer.invoke('email:verify-reset-token', token),
+      resetPassword: (token: string, newPassword: string) => ipcRenderer.invoke('email:reset-password', token, newPassword),
+      sendWelcome: (email: string, userName: string, tempPassword: string) => ipcRenderer.invoke('email:send-welcome', email, userName, tempPassword),
+      testConfiguration: () => ipcRenderer.invoke('email:test-configuration'),
+      cleanupTokens: () => ipcRenderer.invoke('email:cleanup-tokens'),
+      getTokenStats: () => ipcRenderer.invoke('email:get-token-stats')
+    },
+
+    // Cloud Sync methods
+    cloudSync: {
+      initialize: () => ipcRenderer.invoke('cloud-sync:initialize'),
+      authenticate: () => ipcRenderer.invoke('cloud-sync:authenticate'),
+      handleAuthCode: (code: string) => ipcRenderer.invoke('cloud-sync:handle-auth-code', code),
+      uploadDatabase: () => ipcRenderer.invoke('cloud-sync:upload-database'),
+      downloadDatabase: () => ipcRenderer.invoke('cloud-sync:download-database'),
+      checkUpdates: () => ipcRenderer.invoke('cloud-sync:check-updates'),
+      downloadUpdate: (updateFile: any) => ipcRenderer.invoke('cloud-sync:download-update', updateFile),
+      startAutoSync: () => ipcRenderer.invoke('cloud-sync:start-auto-sync'),
+      stopAutoSync: () => ipcRenderer.invoke('cloud-sync:stop-auto-sync'),
+      getStatus: () => ipcRenderer.invoke('cloud-sync:get-status')
+    }
   }
 ) 

@@ -16,6 +16,18 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: () => import('@/views/auth/ForgotPassword.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('@/views/auth/ResetPassword.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/',
     name: 'Dashboard',
     component: () => import('@/views/dashboard/Dashboard.vue'),
@@ -46,9 +58,15 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, requiresRole: ['admin'] }
   },
   {
-    path: '/task',
-    name: 'Task',
-    component: () => import('@/views/task/task.vue'),
+    path: '/cloud-sync',
+    name: 'CloudSync',
+    component: () => import('@/views/settings/CloudSync.vue'),
+    meta: { requiresAuth: true, requiresRole: ['admin'] }
+  },
+  {
+    path: '/todo',
+    name: 'Todo',
+    component: () => import('@/views/todo/Todo.vue'),
     meta: { requiresAuth: true }
   },
   {

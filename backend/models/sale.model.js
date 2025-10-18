@@ -11,6 +11,9 @@ class Sale {
         try {
             // Generate invoice number
             const invoiceNumber = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            
+            // Get current local time
+            const currentTime = new Date().toISOString();
 
             // Insert sale record
             const saleStmt = db.prepare(`
@@ -18,12 +21,12 @@ class Sale {
                     invoice_number, customer_id, user_id, total_amount, 
                     discount_amount, tax_amount, final_amount, payment_method,
                     payment_status, sale_status, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', 'completed', CURRENT_TIMESTAMP)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', 'completed', ?)
             `);
             
             const saleResult = saleStmt.run(
                 invoiceNumber, customer_id, user_id, total_amount,
-                discount_amount, tax_amount, final_amount, payment_method
+                discount_amount, tax_amount, final_amount, payment_method, currentTime
             );
             
             const saleId = saleResult.lastInsertRowid;
@@ -33,8 +36,8 @@ class Sale {
             if (items && items.length > 0) {
                 const itemStmt = db.prepare(`
                     INSERT INTO sale_items (
-                        sale_id, product_id, quantity, unit_price, total_price
-                    ) VALUES (?, ?, ?, ?, ?)
+                        sale_id, product_id, quantity, unit_price, total_amount, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?)
                 `);
 
                 for (const item of items) {
@@ -43,7 +46,8 @@ class Sale {
                         item.product_id,
                         item.quantity,
                         item.unit_price,
-                        item.total_price
+                        item.total_price || item.total_amount,
+                        currentTime
                     );
                 }
             }

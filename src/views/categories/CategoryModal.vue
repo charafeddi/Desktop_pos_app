@@ -144,13 +144,15 @@ const handleSubmit = () => {
   const categoryData = {
     name: form.value.category.trim(),
     description: form.value.description.trim() || null,
-    parent_id: form.value.parent_id?.trim() || null,
+    parent_id: form.value.parent_id ? parseInt(form.value.parent_id) : null,
   };
   
   // If editing, include the ID
   if (isEditMode.value && props.editData) {
     categoryData.id = props.editData.id;
   }
+  
+  console.log('Submitting category data:', categoryData);
   
   // Emit the cleaned form data to the parent component
   emit('submit', categoryData);

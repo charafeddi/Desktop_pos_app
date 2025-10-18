@@ -160,7 +160,7 @@
                                 v-model="formData.name" 
                                 required 
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                placeholder="Supplier name"
+                                :placeholder="t('Supplier.name')"
                             >
                         </div>
                         <div>
@@ -169,7 +169,7 @@
                                 type="text" 
                                 v-model="formData.contact_person" 
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                placeholder="Contact person"
+                                :placeholder="t('Supplier.contact_person')"
                             >
                         </div>
                         <div>
@@ -178,7 +178,7 @@
                                 type="email" 
                                 v-model="formData.email" 
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                placeholder="email@example.com"
+                                :placeholder="t('Supplier.email')"
                             >
                         </div>
                         <div>
@@ -187,7 +187,7 @@
                                 type="text" 
                                 v-model="formData.phone" 
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                placeholder="{{ t('Supplier.phone') }}"
+                                :placeholder="t('Supplier.phone')"
                             >
                         </div>
                         <div class="md:col-span-2">
@@ -196,7 +196,7 @@
                                 type="text" 
                                 v-model="formData.address" 
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                placeholder="{{ t('Supplier.address') }}"
+                                :placeholder="t('Supplier.address')"
                             >
                         </div>
                         <div>
@@ -205,7 +205,7 @@
                                 type="text" 
                                 v-model="formData.city" 
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                placeholder="{{ t('Supplier.city') }}"
+                                :placeholder="t('Supplier.city')"
                             >
                         </div>
                         <div>
@@ -214,7 +214,7 @@
                                 type="text" 
                                 v-model="formData.country" 
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                placeholder="{{ t('Supplier.country') }}"
+                                :placeholder="t('Supplier.country')"
                             >
                         </div>
                         <div>
@@ -223,7 +223,7 @@
                                 type="text" 
                                 v-model="formData.postal_code" 
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                placeholder="{{ t('Supplier.postal_code') }}"
+                                :placeholder="t('Supplier.postal_code')"
                             >
                         </div>
                     </div>

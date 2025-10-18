@@ -51,6 +51,16 @@
             <!-- Overview Tab -->
             <div v-if="activeTab === 'overview'" class="tab-content">
               <!-- User Stats Cards -->
+              <div class="mb-4 flex justify-between items-center">
+                <h3 class="text-lg font-semibold">Your Statistics</h3>
+                <button 
+                  @click="fetchUserStats" 
+                  class="btn btn-sm btn-outline-primary"
+                  title="Refresh statistics"
+                >
+                  <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+              </div>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div class="stat-card">
                   <div class="stat-icon">
@@ -59,6 +69,7 @@
                   <div class="stat-info">
                     <h4>{{ userStats.totalSales || 0 }}</h4>
                     <p>Total Sales</p>
+                    <small class="text-muted">Real-time data</small>
                   </div>
                 </div>
                 <div class="stat-card">
@@ -68,6 +79,7 @@
                   <div class="stat-info">
                     <h4>${{ formatCurrency(userStats.totalRevenue) }}</h4>
                     <p>Total Revenue</p>
+                    <small class="text-muted">From your sales</small>
                   </div>
                 </div>
                 <div class="stat-card">
@@ -77,6 +89,7 @@
                   <div class="stat-info">
                     <h4>{{ userStats.daysActive || 0 }}</h4>
                     <p>Days Active</p>
+                    <small class="text-muted">Since first sale</small>
                   </div>
                 </div>
               </div>
@@ -112,9 +125,18 @@
               <div class="card">
                 <div class="card-header">
                   <h5 class="card-title">Profile Settings</h5>
-                  <button class="btn btn-primary btn-sm" @click="openEditModal">
+                  <!-- Only show edit button if user is not a cashier -->
+                  <button 
+                    v-if="user?.role !== 'cashier'" 
+                    class="btn btn-primary btn-sm" 
+                    @click="openEditModal"
+                  >
                     <i class="fas fa-edit"></i> Edit Profile
                   </button>
+                  <!-- Show message for cashiers -->
+                  <div v-else class="text-muted">
+                    <i class="fas fa-lock"></i> Profile editing restricted for cashiers
+                  </div>
                                                     </div>
                 <div class="card-body">
                   <div class="profile-info-display">
@@ -146,9 +168,14 @@
               <div class="card mt-4">
                 <div class="card-header">
                   <h5 class="card-title">Change Password</h5>
+                  <!-- Show restriction message for cashiers -->
+                  <div v-if="user?.role === 'cashier'" class="text-muted">
+                    <i class="fas fa-lock"></i> Password changes restricted for cashiers
+                  </div>
                 </div>
                 <div class="card-body">
-                  <form @submit.prevent="changePassword">
+                  <!-- Show form only for non-cashiers -->
+                  <form v-if="user?.role !== 'cashier'" @submit.prevent="changePassword">
                     <div class="form-group">
                       <label for="currentPassword">Current Password</label>
                       <input 
@@ -185,6 +212,12 @@
                       {{ isChangingPassword ? 'Changing...' : 'Change Password' }}
                     </button>
                   </form>
+                  <!-- Show message for cashiers -->
+                  <div v-else class="text-center text-muted py-4">
+                    <i class="fas fa-shield-alt text-4xl mb-3"></i>
+                    <p>Password changes are restricted for cashier accounts.</p>
+                    <p class="small">Contact your administrator for password changes.</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -319,11 +352,24 @@
                 </div>
             <div class="form-group">
               <label for="editRole">Role</label>
-              <select id="editRole" v-model="editForm.role" class="form-control">
+              <!-- Only admins can change roles -->
+              <select 
+                v-if="user?.role === 'admin'" 
+                id="editRole" 
+                v-model="editForm.role" 
+                class="form-control"
+              >
                 <option value="admin">Admin</option>
                 <option value="manager">Manager</option>
                 <option value="cashier">Cashier</option>
               </select>
+              <!-- Non-admins see their role as read-only -->
+              <div v-else class="form-control-plaintext">
+                <span class="badge badge-secondary">{{ user?.role || 'User' }}</span>
+                <small class="text-muted ml-2">
+                  <i class="fas fa-info-circle"></i> Only admins can change roles
+                </small>
+              </div>
             </div>
             <div class="modal-actions">
               <button type="button" class="btn btn-secondary" @click="closeEditModal">
@@ -428,14 +474,27 @@ export default {
 
     const fetchUserStats = async () => {
       try {
-        if (!user.value?.id) return
+        if (!user.value?.id) {
+          console.log('No user ID available for stats')
+          return
+        }
+        
+        console.log('Fetching user stats for user ID:', user.value.id)
         
         // Fetch user statistics from backend
         const stats = await window.electronAPI.getUserStats(user.value.id)
+        console.log('Received user stats:', stats)
+        
         if (stats) {
           userStats.totalSales = stats.totalSales || 0
           userStats.totalRevenue = stats.totalRevenue || 0
           userStats.daysActive = stats.daysActive || 0
+          
+          console.log('Updated userStats:', {
+            totalSales: userStats.totalSales,
+            totalRevenue: userStats.totalRevenue,
+            daysActive: userStats.daysActive
+          })
         }
       } catch (error) {
         console.error('Error fetching user stats:', error)
@@ -467,6 +526,13 @@ export default {
     }
 
     const openEditModal = () => {
+      // Check if user is a cashier - they cannot edit their profile
+      if (user.value?.role === 'cashier') {
+        alert('Cashiers are not allowed to modify their profile information.')
+        return
+      }
+      
+      // Populate form with current user data
       if (user.value) {
         editForm.name = user.value.name || ''
         editForm.email = user.value.email || ''
@@ -493,8 +559,31 @@ export default {
           throw new Error('User not found')
         }
 
+        // Check if user is trying to change their role and they're not an admin
+        if (editForm.role !== user.value.role && user.value.role !== 'admin') {
+          alert('Only administrators can change user roles.')
+          return
+        }
+
+        // Prepare update data - send all form data to ensure complete update
+        const updateData = {
+          name: editForm.name || user.value.name || '',
+          email: editForm.email || user.value.email || '',
+          mobile_phone: editForm.mobile_phone || user.value.mobile_phone || '',
+          role: user.value.role || 'admin' // Default role from current user
+        }
+        
+        // Only allow role changes if user is admin
+        if (user.value.role === 'admin') {
+          updateData.role = editForm.role || user.value.role || 'admin'
+        }
+
+        console.log('Current user data:', user.value)
+        console.log('Form data:', editForm)
+        console.log('Update data being sent:', updateData)
+
         // Update user profile via backend
-        const updatedUser = await window.electronAPI.updateUserProfile(user.value.id, editForm)
+        const updatedUser = await window.electronAPI.updateUserProfile(user.value.id, updateData)
         
         if (updatedUser) {
           // Update auth store with new user data
@@ -502,11 +591,11 @@ export default {
           closeEditModal()
           
           // Show success message
-          // Profile updated successfully
+          alert('Profile updated successfully!')
         }
       } catch (error) {
         console.error('Error updating profile:', error)
-        // Show error message
+        alert('Error updating profile: ' + error.message)
       } finally {
         isUpdating.value = false
       }
@@ -514,6 +603,12 @@ export default {
 
     const changePassword = async () => {
       try {
+        // Check if user is a cashier - they cannot change their password
+        if (user.value?.role === 'cashier') {
+          alert('Cashiers are not allowed to change their password.')
+          return
+        }
+        
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
           alert('Passwords do not match')
           return
@@ -537,7 +632,7 @@ export default {
         })
         
         // Show success message
-        // Password changed successfully
+        alert('Password changed successfully!')
         
         // Reset form
         passwordForm.currentPassword = ''
@@ -545,7 +640,7 @@ export default {
         passwordForm.confirmPassword = ''
       } catch (error) {
         console.error('Error changing password:', error)
-        // Show error message
+        alert('Error changing password: ' + error.message)
       } finally {
         isChangingPassword.value = false
       }

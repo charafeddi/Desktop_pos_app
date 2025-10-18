@@ -2,7 +2,7 @@
   <div class="min-h-screen py-6 px-4 sm:px-6 lg:px-8">
     <div class="max-w-7xl mx-auto">
       <div class="mb-8">
-        <h1 class="text-3xl font-bold">Settings</h1>
+        <h1 class="text-3xl font-bold">{{ t('settings.title') }}</h1>
       </div>
 
       <div class="space-y-6">
@@ -10,11 +10,11 @@
         <div class="shadow rounded-lg">
           <div class="px-4 py-5 sm:p-6">
             <h3 class="text-lg leading-6 font-medium mb-4">
-              Company Information
+              {{ t('settings.companyInformation') }}
             </h3>
             <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <label class="block text-sm font-medium ">Company Name</label>
+                <label class="block text-sm font-medium ">{{ t('settings.companyName') }}</label>
                 <input
                   v-model="companyInfo.name"
                   type="text"
@@ -22,7 +22,7 @@
                 >
               </div>
               <div>
-                <label class="block text-sm font-medium ">Address</label>
+                <label class="block text-sm font-medium ">{{ t('settings.address') }}</label>
                 <input
                   v-model="companyInfo.address"
                   type="text"
@@ -30,7 +30,7 @@
                 >
               </div>
               <div>
-                <label class="block text-sm font-medium ">Phone</label>
+                <label class="block text-sm font-medium ">{{ t('settings.phone') }}</label>
                 <input
                   v-model="companyInfo.phone"
                   type="text"
@@ -38,7 +38,7 @@
                 >
               </div>
               <div>
-                <label class="block text-sm font-medium ">Email</label>
+                <label class="block text-sm font-medium ">{{ t('settings.email') }}</label>
                 <input
                   v-model="companyInfo.email"
                   type="email"
@@ -53,7 +53,7 @@
         <div class="shadow rounded-lg">
           <div class="px-4 py-5 sm:p-6">
             <h3 class="text-lg leading-6 font-medium mb-4">
-              Tax Rates
+              {{ t('settings.taxRates') }}
             </h3>
             <div class="space-y-4">
               <div v-for="rate in taxRates" :key="rate.id" class="flex items-center justify-between">
@@ -79,7 +79,7 @@
                     name="defaultTax"
                     class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"
                   >
-                  <label class="text-sm ">Default</label>
+                  <label class="text-sm ">{{ t('settings.default') }}</label>
                 </div>
               </div>
             </div>
@@ -89,19 +89,19 @@
          <div class="shadow rounded-lg">
           <div class="px-4 py-5 sm:p-6">
             <h3 class="text-lg leading-6 font-medium mb-4">
-              Manage Product Types/Units
+              {{ t('settings.manageProductTypesUnits') }}
             </h3>
             <div class="space-y-4">
               <div class="flex items-center justify-between">
-                <label class="block text-sm font-medium ">Product Types</label>
+                <label class="block text-sm font-medium ">{{ t('settings.productTypes') }}</label>
                 <router-link :to="{name:'ProductTypes'}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-                  Manage Product Types
+                  {{ t('settings.manageProductTypes') }}
                 </router-link>
               </div>
               <div class="flex items-center justify-between">
-                <label class="block text-sm font-medium ">Product Units</label>
+                  <label class="block text-sm font-medium ">{{ t('settings.manageProductUnits') }}</label>
                 <router-link :to="{name:'ProductUnits'}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-                  Manage Product Units
+                  {{ t('settings.manageProductUnits') }}
                 </router-link>
               </div>
             </div>
@@ -112,13 +112,13 @@
           <div class="px-4 py-5 sm:p-6">
             <div class="flex justify-between items-center mb-4">
               <h3 class="text-lg leading-6 font-medium ">
-                Printer Settings
+                {{ t('settings.printerSettings') }}
               </h3>
               <button
                 @click="refreshPrinters"
                 class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
               >
-                Refresh
+                {{ t('settings.refresh') }}
               </button>
             </div>
             <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -129,7 +129,7 @@
                     type="checkbox"
                     class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
                   >
-                  <span class="ml-2 text-sm ">Enable Printing</span>
+                  <span class="ml-2 text-sm ">{{ t('settings.enablePrinting') }}</span>
                 </label>
               </div>
               <div>
@@ -139,7 +139,7 @@
                   :disabled="!printerSettings.enabled"
                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 >
-                  <option value="" disabled>Select a printer</option>
+                  <option value="" disabled>{{ t('settings.selectPrinter') }}</option>
                   <option
                     v-for="p in printers"
                     :key="p.name"
@@ -148,7 +148,7 @@
                     {{ p.displayName || p.name }}<span v-if="p.isDefault"> (Default)</span>
                   </option>
                 </select>
-                <p v-if="printers.length === 0" class="text-sm mt-2">No printers found.</p>
+                <p v-if="printers.length === 0" class="text-sm mt-2">{{ t('settings.noPrintersFound') }}</p>
               </div>
             </div>
             <div class="mt-4">
@@ -157,7 +157,7 @@
                 :disabled="!printerSettings.enabled || !printerSettings.printerName"
                 class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50"
               >
-                Test Print
+                {{ t('settings.testPrint') }}
               </button>
             </div>
           </div>
@@ -170,13 +170,13 @@
             @click="resetToDefaults"
             class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
           >
-            Reset to Defaults
+            {{ t('settings.resetToDefaults') }}
           </button>
           <button
             @click="saveSettings"
             class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
           >
-            Save Settings
+            {{ t('settings.saveSettings') }}
           </button>
         </div>
 
@@ -184,13 +184,13 @@
         <div class="shadow rounded-lg">
           <div class="px-4 py-5 sm:p-6">
             <h3 class="text-lg leading-6 font-medium mb-4">
-              Database Backup & Restore
+              {{ t('settings.databaseBackupRestore') }}
             </h3>
             
             <div class="space-y-4">
               <!-- Backup Folder Selection -->
               <div>
-                <label class="block text-sm font-medium mb-2">Backup Folder:</label>
+                <label class="block text-sm font-medium mb-2">{{ t('settings.backupFolder') }}:</label>
                 <div class="flex gap-2">
                   <input
                     v-model="backupFolder"
@@ -203,7 +203,7 @@
                     @click="chooseBackupFolder"
                     class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                   >
-                    Choose Folder
+                    {{ t('settings.chooseFolder') }}
                   </button>
                 </div>
               </div>
@@ -216,7 +216,7 @@
                     :disabled="!backupFolder"
                     class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400"
                   >
-                    Create Backup Now
+                    {{ t('settings.createBackupNow') }}
                   </button>
                 </div>
                 <div>
@@ -225,7 +225,7 @@
                     :disabled="!backupFolder"
                     class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
                   >
-                    🕛 Enable Daily Backups
+                    {{ t('settings.enableDailyBackups') }}
                   </button>
                 </div>
                 <div>
@@ -234,49 +234,49 @@
                     :disabled="!backupFolder"
                     class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
                   >
-                    📅 Enable Weekly Backups
+                    {{ t('settings.enableWeeklyBackups') }}
                   </button>
                 </div>
               </div>
 
               <!-- Schedule Status -->
               <div v-if="nextBackup" class="bg-gray-50 p-4 rounded-md">
-                <h4 class="font-medium text-gray-900 mb-2">Backup Schedule Status:</h4>
-                <p class="text-sm text-gray-600 mb-2">Next backup: {{ formatDateTime(nextBackup) }}</p>
+                <h4 class="font-medium text-gray-900 mb-2">{{ t('settings.backupScheduleStatus') }}:</h4>
+                <p class="text-sm text-gray-600 mb-2">{{ t('settings.nextBackup') }}: {{ formatDateTime(nextBackup) }}</p>
                 <div class="flex gap-2">
                   <button
                     @click="cancelSchedule"
                     class="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
                   >
-                    Cancel Schedule
+                    {{ t('settings.cancelBackupSchedule') }}
                   </button>
                 </div>
               </div>
 
               <!-- Restore Section -->
               <div class="border-t pt-4">
-                <h4 class="font-medium  mb-2">Restore Database:</h4>
-                <p class="text-xs text-gray-200 mb-3">
-                  ⚠️ Warning: This will completely replace your current database with the backup data!
+                <h4 class="font-medium  mb-2">{{ t('settings.restoreDatabase') }}:</h4>
+                <p class="text-xs mb-3">
+                  {{ t('settings.warningRestoreDatabase') }}
                 </p>
                 <div class="flex gap-2">
                   <button
                     @click="chooseRestoreFile"
                     class="px-4 py-2 text-sm bg-orange-600 text-white rounded-md hover:bg-orange-700"
                   >
-                    Choose Backup File
+                    {{ t('settings.chooseBackupFile') }}
                   </button>
                   <button
                     v-if="selectedRestoreFile"
                     @click="restoreDatabase"
                     class="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
                   >
-                    🚨 Restore Database
+                    {{ t('settings.restoreDatabase') }}
                   </button>
                 </div>
                 
                 <div v-if="selectedRestoreFile" class="mt-2 text-sm text-gray-600">
-                  Selected: {{ selectedRestoreFile }}
+                  {{ t('settings.selectedBackupFile') }}: {{ selectedRestoreFile }}
                 </div>
               </div>
 
@@ -293,10 +293,11 @@
 </template> 
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSettingsStore } from '@/stores/settings.store'
-
+import { useI18n } from 'vue-i18n'
+const { t, locale } = useI18n();
 // Stores
 const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
@@ -385,6 +386,17 @@ function saveSettings() {
     
     // Refresh printers list
     refreshPrinters()
+    
+    // Debug: Check current locale and translations
+    console.log('Settings component mounted')
+    console.log('Current locale:', locale.value)
+    console.log('Translation test:', t('settings.title'))
+  })
+  
+  // Watch for language changes
+  watch(locale, (newLocale) => {
+    console.log('Language changed to:', newLocale)
+    console.log('Translation test after change:', t('settings.title'))
   })
   
   async function chooseBackupFolder() {

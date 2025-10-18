@@ -58,10 +58,12 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
+import { useThemeStore } from '@/stores/theme.store'
 
 const { t, locale } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
+const themeStore = useThemeStore()
 
 const activeDropdown = ref(null)
 const currentLocale = ref(locale.value)
@@ -194,6 +196,17 @@ onMounted(() => {
         locale.value = savedLang
         currentLocale.value = savedLang
     }
+    
+    // Ensure theme is loaded and applied
+    themeStore.loadTheme()
+    
+    // Debug: Log theme state
+    console.log('Menu mounted - Theme state:', {
+        isDarkMode: themeStore.getIsDarkMode,
+        themeColors: themeStore.getThemeColors,
+        dataTheme: document.documentElement.getAttribute('data-theme')
+    })
+    
     document.addEventListener('click', closeDropdownOnClickOutside, { passive: true })
 })
 
@@ -201,50 +214,95 @@ onBeforeUnmount(() => {
     document.removeEventListener('click', closeDropdownOnClickOutside)
 })
 </script>
-<style lang="css">
+<style scoped>
+    /* Debug: Force theme colors to test */
     .menu-bar {
-       position: relative;
-       top: 0;
-       left: 0;
-       width: 100%;
-       height: 30px;
-       border-bottom: 1px solid #424242;
-       z-index: 1000;
-       padding:0;
-       margin:0;
+       position: relative !important;
+       top: 0 !important;
+       left: 0 !important;
+       width: 100% !important;
+       height: 32px !important;
+       background: var(--color-surface) !important;
+       border-bottom: 1px solid var(--color-border) !important;
+       z-index: 1000 !important;
+       padding: 0 !important;
+       margin: 0 !important;
+       transition: all 0.3s ease-in-out !important;
+    }
+
+    /* Force theme colors for testing */
+    [data-theme="light"] .menu-bar {
+       background: #f8fafc !important;
+       border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    [data-theme="dark"] .menu-bar {
+       background: #2a2a2a !important;
+       border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
     }
 
     .menu-list {
-        display: flex;
-        list-style: none;
-        padding: 0;
-        margin: 0;
+        display: flex !important;
+        list-style: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
     .menu-item {
-        position: relative;
-        padding: 8px 12px;
-        cursor: pointer;
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 14px;
-        transition: background 0.2s;
+        position: relative !important;
+        padding: 8px 16px !important;
+        cursor: pointer !important;
+        font-family: 'Segoe UI', Arial, Helvetica, sans-serif !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        color: var(--color-text) !important;
+        transition: all 0.3s ease-in-out !important;
+        border-radius: 6px !important;
+        margin: 2px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        background: transparent !important;
+        border: none !important;
+        list-style: none !important;
     }
+    
     .menu-item:hover {
-       color: #424242;
+       color: white !important;
+       border-radius: 8px !important;
+    }
+
+    /* Force theme colors for menu items */
+    [data-theme="light"] .menu-item {
+       color: #1f2937 !important;
+    }
+
+    [data-theme="dark"] .menu-item {
+       color: #d7d7d7 !important;
     }
 
     .dropDown {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        background: #1d1d1d;
-        border: 1px solid #424242;
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        min-width: 150px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-        z-index: 1001;
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        background: var(--color-surface) !important;
+        border: 1px solid var(--color-border) !important;
+        border-radius: 8px !important;
+        list-style: none !important;
+        padding: 8px 0 !important;
+        margin: 8px 0 0 0 !important;
+        min-width: 180px !important;
+        z-index: 1001 !important;
+        transition: all 0.3s ease-in-out !important;
+    }
+
+    [data-theme="dark"] .dropDown {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    [data-theme="light"] .dropDown {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     /* Submenu item styling */
@@ -260,38 +318,54 @@ onBeforeUnmount(() => {
     .language-dropdown {
         left: 100%;
         top: 0;
-        margin-left: 1px;
+        margin-left: 4px;
         z-index: 1002;
-        min-width: 120px;
+        min-width: 140px;
     }
 
     .language-dropdown {
-        background: #2a2a2a;
-        border: 2px solid transparent;
+        background: var(--color-background);
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
     }
 
     .item-dropdown {
-        padding: 8px 12px;
-        cursor: pointer;
-        font-family: Arial, sans-serif;
-        font-size: 14px;
+        padding: 12px 20px !important;
+        cursor: pointer !important;
+        font-family: 'Segoe UI', Arial, sans-serif !important;
+        font-size: 14px !important;
+        font-weight: 400 !important;
+        color: var(--color-text) !important;
+        transition: all 0.3s ease-in-out !important;
+        border-radius: 8px !important;
+        margin: 2px 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        background: transparent !important;
+        border: none !important;
+        list-style: none !important;
     }
 
     .item-dropdown:hover {
-        background: #333333;
+        background: var(--color-primary) !important;
+        color: white !important;
     }
 
     .item-dropdown.active {
-        background: #4a90e2;
-        color: white;
-    }
-
-    .item-dropdown.active:hover {
-        background: #357abd;
+        background: var(--color-primary) !important;
+        color: white !important;
+        font-weight: 600 !important;
     }
 
     .arrow-down, .arrow-right {
-        transition: transform 0.2s;
+        transition: all 0.3s ease-in-out !important;
+        color: var(--color-text-secondary) !important;
+    }
+
+    .menu-item:hover .arrow-down,
+    .menu-item:hover .arrow-right {
+        color: white !important;
     }
 
     .menu-item .arrow-down {
@@ -300,6 +374,25 @@ onBeforeUnmount(() => {
 
     .menu-item .arrow-right {
         transform: rotate(0deg);
+    }
+
+
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .menu-item {
+            padding: 6px 8px;
+            font-size: 13px;
+        }
+        
+        .dropDown {
+            min-width: 140px;
+        }
+        
+        .item-dropdown {
+            padding: 8px 12px;
+            font-size: 13px;
+        }
     }
 
 </style>

@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-const { ipcRenderer } = window.require('electron')
 
 interface Todo {
     id: number
@@ -53,7 +52,7 @@ export const useTodoStore = defineStore('todo', {
             this.loading = true
             try {
                 console.log("fetching todos");
-                const fetchedTodos = await ipcRenderer.invoke('get-todos')
+                const fetchedTodos = await window.electronAPI.todos.getTodos()
                 this.todos = fetchedTodos;
             } catch (err) {
                 if (err instanceof Error) {
@@ -70,7 +69,7 @@ export const useTodoStore = defineStore('todo', {
             this.loading = true
             try {
                 console.log("getting todo by id", id);
-                const todo = await ipcRenderer.invoke('get-todo-by-id', id)
+                const todo = await window.electronAPI.todos.getTodoById(id)
                 return todo
             } catch (err) {
                 if (err instanceof Error) {
@@ -100,7 +99,7 @@ export const useTodoStore = defineStore('todo', {
                 };
 
                 console.log("Sending cleaned todo data:", cleanTodoData);
-                const addedTodo = await ipcRenderer.invoke('create-todo', cleanTodoData);
+                const addedTodo = await window.electronAPI.todos.createTodo(cleanTodoData);
                 console.log("Response from create-todo:", addedTodo);
                 
                 if (!addedTodo || !addedTodo.id) {
@@ -141,7 +140,7 @@ export const useTodoStore = defineStore('todo', {
                 };
 
                 console.log("updating todo", cleanTodoData);
-                await ipcRenderer.invoke('update-todo', cleanTodoData)
+                await window.electronAPI.todos.updateTodo(cleanTodoData)
                 const index = this.todos.findIndex(todo => todo.id === updatedTodo.id)
                 if (index !== -1) {
                     this.todos[index] = { ...this.todos[index], ...cleanTodoData }
@@ -161,7 +160,7 @@ export const useTodoStore = defineStore('todo', {
             this.loading = true
             try {
                 console.log("deleting todo", todoId);
-                await ipcRenderer.invoke('delete-todo', todoId)
+                await window.electronAPI.todos.deleteTodo(todoId)
                 this.todos = this.todos.filter(todo => todo.id !== todoId)
             } catch (err) {
                 if (err instanceof Error) {

@@ -123,6 +123,18 @@
             <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.inventory') }}</span>
           </router-link>
         </li>
+        
+        <!-- Todo -->
+        <li>
+          <router-link
+            :to="{ name: 'Todo' }"
+            class="nav-link"
+            :class="{ 'active': $route.path === '/todo', 'icon-only': isCollapsed }"
+          >
+            <span class="material-icons-outlined">checklist</span>
+            <span :class="{ 'hidden': isCollapsed }">{{ t('sidebar.todo') }}</span>
+          </router-link>
+        </li>
       </ul>
 
       <!-- Bottom Settings Menu -->

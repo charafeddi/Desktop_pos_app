@@ -48,6 +48,9 @@ const setupSupplierHandlers = require('../backend/ipc/supplier.handlers');
 // Import todo handlers
 const setupTodoHandlers = require('../backend/ipc/todo.handlers');
 const setupUserProfileHandlers = require('../backend/ipc/userProfile.handlers');
+// Import cloud sync handlers
+const CloudSyncHandlers = require('../backend/ipc/cloudSync.handlers');
+const EmailHandlers = require('../backend/ipc/email.handlers');
 
 let mainWindow = null;
 
@@ -55,6 +58,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    title: 'POS System - Point of Sale',
+    icon: path.join(__dirname, '../public/assets/img/logo.png'), // Custom app icon
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -152,6 +157,8 @@ function createWindow() {
   setupSaleHandlers();
   setupSaleItemHandlers();
   setupSupplierHandlers();
+  new EmailHandlers();
+  new CloudSyncHandlers();
 
   // File save handler
   ipcMain.handle('save-file', async (event, data, filename, type) => {
@@ -397,71 +404,101 @@ function createWindow() {
       console.log(`Starting restore from backup created: ${backupData.createdAt}`);
       
       // Start transaction for restore
-      db.serialize(() => {
-        db.run('BEGIN TRANSACTION');
+      db.exec('BEGIN TRANSACTION');
+      
+      try {
+        // Get list of existing tables
+        const existingTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
+        const existingTableNames = existingTables.map(t => t.name);
         
-        try {
-          // Get list of existing tables
-          db.all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'", async (err, existingTables) => {
-            if (err) throw err;
-            
-            const existingTableNames = existingTables.map(t => t.name);
-            
-            // Clear existing data from all tables (except sqlite_sequence)
-            for (const tableName of existingTableNames) {
-              if (tableName !== 'sqlite_sequence') {
-                await new Promise((resolve, reject) => {
-                  db.run(`DELETE FROM ${tableName}`, (err) => {
-                    if (err) reject(err); else resolve();
-                  });
-                });
-              }
-            }
-            
-            // Restore data to each table
-            for (const [tableName, rows] of Object.entries(backupData.tables)) {
-              if (existingTableNames.includes(tableName) && Array.isArray(rows)) {
-                if (rows.length > 0) {
-                  const columns = Object.keys(rows[0]);
-                  const placeholders = columns.map(() => '?').join(', ');
-                  const insertSQL = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`;
-                  
-                  for (const row of rows) {
-                    await new Promise((resolve, reject) => {
-                      const values = columns.map(col => row[col]);
-                      db.run(insertSQL, values, (err) => {
-                        if (err) {
-                          console.warn(`Warning: Failed to restore row in ${tableName}:`, err.message);
-                          resolve(); // Continue with other rows
-                        } else {
-                          resolve();
-                        }
-                      });
-                    });
+        // DON'T clear existing data - we want to merge, not replace
+        // This preserves current data and adds backup data
+        
+        // Restore data to each table with smart merging
+        for (const [tableName, rows] of Object.entries(backupData.tables)) {
+          if (existingTableNames.includes(tableName) && Array.isArray(rows)) {
+            if (rows.length > 0) {
+              try {
+                // Get current table schema to check which columns exist
+                const tableInfo = db.prepare(`PRAGMA table_info(${tableName})`).all();
+                const existingColumns = tableInfo.map(col => col.name);
+                
+                // Filter backup data to only include columns that exist in current schema
+                const filteredRows = rows.map(row => {
+                  const filteredRow = {};
+                  for (const [key, value] of Object.entries(row)) {
+                    if (existingColumns.includes(key)) {
+                      filteredRow[key] = value;
+                    } else {
+                      console.warn(`Skipping column '${key}' in ${tableName} - not in current schema`);
+                    }
                   }
+                  return filteredRow;
+                });
+                
+                if (filteredRows.length > 0 && Object.keys(filteredRows[0]).length > 0) {
+                  const columns = Object.keys(filteredRows[0]);
+                  const placeholders = columns.map(() => '?').join(', ');
+                  
+                  // Get existing records to avoid duplicates
+                  const existingRecords = db.prepare(`SELECT * FROM ${tableName}`).all();
+                  const existingIds = new Set(existingRecords.map(record => record.id));
+                  
+                  // Use INSERT OR IGNORE to only add new records, not replace existing ones
+                  // This preserves ALL existing data and only adds new records from backup
+                  const insertSQL = `INSERT OR IGNORE INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`;
+                  const stmt = db.prepare(insertSQL);
+                  
+                  let addedCount = 0;
+                  let skippedCount = 0;
+                  
+                  for (const row of filteredRows) {
+                    try {
+                      // Skip if this record already exists (by ID)
+                      if (row.id && existingIds.has(row.id)) {
+                        skippedCount++;
+                        continue;
+                      }
+                      
+                      const values = columns.map(col => row[col]);
+                      const result = stmt.run(values);
+                      
+                      if (result.changes > 0) {
+                        addedCount++;
+                      } else {
+                        skippedCount++;
+                      }
+                    } catch (err) {
+                      console.warn(`Warning: Failed to restore row in ${tableName}:`, err.message);
+                      skippedCount++;
+                      // Continue with other rows
+                    }
+                  }
+                  
+                  console.log(`Restored ${addedCount} new records to ${tableName}, skipped ${skippedCount} existing records`);
+                } else {
+                  console.warn(`No compatible columns found for ${tableName} - skipping restore`);
                 }
+              } catch (err) {
+                console.error(`Error processing table ${tableName}:`, err.message);
+                // Continue with other tables
               }
             }
-            
-            // Commit transaction
-            db.run('COMMIT', (err) => {
-              if (err) {
-                db.run('ROLLBACK');
-                throw new Error(`Restore failed: ${err.message}`);
-              }
-              console.log('Database restore completed successfully');
-            });
-          });
-          
-        } catch (error) {
-          db.run('ROLLBACK');
-          throw error;
+          }
         }
-      });
+        
+        // Commit transaction
+        db.exec('COMMIT');
+        console.log('Database restore completed successfully');
+        
+      } catch (error) {
+        db.exec('ROLLBACK');
+        throw error;
+      }
       
       return { 
         success: true, 
-        message: `Database restored successfully from backup created: ${backupData.createdAt}`,
+        message: `Database restored successfully from backup created: ${backupData.createdAt}. Existing data was preserved and new records were added.`,
         tablesRestored: Object.keys(backupData.tables).length
       };
       

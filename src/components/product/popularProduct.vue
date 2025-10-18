@@ -40,16 +40,32 @@ onMounted(() => {
 
 <style scoped>
 .top-products {
-    background: rgb(45, 45, 45);
-    border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    height: 350px;
-    width: 350px;
+    background: var(--color-surface) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    height: 350px !important;
+    width: 350px !important;
+    transition: all 0.3s ease-in-out !important;
+}
+
+[data-theme="dark"] .top-products {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
+}
+
+[data-theme="light"] .top-products {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
 }
 
 .card-body {
-    padding: 25px 25px 0 25px;
-    height: 100%;
+    padding: 25px 25px 0 25px !important;
+    height: 100% !important;
+}
+
+.card-title {
+    color: var(--color-text) !important;
+    font-weight: 600 !important;
+    margin-bottom: 1rem !important;
 }
 
 .top-products-list {
@@ -92,14 +108,15 @@ onMounted(() => {
 }
 
 .product-item h5 {
-    margin: 0;
-    font-size: 0.875rem;
-    font-weight: 500;
+    margin: 0 !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    color: var(--color-text) !important;
 }
 
 .product-item span {
-    color: #6b7280;
-    font-size: 0.875rem;
+    color: var(--color-text-secondary) !important;
+    font-size: 0.875rem !important;
 }
 
 .product-item-status {

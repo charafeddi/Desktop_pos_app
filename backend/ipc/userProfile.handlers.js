@@ -81,30 +81,44 @@ ipcMain.handle('update-user-profile', async (event, userId, profileData) => {
       throw new Error('Profile data is required');
     }
 
+    // Get current user data to preserve existing values
+    const currentUser = await UserModel.findById(userId);
+    if (!currentUser) {
+      throw new Error('User not found');
+    }
+
+    // Prepare update data with fallbacks to current values
+    const updateData = {
+      name: profileData.name || currentUser.name,
+      email: profileData.email || currentUser.email,
+      mobile_phone: profileData.mobile_phone || currentUser.mobile_phone,
+      role: profileData.role || currentUser.role,
+      is_active: currentUser.is_active // Preserve current active status
+    };
+
     // Validate required fields
-    if (!profileData.name || !profileData.email) {
+    if (!updateData.name || !updateData.email) {
       throw new Error('Name and email are required');
     }
 
     // Check if email is already taken by another user
-    const existingUser = await UserModel.findByEmail(profileData.email);
+    const existingUser = await UserModel.findByEmail(updateData.email);
     if (existingUser && existingUser.id !== userId) {
       throw new Error('Email is already taken by another user');
     }
 
+    console.log('Updating user profile:', { userId, updateData });
+
     // Update user profile
-    const updatedUser = await UserModel.update(userId, {
-      name: profileData.name,
-      email: profileData.email,
-      mobile_phone: profileData.mobile_phone || null,
-      role: profileData.role || 'admin'
-    });
+    const updatedUser = await UserModel.update(userId, updateData);
 
     if (!updatedUser) {
       throw new Error('Failed to update user profile');
     }
 
-    return updatedUser;
+    // Return updated user data
+    const user = await UserModel.findById(userId);
+    return user;
   } catch (error) {
     console.error('Error updating user profile:', error);
     throw error;

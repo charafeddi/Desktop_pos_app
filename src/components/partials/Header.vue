@@ -60,21 +60,57 @@
             <a href="#" class="nav-link">Projects</a>
           </li>
           <li class="nav-item">
-            <router-link :to="{name: 'Task'}" class="nav-link">Tasks</router-link>
+            <router-link :to="{name: 'Todo'}" class="nav-link">Tasks</router-link>
           </li>
           <li class="nav-item">
             <a href="#" class="nav-link">Reports</a>
           </li>
         </ul>
         <div class="navbar-search">
-          <form>
+          <form @submit.prevent="handleGlobalSearch">
             <div class="form-group">
               <input 
                 type="text" 
                 name="search" 
                 id="nav-search" 
+                v-model="searchQuery"
                 :placeholder="t('header.search')"
+                @input="handleSearchInput"
+                @focus="showSearchResults = true"
+                @blur="hideSearchResults"
+                ref="searchInput"
               >
+              <!-- Search Results Dropdown -->
+              <div v-if="showSearchResults && searchResults.length > 0" class="search-results">
+                <div class="search-results-header">
+                  <span class="text-sm font-medium">{{ t('header.searchResults') }}</span>
+                  <span class="text-xs text-muted">{{ searchResults.length }} {{ t('header.results') }}</span>
+                </div>
+                <div class="search-results-list">
+                  <div 
+                    v-for="result in searchResults" 
+                    :key="`${result.type}-${result.id}`"
+                    class="search-result-item"
+                    @click="navigateToResult(result)"
+                  >
+                    <div class="result-icon">
+                      <span class="material-icons">{{ getResultIcon(result.type) }}</span>
+                    </div>
+                    <div class="result-content">
+                      <div class="result-title">{{ result.title }}</div>
+                      <div class="result-subtitle">{{ result.subtitle }}</div>
+                      <div class="result-type">{{ t(`header.${result.type}`) }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- No Results -->
+              <div v-if="showSearchResults && searchQuery && searchResults.length === 0" class="search-results">
+                <div class="search-no-results">
+                  <span class="material-icons">search_off</span>
+                  <span>{{ t('header.noResults') }}</span>
+                </div>
+              </div>
             </div>
           </form>
         </div>
@@ -98,6 +134,12 @@ const { t } = useI18n()
 const isDropdownOpen = ref(false)
 const dropdownTrigger = ref(null)
 const dropdownMenu = ref(null)
+
+// Search functionality
+const searchQuery = ref('')
+const searchResults = ref([])
+const showSearchResults = ref(false)
+const searchInput = ref(null)
 
 // Get user from auth store
 const user = computed(() => authStore.user)
@@ -134,6 +176,167 @@ const handleClickOutside = (event) => {
 const handleLogout = async () => {
   await authStore.logout()
   router.push('/login')
+}
+
+// Search functionality
+const handleSearchInput = async () => {
+  if (searchQuery.value.length < 2) {
+    searchResults.value = []
+    return
+  }
+  
+  try {
+    // Search across different modules
+    const results = await performGlobalSearch(searchQuery.value)
+    searchResults.value = results.slice(0, 8) // Limit to 8 results
+    console.log('Search results set:', searchResults.value.length)
+  } catch (error) {
+    console.error('Search error:', error)
+    searchResults.value = []
+  }
+}
+
+const handleGlobalSearch = () => {
+  if (searchResults.value.length > 0) {
+    navigateToResult(searchResults.value[0])
+  }
+}
+
+const hideSearchResults = () => {
+  // Delay hiding to allow clicking on results
+  setTimeout(() => {
+    showSearchResults.value = false
+  }, 200)
+}
+
+const navigateToResult = (result) => {
+  showSearchResults.value = false
+  searchQuery.value = ''
+  searchResults.value = []
+  
+  // Navigate based on result type
+  switch (result.type) {
+    case 'product':
+      router.push({ name: 'Product', query: { search: result.id } })
+      break
+    case 'customer':
+      router.push({ name: 'Customers', query: { search: result.id } })
+      break
+    case 'supplier':
+      router.push({ name: 'Suplier', query: { search: result.id } })
+      break
+    case 'sale':
+      router.push({ name: 'SalesList', query: { search: result.id } })
+      break
+    case 'todo':
+      router.push({ name: 'Todo', query: { search: result.id } })
+      break
+    default:
+      console.log('Unknown result type:', result.type)
+  }
+}
+
+const getResultIcon = (type) => {
+  const icons = {
+    product: 'inventory_2',
+    customer: 'person',
+    supplier: 'business',
+    sale: 'receipt',
+    todo: 'checklist',
+    category: 'category'
+  }
+  return icons[type] || 'search'
+}
+
+const performGlobalSearch = async (query) => {
+  const results = []
+  const searchTerm = query.toLowerCase()
+  
+  console.log('Searching for:', searchTerm)
+  
+  try {
+    // Search products
+    const products = await window.electronAPI.products.getAll() || []
+    console.log('Found products:', products.length)
+    const filteredProducts = products.filter(product => 
+      product.name?.toLowerCase().includes(searchTerm) ||
+      product.sku?.toLowerCase().includes(searchTerm) ||
+      product.description?.toLowerCase().includes(searchTerm)
+    )
+    console.log('Filtered products:', filteredProducts.length)
+    filteredProducts.forEach(product => {
+      results.push({
+        type: 'product',
+        id: product.id,
+        title: product.name || 'Unnamed Product',
+        subtitle: `SKU: ${product.sku || 'N/A'} | Stock: ${product.stock_quantity || 0}`,
+        data: product
+      })
+    })
+    
+    // Search customers
+    const customers = await window.electronAPI.customers.getAll() || []
+    console.log('Found customers:', customers.length)
+    const filteredCustomers = customers.filter(customer => 
+      customer.name?.toLowerCase().includes(searchTerm) ||
+      customer.email?.toLowerCase().includes(searchTerm) ||
+      customer.phone?.toLowerCase().includes(searchTerm)
+    )
+    console.log('Filtered customers:', filteredCustomers.length)
+    filteredCustomers.forEach(customer => {
+      results.push({
+        type: 'customer',
+        id: customer.id,
+        title: customer.name || 'Unnamed Customer',
+        subtitle: customer.email || customer.phone || 'No contact info',
+        data: customer
+      })
+    })
+    
+    // Search suppliers
+    const suppliers = await window.electronAPI.suppliers.getAll() || []
+    console.log('Found suppliers:', suppliers.length)
+    const filteredSuppliers = suppliers.filter(supplier => 
+      supplier.name?.toLowerCase().includes(searchTerm) ||
+      supplier.email?.toLowerCase().includes(searchTerm) ||
+      supplier.phone?.toLowerCase().includes(searchTerm)
+    )
+    console.log('Filtered suppliers:', filteredSuppliers.length)
+    filteredSuppliers.forEach(supplier => {
+      results.push({
+        type: 'supplier',
+        id: supplier.id,
+        title: supplier.name || 'Unnamed Supplier',
+        subtitle: supplier.email || supplier.phone || 'No contact info',
+        data: supplier
+      })
+    })
+    
+    // Search todos
+    const todos = await window.electronAPI.todos.getTodos() || []
+    console.log('Found todos:', todos.length)
+    const filteredTodos = todos.filter(todo => 
+      todo.title?.toLowerCase().includes(searchTerm) ||
+      todo.description?.toLowerCase().includes(searchTerm)
+    )
+    console.log('Filtered todos:', filteredTodos.length)
+    filteredTodos.forEach(todo => {
+      results.push({
+        type: 'todo',
+        id: todo.id,
+        title: todo.title || 'Untitled Todo',
+        subtitle: todo.description || 'No description',
+        data: todo
+      })
+    })
+    
+    console.log('Total search results:', results.length)
+    
+  } catch (error) {
+    console.error('Error performing global search:', error)
+  }
+  
+  return results
 }
 
 // Initialize theme on mount
@@ -405,5 +608,122 @@ onUnmounted(() => {
 
 [dir="rtl"] .nav-link {
   flex-direction: row-reverse;
+}
+
+/* Search Results Dropdown */
+.search-results {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.search-results-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.search-results-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.search-result-item:hover {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.search-result-item:hover .result-icon .material-icons {
+  color: white;
+}
+
+.result-icon {
+  margin-right: 0.75rem;
+  display: flex;
+  align-items: center;
+}
+
+.result-icon .material-icons {
+  font-size: 20px;
+  color: var(--color-text-secondary);
+}
+
+.result-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.result-title {
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-type {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.search-no-results {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.search-no-results .material-icons {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+/* Search input focus state */
+.navbar-search input:focus + .search-results {
+  display: block;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .search-results {
+    left: -1rem;
+    right: -1rem;
+  }
 }
 </style>

@@ -25,7 +25,7 @@
         </form>
         <div class="register-forget opacity">
           <a href="#" @click.prevent="goToRegister">REGISTER</a>
-          <a href="#">FORGOT PASSWORD</a>
+          <router-link to="/forgot-password">FORGOT PASSWORD</router-link>
         </div>
       </div>
       <div class="circle circle-two"></div>
@@ -165,15 +165,29 @@ function goToRegister() {
   padding: 14.5px;
   width: 100%;
   margin: 2rem 0;
-  color: var(--color);
+  color: var(--color-text) !important;
   outline: none;
-  background-color: #9191911f;
-  border: none;
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
   border-radius: 5px;
   font-weight: 500;
   letter-spacing: 0.8px;
   font-size: 15px;
   backdrop-filter: blur(15px);
+}
+
+/* Force text color for light theme */
+[data-theme="light"] .login-container form input {
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+}
+
+/* Force text color for dark theme */
+[data-theme="dark"] .login-container form input {
+  color: #f9fafb !important;
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
 }
 
 .login-container form input:focus {

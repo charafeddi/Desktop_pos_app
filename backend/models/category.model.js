@@ -34,15 +34,15 @@ class Category {
     }
 
     static async update(id, categoryData) {
-        const { name, description } = categoryData;
+        const { name, description, parent_id } = categoryData;
 
         try {
             const stmt = db.prepare(`
                 UPDATE categories 
-                SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP
+                SET name = ?, description = ?, parent_id = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             `);
-            const result = stmt.run(name, description, id);
+            const result = stmt.run(name, description, parent_id, id);
             return result.changes;
         } catch (error) {
             throw error;

@@ -2,11 +2,11 @@ const db = require('../config/database');
 
 class ProductUnit {
     static async create(productUnitData) {
-        const { name, symbol, description } = productUnitData;
+        const { name, symbol } = productUnitData;
 
         try {
-            const stmt = db.prepare('INSERT INTO product_units (name, symbol, description) VALUES (?, ?, ?)');
-            const result = stmt.run(name, symbol, description);
+            const stmt = db.prepare('INSERT INTO product_units (name, symbol) VALUES (?, ?)');
+            const result = stmt.run(name, symbol);
             return result.lastInsertRowid;
         } catch (error) {
             throw error;

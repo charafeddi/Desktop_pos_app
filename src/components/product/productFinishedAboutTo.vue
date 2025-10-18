@@ -69,24 +69,35 @@ export default defineComponent({
 });
 </script>
 
-<style>
+<style scoped>
     /* Add any styles you need here */
     .top-products {
-        background: rgb(45, 45, 45);
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        height: 350px;
-        width: 330px;
-        position: relative; /* For positioning the download header */
+        background: var(--color-surface) !important;
+        border: 1px solid var(--color-border) !important;
+        border-radius: 10px !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        height: 350px !important;
+        width: 330px !important;
+        position: relative !important; /* For positioning the download header */
+        transition: all 0.3s ease-in-out !important;
+    }
+
+    [data-theme="dark"] .top-products {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
+    }
+
+    [data-theme="light"] .top-products {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
     }
     .card-body {
-        padding: 25px 25px 0 25px;
-        height: 100%;
+        padding: 25px 25px 0 25px !important;
+        height: 100% !important;
     }
     .card-title {
-        font-size: 1rem;
-        font-weight: 500;
-        align-self: start;
+        font-size: 1rem !important;
+        font-weight: 500 !important;
+        align-self: start !important;
+        color: var(--color-text) !important;
     }
     .top-products-list {
         display: flex;
@@ -101,13 +112,14 @@ export default defineComponent({
         border-radius: 5px;
     }
     .product-item h5 {
-        margin: 0;
-        font-size: 0.875rem;
-        font-weight: 500;
+        margin: 0 !important;
+        font-size: 0.875rem !important;
+        font-weight: 500 !important;
+        color: var(--color-text) !important;
     }   
     .product-item span {
-        color: #6b7280;
-        font-size: 0.875rem;
+        color: var(--color-text-secondary) !important;
+        font-size: 0.875rem !important;
     }
     .product-item-status {
         font-size: 1.25rem;

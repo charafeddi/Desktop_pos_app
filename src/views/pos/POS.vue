@@ -31,7 +31,6 @@ const quantityInput = ref(1)
 const customPriceInput = ref(0)
 const showCustomPrice = ref(false)
 const selectedTaxRate = ref(null)
-const customerName = ref('')
 const selectedCustomerId = ref(null)
 const discountPercentage = ref(0)
 const paymentMethod = ref('cash')
@@ -379,7 +378,6 @@ function addToCart(product, quantity = 1) {
       
       // Clear cart and reset form
       cart.value = []
-      customerName.value = ''
       selectedCustomerId.value = null
       discountPercentage.value = 0
       showPaymentModal.value = false
@@ -397,11 +395,6 @@ function addToCart(product, quantity = 1) {
     }
   }
 
-  function handleCustomerSelection() {
-    // Find customer by name and set the ID
-    const customer = customers.value.find(c => c.name === customerName.value)
-    selectedCustomerId.value = customer ? customer.id : null
-  }
   
   // Keyboard shortcuts
   function handleKeydown(event) {
@@ -761,27 +754,24 @@ function addToCart(product, quantity = 1) {
         
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Customer Name (optional)</label>
-            <input
-              v-model="customerName"
-              type="text"
-              list="CustomerInput"
-              id="CustomerInput"
-              name="CustomerInput"
+            <label class="block text-sm font-medium text-gray-700 mb-2">Customer (optional)</label>
+            <select
+              v-model="selectedCustomerId"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter customer name"
-              @input="handleCustomerSelection"
-              @change="handleCustomerSelection"
-              autocomplete="off"
             >
-
-            <datalist id="CustomerInput">
-              <option v-for="item in customers" :key="item.id" :value="item.name">{{ item.name }}</option>
-            </datalist>
+              <option value="">Walk-in Customer</option>
+              <option 
+                v-for="customer in customers" 
+                :key="customer.id" 
+                :value="customer.id"
+              >
+                {{ customer.name }} {{ customer.email ? `(${customer.email})` : '' }}
+              </option>
+            </select>
             
             <!-- Debug info -->
             <div v-if="customers.length > 0" class="text-xs text-gray-500 mt-1">
-              {{ customers.length }} customers loaded
+              {{ customers.length }} customers available
             </div>
           </div>
           

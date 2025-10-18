@@ -254,16 +254,30 @@ function goToLogin() {
   display: block;
   padding: 14.5px;
   width: 100%;
-  color: var(--color);
+  color: var(--color-text) !important;
   outline: none;
-  background-color: #9191911f;
-  border: 1px solid transparent;
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
   border-radius: 5px;
   font-weight: 500;
   letter-spacing: 0.8px;
   font-size: 15px;
   backdrop-filter: blur(15px);
   transition: all 0.3s ease;
+}
+
+/* Force text color for light theme */
+[data-theme="light"] .register-container form input {
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+}
+
+/* Force text color for dark theme */
+[data-theme="dark"] .register-container form input {
+  color: #f9fafb !important;
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
 }
 
 .register-container form input:focus {
@@ -416,10 +430,10 @@ function goToLogin() {
   display: block;
   padding: 14.5px;
   width: 100%;
-  color: var(--color);
+  color: var(--color-text) !important;
   outline: none;
-  background-color: #9191911f;
-  border: 1px solid transparent;
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
   border-radius: 5px;
   font-weight: 500;
   letter-spacing: 0.8px;
@@ -427,6 +441,20 @@ function goToLogin() {
   backdrop-filter: blur(15px);
   transition: all 0.3s ease;
   cursor: pointer;
+}
+
+/* Force text color for light theme */
+[data-theme="light"] .form-select {
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+}
+
+/* Force text color for dark theme */
+[data-theme="dark"] .form-select {
+  color: #f9fafb !important;
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
 }
 
 .form-select:focus {
