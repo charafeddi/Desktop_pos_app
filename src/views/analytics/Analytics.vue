@@ -104,14 +104,11 @@
         <!-- Simple Chart Test -->
         <SimpleChart :data="analyticsData" />
         
-        <!-- Advanced Charts (Disabled temporarily) -->
-        <!-- <AdvancedCharts :analytics-data="analyticsData" /> -->
-        
         <!-- Analytics Summary (Features Showcase) -->
         <AnalyticsSummary />
         
-        <!-- Original KPI Cards (Hidden by default, can be toggled) -->
-        <div v-if="showOriginalKPIs" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <!-- Original KPI Cards -->
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
           <div class="bg-white overflow-hidden shadow rounded-lg">
             <div class="p-5">
               <div class="flex items-center">
@@ -231,14 +228,6 @@
             </div>
           </div>
         </div>
-        
-        <!-- Toggle Button for Original KPIs -->
-        <div class="text-center mt-6">
-          <button @click="showOriginalKPIs = !showOriginalKPIs" 
-                  class="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700">
-            {{ showOriginalKPIs ? 'Hide' : 'Show' }} Original KPI Cards
-          </button>
-        </div>
       </div>
     </div>
   </div>
@@ -249,11 +238,9 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAnalyticsStore } from '@/stores/analytics.store'
 import { useI18n } from 'vue-i18n'
-import { exportAnalytics } from '@/utils/exportUtils'
 import KPICards from '@/components/analytics/KPICards.vue'
 import RealTimeMetrics from '@/components/analytics/RealTimeMetrics.vue'
 import SimpleChart from '@/components/analytics/SimpleChart.vue'
-// import AdvancedCharts from '@/components/analytics/AdvancedCharts.vue'
 import AnalyticsSummary from '@/components/analytics/AnalyticsSummary.vue'
 
 // Composables
@@ -262,11 +249,10 @@ const router = useRouter()
 
 // Stores
 const analyticsStore = useAnalyticsStore()
+
 // Reactive Variables
-const timeRange = ref('week')
-const selectedMetric = ref('sales')
 const showExportDropdown = ref(false)
-const showOriginalKPIs = ref(false)
+
 // Computed Properties
 const kpis = computed(() => analyticsStore.getKPIs)
 const topSellingProducts = computed(() => analyticsStore.getTopProducts)
@@ -279,71 +265,71 @@ const inventoryInsightsData = computed(() => analyticsStore.getInventoryInsights
 const loading = computed(() => analyticsStore.getLoading)
 const error = computed(() => analyticsStore.getError)
   
-  // Combined analytics data for enhanced components
-  const analyticsData = computed(() => ({
-    kpis: analyticsStore.getKPIs,
-    topProducts: analyticsStore.getTopProducts,
-    customerSegments: analyticsStore.getCustomerSegments,
-    salesChartData: analyticsStore.getSalesChartData,
-    revenueTrendData: analyticsStore.getRevenueTrendData,
-    productPerformanceData: analyticsStore.getProductPerformanceData,
-    customerAnalyticsData: analyticsStore.getCustomerAnalyticsData,
-    inventoryInsightsData: analyticsStore.getInventoryInsightsData,
-    totalProducts: analyticsStore.getKPIs.totalProducts,
-    lowStockItems: analyticsStore.getKPIs.lowStockItems,
-    outOfStockItems: analyticsStore.getKPIs.outOfStockItems,
-    inventoryValue: analyticsStore.getKPIs.inventoryValue,
-    totalRevenue: analyticsStore.getKPIs.totalRevenue,
-    totalSales: analyticsStore.getKPIs.totalSales,
-    totalCustomers: analyticsStore.getKPIs.totalCustomers,
-    // Real-time data calculated from actual sales
-    todayRevenue: computed(() => {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const salesChartData = analyticsStore.getSalesChartData
-      return salesChartData
-        .filter(sale => {
-          const saleDate = new Date(sale.date || sale.period)
-          saleDate.setHours(0, 0, 0, 0)
-          return saleDate.getTime() === today.getTime()
-        })
-        .reduce((total, sale) => total + (sale.revenue || sale.total_amount || 0), 0)
-    }),
-    hourlySales: computed(() => {
-      const currentHour = new Date().getHours()
-      const salesChartData = analyticsStore.getSalesChartData
-      return salesChartData
-        .filter(sale => {
-          const saleDate = new Date(sale.date || sale.period)
-          return saleDate.getHours() === currentHour
-        }).length
-    }),
-    activeCustomersToday: computed(() => {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      // This would need to be calculated from actual customer activity
-      // For now, return a portion of total customers
-      return Math.floor(analyticsStore.getKPIs.totalCustomers * 0.1)
-    }),
-    newCustomersToday: computed(() => {
-      // This would need to be calculated from customer creation dates
-      // For now, return a small random number
-      return Math.floor(Math.random() * 3)
-    }),
-    topProductToday: computed(() => {
-      const topProducts = analyticsStore.getTopProducts
-      return topProducts.length > 0 ? topProducts[0] : { name: 'No Sales Today', sales: 0 }
-    }),
-    lastSaleTime: computed(() => {
-      const salesChartData = analyticsStore.getSalesChartData
-      if (salesChartData.length > 0) {
-        const lastSale = salesChartData[salesChartData.length - 1]
-        return new Date(lastSale.date || lastSale.period)
-      }
-      return new Date()
-    })
-  }))
-  
+// Combined analytics data for enhanced components
+const analyticsData = computed(() => ({
+  kpis: analyticsStore.getKPIs,
+  topProducts: analyticsStore.getTopProducts,
+  customerSegments: analyticsStore.getCustomerSegments,
+  salesChartData: analyticsStore.getSalesChartData,
+  revenueTrendData: analyticsStore.getRevenueTrendData,
+  productPerformanceData: analyticsStore.getProductPerformanceData,
+  customerAnalyticsData: analyticsStore.getCustomerAnalyticsData,
+  inventoryInsightsData: analyticsStore.getInventoryInsightsData,
+  totalProducts: analyticsStore.getKPIs.totalProducts,
+  lowStockItems: analyticsStore.getKPIs.lowStockItems,
+  outOfStockItems: analyticsStore.getKPIs.outOfStockItems,
+  inventoryValue: analyticsStore.getKPIs.inventoryValue,
+  totalRevenue: analyticsStore.getKPIs.totalRevenue,
+  totalSales: analyticsStore.getKPIs.totalSales,
+  totalCustomers: analyticsStore.getKPIs.totalCustomers,
+  // Real-time data calculated from actual sales
+  todayRevenue: computed(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const salesChartData = analyticsStore.getSalesChartData
+    return salesChartData
+      .filter(sale => {
+        const saleDate = new Date(sale.date || sale.period)
+        saleDate.setHours(0, 0, 0, 0)
+        return saleDate.getTime() === today.getTime()
+      })
+      .reduce((total, sale) => total + (sale.revenue || sale.total_amount || 0), 0)
+  }),
+  hourlySales: computed(() => {
+    const currentHour = new Date().getHours()
+    const salesChartData = analyticsStore.getSalesChartData
+    return salesChartData
+      .filter(sale => {
+        const saleDate = new Date(sale.date || sale.period)
+        return saleDate.getHours() === currentHour
+      }).length
+  }),
+  activeCustomersToday: computed(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    // This would need to be calculated from actual customer activity
+    // For now, return a portion of total customers
+    return Math.floor(analyticsStore.getKPIs.totalCustomers * 0.1)
+  }),
+  newCustomersToday: computed(() => {
+    // This would need to be calculated from customer creation dates
+    // For now, return a small random number
+    return Math.floor(Math.random() * 3)
+  }),
+  topProductToday: computed(() => {
+    const topProducts = analyticsStore.getTopProducts
+    return topProducts.length > 0 ? topProducts[0] : { name: 'No Sales Today', sales: 0 }
+  }),
+  lastSaleTime: computed(() => {
+    const salesChartData = analyticsStore.getSalesChartData
+    if (salesChartData.length > 0) {
+      const lastSale = salesChartData[salesChartData.length - 1]
+      return new Date(lastSale.date || lastSale.period)
+    }
+    return new Date()
+  })
+}))
+
 // Methods
 const formatCurrency = (value) => {
   return new Intl.NumberFormat('en-US', {

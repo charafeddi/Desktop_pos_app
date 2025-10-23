@@ -155,12 +155,16 @@ export const useProductStore = defineStore('product', {
             this.loading = true;
             this.error = null;
             try {
-                console.log('fetching popular products');
+                console.log('fetching products about to finish');
                 const productsAboutToFinish = await window.electronAPI.products.getProductsLowStock();
                 this.productsAboutToFinish = productsAboutToFinish;
+                return productsAboutToFinish;
             } catch (error) {
                 console.error('Error fetching products about to finish:', error)
+                this.error = 'Failed to fetch products about to finish';
                 return []   
+            } finally {
+                this.loading = false;
             }
         },
         async updateProduct(id, productData) {
@@ -204,6 +208,14 @@ export const useProductStore = defineStore('product', {
         clearAllCaches(): void {
             this.clearSearchCache()
             this.lastFetchTime = null
+        },
+
+        /**
+         * Force refresh products from database
+         */
+        async forceRefreshProducts(): Promise<void> {
+            this.clearAllCaches()
+            await this.getAllProducts(true)
         }
     }
 }) 

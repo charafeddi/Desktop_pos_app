@@ -1,14 +1,36 @@
-<template >
+<template>
     <div class="card top-products" @mouseover="showDownload = true" @mouseleave="showDownload = false">
         <div class="card-body">
             <h5 class="card-title">{{ t('products.title_about_to_finish') }}</h5>
-            <div class="top-products-list">
+            
+            <!-- Loading State -->
+            <div v-if="loading" class="text-center py-4">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 mx-auto" style="border-color: var(--color-primary)"></div>
+                <p class="mt-2 text-sm" style="color: var(--color-text-secondary)">Loading...</p>
+            </div>
+            
+            <!-- Error State -->
+            <div v-else-if="error" class="text-center py-4">
+                <p class="text-sm text-red-500">{{ error }}</p>
+                <button @click="loadProductsAboutToFinish" class="mt-2 px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600">
+                    Retry
+                </button>
+            </div>
+            
+            <!-- Empty State -->
+            <div v-else-if="productsAboutToFinish.length === 0" class="text-center py-4">
+                <p class="text-sm" style="color: var(--color-text-secondary)">No products about to finish</p>
+            </div>
+            
+            <!-- Products List -->
+            <div v-else class="top-products-list">
                 <div v-for="product in productsAboutToFinish" :key="product.id" class="product-item">
                     <h5>{{ product.name }}</h5>
-                    <span>{{ product.quantity }} {{ t('products.quantity') }} </span>
+                    <span>{{ product.current_stock || product.quantity }} {{ t('products.quantity') }}</span>
                 </div>
             </div>
-            <div v-if="showDownload" class="download-header">
+            
+            <div v-if="showDownload && productsAboutToFinish.length > 0" class="download-header">
                 <button @click="downloadPDF" class="download-button">
                     <span class="material-icons-outlined">
                         file_download
@@ -19,54 +41,65 @@
     </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue';
-import { useProductStore } from '@/stores/product.store';
-import { useI18n } from 'vue-i18n';
-import jsPDF from 'jspdf';
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useProductStore } from '@/stores/product.store'
+import { useI18n } from 'vue-i18n'
+import jsPDF from 'jspdf'
 
-// Define the Product interface
-interface Product {
-    id: number;
-    name: string;
-    quantity: number;
+// Composables
+const { t } = useI18n()
+const productStore = useProductStore()
+
+// Reactive variables
+const productsAboutToFinish = ref([])
+const showDownload = ref(false)
+const loading = ref(false)
+const error = ref('')
+
+// Function to load Products About To Finish
+async function loadProductsAboutToFinish() {
+  try {
+    loading.value = true
+    error.value = ''
+    console.log('Loading products about to finish...')
+    
+    const products = await productStore.getProductsAboutToFinish()
+    console.log('Products about to finish loaded:', products)
+    
+    productsAboutToFinish.value = products || []
+    
+    if (productsAboutToFinish.value.length === 0) {
+      console.log('No products about to finish found')
+    }
+  } catch (err) {
+    console.error('Error loading products about to finish:', err)
+    error.value = 'Failed to load products about to finish'
+    productsAboutToFinish.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
-export default defineComponent({
-    setup() {
-        const { t } = useI18n();
-        const productStore = useProductStore();
-        const productsAboutToFinish = ref<Product[]>([]);
-        const showDownload = ref(false); // State to control download button visibility
+// Function to download the list as a PDF
+function downloadPDF() {
+  try {
+    const doc = new jsPDF()
+    doc.text('Products About to Finish', 10, 10)
+    productsAboutToFinish.value.forEach((product, index) => {
+      const stock = product.current_stock || product.quantity || 0
+      doc.text(`${product.name}: ${stock}`, 10, 20 + (index * 10))
+    })
+    doc.save('products_about_to_finish.pdf')
+  } catch (err) {
+    console.error('Error generating PDF:', err)
+  }
+}
 
-        // Function to load Products About To Finish
-        async function loadProductsAboutToFinish() {
-            productsAboutToFinish.value = await productStore.getProductsAboutToFinish();
-        }
-
-        // Function to download the list as a PDF
-        function downloadPDF() {
-            const doc = new jsPDF();
-            doc.text('Products About to Finish', 10, 10);
-            productsAboutToFinish.value.forEach((product, index) => {
-                doc.text(`${product.name}: ${product.quantity}`, 10, 20 + (index * 10));
-            });
-            doc.save('products_about_to_finish.pdf');
-        }
-
-        // Load initial data
-        onMounted(() => {
-            loadProductsAboutToFinish();
-        });
-
-        return {
-            t,
-            productsAboutToFinish,
-            showDownload,
-            downloadPDF
-        };
-    }
-});
+// Load initial data
+onMounted(() => {
+  loadProductsAboutToFinish()
+})
 </script>
 
 <style scoped>
@@ -145,5 +178,19 @@ export default defineComponent({
     }
     .download-button i {
         margin-right: 5px;
+    }
+    
+    /* Loading spinner animation */
+    .animate-spin {
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
     }
 </style>

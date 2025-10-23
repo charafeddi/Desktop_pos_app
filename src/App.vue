@@ -1,31 +1,36 @@
 <!-- Root template with authentication check -->
 <template>
-  <Menu />
-  
-  <!-- Loading state -->
-  <div v-if="isLoading" class="loading-container">
-    <div class="loading-spinner"></div>
-    <p>Loading...</p>
-  </div>
-  
-  <!-- Login/Register view when not authenticated -->
-  <div v-else-if="!isAuthenticated" class="w-full h-full">
-    <router-view></router-view>
-  </div>
-  
-  <!-- Main layout when authenticated -->
-  <div v-else class="main-layout">
-    <!-- Sidebar component -->
-    <Sidebar @toggle-sidebar="handleSidebarToggle" :is-collapsed="isSidebarCollapsed"/>
+  <ErrorBoundary>
+    <Menu />
     
-    <!-- Page container with header and main content -->
-    <div class="page-container" :class="{ 'collapsed': isSidebarCollapsed }">
-      <Header />
-      <div class="main-content">
-        <router-view></router-view>
+    <!-- Loading state -->
+    <div v-if="isLoading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Loading...</p>
+    </div>
+    
+    <!-- Login/Register view when not authenticated -->
+    <div v-else-if="!isAuthenticated" class="w-full h-full">
+      <router-view></router-view>
+    </div>
+    
+    <!-- Main layout when authenticated -->
+    <div v-else class="main-layout">
+      <!-- Sidebar component -->
+      <Sidebar @toggle-sidebar="handleSidebarToggle" :is-collapsed="isSidebarCollapsed"/>
+      
+      <!-- Page container with header and main content -->
+      <div class="page-container" :class="{ 'collapsed': isSidebarCollapsed }">
+        <Header />
+        <div class="main-content">
+          <router-view></router-view>
+        </div>
       </div>
     </div>
-  </div>
+    
+    <!-- Toast Notifications -->
+    <ToastNotification ref="toastComponent" />
+  </ErrorBoundary>
 </template>
 
 <script setup lang="ts">
@@ -37,6 +42,9 @@ import Sidebar from './components/partials/Sidebar.vue'
 import Header from './components/partials/Header.vue'
 import '@material-design-icons/font'
 import Menu from './components/topMenu/Menu.vue'
+import ErrorBoundary from './components/common/ErrorBoundary.vue'
+import ToastNotification from './components/common/ToastNotification.vue'
+import { toastManager } from './utils/toastManager'
 
 // Initialize route, router, and stores
 const route = useRoute()
@@ -44,9 +52,17 @@ const router = useRouter()
 const authStore = useAuthStore()
 const languageStore = useLanguageStore()
 
+// Toast component reference
+const toastComponent = ref()
+
 // Initialize language listener when component mounts
 onMounted(() => {
   languageStore.initLanguageListener()
+  
+  // Initialize toast manager with component reference
+  if (toastComponent.value) {
+    toastManager.setToastComponent(toastComponent.value)
+  }
 })
 
 // Sidebar state

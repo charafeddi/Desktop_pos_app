@@ -18,6 +18,7 @@
     "english": "English",
     "french": "French",
     "status_bar": "Status Bar",
+    "refresh": "Refresh App Data",
     "about": "About",
     "documentation": "Documentation"
   },
@@ -64,8 +65,45 @@
     "quantity": "Quantity"
   },
   "sales": {
-    "total": "Total sales in the period",
-    "ratio": "Ratio"
+    "total_sales_period": "Total sales in the period",
+    "ratio": "Ratio",
+    "sales_history": "Sales History",
+    "add_sale": "Add Sale",
+    "export_sales": "Export Sales",
+    "export_as_csv": "Export as CSV",
+    "export_as_pdf": "Export as PDF",
+    "total_sales": "Total Sales",
+    "no_sales_found": "No Sales Found",
+    "start_making_sales_to_see_them_here": "Start making sales to see them here",
+    "sale_number": "Sale Number",
+    "customer": "Customer",
+    "date": "Date",
+    "items": "Items",
+    "total": "Total",
+    "payment": "Payment",
+    "actions": "Actions",
+    "view_details": "View Details",
+    "print_receipt": "Print Receipt",
+    "refund_sale": "Refund Sale",
+    "already_returned": "Already Returned",
+    "delete_sale": "Delete Sale",
+    "financial_summary": "Financial Summary",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "discount": "Discount",
+    "sale_items": "Sale Items",
+    "title": "Sales",
+    "name": "Name",
+    "sku": "SKU",
+    "category": "Category",
+    "unit": "Unit",
+    "price": "Price",
+    "cost": "Cost",
+    "stock": "Stock",
+    "min_stock": "Min Stock",
+    "status": "Status",
+    "image": "Image",
+    "description": "Description"
   },
   "dashboard": {
     "addSale": "Add Sale",
@@ -106,7 +144,13 @@
     "minimum_8_characters": "At least 8 characters",
     "one_uppercase_letter": "One uppercase letter",
     "one_lowercase_letter": "One lowercase letter",
-    "one_number": "One number"
+    "one_number": "One number",
+    "processing": "Processing...",
+    "already_have_an_account": "Already Have an Account?",
+    "create_account": "Create Account",
+    "create_account_description": "Create an account to get started.",
+    "create_account_button": "Create Account",
+    "create_account_button_description": "Create an account to get started."
   },
   "common": {
     "save": "Save",
@@ -369,21 +413,6 @@
     "updating": "Updating",
     "apply_adjustment": "Apply Adjustment"
   },
-  "Sales":{
-    "title": "Sales",
-    "name": "Name",
-    "sku": "SKU",
-    "category": "Category",
-    "unit": "Unit",
-    "price": "Price",
-    "cost": "Cost",
-    "stock": "Stock",
-    "min_stock": "Min Stock",
-    "status": "Status",
-    "image": "Image",
-    "description": "Description",
-    "actions": "Actions"
-  },
   "Customers":{
     "title": "Customers",
     "name": "Name",
@@ -445,7 +474,7 @@
       "title": "Receipt Preview",
       "print": "Print Receipt",
       "save_pdf": "Save as PDF",
-      "email": "Email Receipt",
+      "email_receipt": "Email Receipt",
       "copy": "Copy Text",
       "print_success": "Receipt printed successfully",
       "print_error": "Failed to print receipt",
@@ -633,5 +662,26 @@
     "errorAdding": "Error adding todo",
     "errorUpdating": "Error updating todo",
     "errorDeleting": "Error deleting todo"
+  },
+  "shortcuts": {
+    "title": "Keyboard Shortcuts",
+    "navigation": "Navigation",
+    "products": "Products",
+    "pos": "POS",
+    "general": "General",
+    "theme": "Theme",
+    "quickActions": "Quick Actions",
+    "print": "Print",
+    "export": "Export",
+    "help": "Press Ctrl+H to toggle this help"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Stay updated with important system notifications and alerts",
+    "markAllRead": "Mark All as Read",
+    "clearAll": "Clear All",
+    "emptyTitle": "No notifications",
+    "emptyDescription": "You're all caught up! No new notifications at the moment.",
+    "viewDetails": "View Details"
   }
 } 

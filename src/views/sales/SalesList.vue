@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSalesStore } from '@/stores/sales.store'
 import { useCustomerStore } from '@/stores/Customers.store'
@@ -7,8 +7,14 @@ import { useReturnsStore } from '@/stores/returns.store'
 import { useI18n } from 'vue-i18n'
 import { exportSales } from '@/utils/exportUtils'
 import ReceiptPreview from '@/components/printer/ReceiptPreview.vue'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+import { useToast } from '@/utils/toastManager'
+import { useErrorHandler } from '@/utils/errorHandler'
 
 const { t } = useI18n()
+const { success: showSuccess, error: showError, warning: showWarning, info: showInfo } = useToast()
+const { handleNetworkError, handleDatabaseError, handleValidationError, handleBusinessLogicError } = useErrorHandler()
 const router = useRouter()
 
 const salesStore = useSalesStore()
@@ -18,6 +24,172 @@ const returnsStore = useReturnsStore()
 const sales = computed(() => salesStore.getSales)
 const customers = computed(() => customerStore.getCustomers)
 const loading = computed(() => salesStore.loading)
+
+// Unique values for filter dropdowns
+const uniqueCustomers = computed(() => {
+  const customerMap = new Map()
+  sales.value.forEach(sale => {
+    if (sale.customer_id) {
+      const customer = customers.value.find(c => c.id === sale.customer_id)
+      if (customer) {
+        customerMap.set(customer.id, {
+          id: customer.id,
+          name: customer.name
+        })
+      }
+    }
+  })
+  return Array.from(customerMap.values()).sort((a, b) => a.name.localeCompare(b.name))
+})
+
+// Active filters count
+const activeFiltersCount = computed(() => {
+  let count = 0
+  if (customerFilter.value) count++
+  if (paymentMethodFilter.value) count++
+  if (statusFilter.value) count++
+  if (amountRangeFilter.value) count++
+  if (dateRangeFilter.value) count++
+  return count
+})
+
+// Advanced search and filter implementation
+const filteredSales = computed(() => {
+  if (!Array.isArray(sales.value) || sales.value.length === 0) {
+    return []
+  }
+  
+  let filtered = [...sales.value]
+  
+  // Text search - search in sale number, invoice number, customer name, payment method
+  if (searchQuery.value && searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase().trim()
+    filtered = filtered.filter(sale => {
+      const saleNumber = (sale.sale_number || sale.invoice_number || `#${sale.id}`).toLowerCase()
+      const customerName = getCustomerName(sale.customer_id).toLowerCase()
+      const paymentMethod = (sale.payment_method || '').toLowerCase()
+      const status = getSaleStatusText(sale.sale_status, sale.id).toLowerCase()
+      const amount = (sale.final_amount || sale.total_amount || 0).toString()
+      
+      return saleNumber.includes(query) ||
+             customerName.includes(query) ||
+             paymentMethod.includes(query) ||
+             status.includes(query) ||
+             amount.includes(query)
+    })
+  }
+  
+  // Customer filter
+  if (customerFilter.value && customerFilter.value !== '') {
+    filtered = filtered.filter(sale => 
+      sale.customer_id && sale.customer_id.toString() === customerFilter.value
+    )
+  }
+  
+  // Payment method filter
+  if (paymentMethodFilter.value && paymentMethodFilter.value !== '') {
+    filtered = filtered.filter(sale => 
+      sale.payment_method === paymentMethodFilter.value
+    )
+  }
+  
+  // Status filter
+  if (statusFilter.value && statusFilter.value !== '') {
+    filtered = filtered.filter(sale => {
+      const status = getSaleStatusText(sale.sale_status, sale.id)
+      return status === statusFilter.value
+    })
+  }
+  
+  // Amount range filter
+  if (amountRangeFilter.value && amountRangeFilter.value !== '') {
+    filtered = filtered.filter(sale => {
+      const amount = Number(sale.final_amount || sale.total_amount) || 0
+      
+      switch (amountRangeFilter.value) {
+        case 'low':
+          return amount < 50
+        case 'medium':
+          return amount >= 50 && amount < 200
+        case 'high':
+          return amount >= 200 && amount < 500
+        case 'premium':
+          return amount >= 500
+        default:
+          return true
+      }
+    })
+  }
+  
+  // Date range filter
+  if (dateRangeFilter.value && dateRangeFilter.value !== '') {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    
+    filtered = filtered.filter(sale => {
+      const saleDate = new Date(sale.created_at)
+      
+      switch (dateRangeFilter.value) {
+        case 'today':
+          return saleDate >= today
+        case 'week':
+          const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+          return saleDate >= weekAgo
+        case 'month':
+          const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+          return saleDate >= monthAgo
+        case 'quarter':
+          const quarterAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000)
+          return saleDate >= quarterAgo
+        case 'year':
+          const yearAgo = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000)
+          return saleDate >= yearAgo
+        default:
+          return true
+      }
+    })
+  }
+  
+  // Sort sales
+  if (sortBy.value && sortBy.value !== '') {
+    filtered.sort((a, b) => {
+      let aValue, bValue
+      
+      switch (sortBy.value) {
+        case 'date':
+          aValue = new Date(a.created_at)
+          bValue = new Date(b.created_at)
+          break
+        case 'customer':
+          aValue = getCustomerName(a.customer_id).toLowerCase()
+          bValue = getCustomerName(b.customer_id).toLowerCase()
+          break
+        case 'amount':
+          aValue = Number(a.final_amount || a.total_amount) || 0
+          bValue = Number(b.final_amount || b.total_amount) || 0
+          break
+        case 'payment':
+          aValue = (a.payment_method || '').toLowerCase()
+          bValue = (b.payment_method || '').toLowerCase()
+          break
+        case 'status':
+          aValue = getSaleStatusText(a.sale_status, a.id).toLowerCase()
+          bValue = getSaleStatusText(b.sale_status, b.id).toLowerCase()
+          break
+        default:
+          return 0
+      }
+      
+      if (sortOrder.value === 'desc') {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0
+      } else {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0
+      }
+    })
+  }
+  
+  return filtered
+})
 
 // State for dropdown menus
 const activeDropdown = ref(null)
@@ -33,22 +205,134 @@ const currentSaleData = ref(null)
 const currentCustomer = ref(null)
 const currentCashier = ref(null)
 
+// Loading states
+const isLoading = ref(false)
+const isDeletingSale = ref(false)
+const isExporting = ref(false)
+const isLoadingReturns = ref(false)
+const isPrintingReceipt = ref(false)
+const isPreviewingReceipt = ref(false)
+
+// Confirmation dialog state
+const showDeleteConfirm = ref(false)
+const saleToDelete = ref(null)
+
+// Search and filter variables
+const searchQuery = ref('')
+const customerFilter = ref('')
+const paymentMethodFilter = ref('')
+const statusFilter = ref('')
+const amountRangeFilter = ref('')
+const dateRangeFilter = ref('')
+const sortBy = ref('date')
+const sortOrder = ref('desc')
+const showAdvancedFilters = ref(false)
+
+// Helper methods
+const getLoadingMessage = () => {
+  if (isLoading.value) return 'Loading sales...'
+  if (isDeletingSale.value) return 'Deleting sale...'
+  if (isExporting.value) return 'Exporting data...'
+  if (isLoadingReturns.value) return 'Loading returns...'
+  if (isPrintingReceipt.value) return 'Printing receipt...'
+  if (isPreviewingReceipt.value) return 'Generating preview...'
+  return 'Processing...'
+}
+
+const confirmDelete = async () => {
+  if (saleToDelete.value) {
+    await deleteSale(saleToDelete.value)
+  }
+  showDeleteConfirm.value = false
+  saleToDelete.value = null
+}
+
+const cancelDelete = () => {
+  showDeleteConfirm.value = false
+  saleToDelete.value = null
+}
+
+// Show delete confirmation
+const showDeleteConfirmation = (sale) => {
+  saleToDelete.value = sale
+  showDeleteConfirm.value = true
+}
+
+// Clear all filters method
+const clearAllFilters = () => {
+  searchQuery.value = ''
+  customerFilter.value = ''
+  paymentMethodFilter.value = ''
+  statusFilter.value = ''
+  amountRangeFilter.value = ''
+  dateRangeFilter.value = ''
+  sortBy.value = 'date'
+  sortOrder.value = 'desc'
+  showAdvancedFilters.value = false
+  
+  showInfo('Filters Cleared', 'All search and filter options have been reset')
+}
+
+// Handle search input key events
+const handleSearchKeydown = (event) => {
+  if (event.key === 'Enter') {
+    // Focus on first result or show advanced filters
+    if (filteredSales.value.length === 0) {
+      showAdvancedFilters.value = true
+    }
+  } else if (event.key === 'Escape') {
+    searchQuery.value = ''
+    showAdvancedFilters.value = false
+  }
+}
+
 // Load data on mount
 onMounted(async () => {
-  await salesStore.fetchSales()
-  await customerStore.fetchCustomers()
-  await loadReturnedSales()
+  try {
+    isLoading.value = true
+    showInfo('Loading Sales', 'Fetching sales data...')
+    
+    await salesStore.fetchSales()
+    await customerStore.fetchCustomers()
+    await loadReturnedSales()
+    
+    showSuccess('Sales Loaded', 'Sales data loaded successfully')
+    
+  } catch (error) {
+    handleNetworkError(error, 'Sales Data Loading')
+    showError('Loading Failed', 'Failed to load sales data. Please refresh the page.')
+  } finally {
+    isLoading.value = false
+  }
+})
+
+onUnmounted(() => {
+  // Cleanup if needed
 })
 
 // Load returned sales to track which sales have been returned
 const loadReturnedSales = async () => {
   try {
+    isLoadingReturns.value = true
+    showInfo('Loading Returns', 'Fetching return data...')
+    
     await returnsStore.fetchReturns()
     const returns = returnsStore.getReturns
     const returnedSaleIds = new Set(returns.map(returnItem => returnItem.sale_id))
     returnedSales.value = returnedSaleIds
+    
+    showSuccess('Returns Loaded', `Found ${returns.length} returns`)
+    
   } catch (error) {
-    console.error('Error loading returned sales:', error)
+    handleNetworkError(error, 'Returns Loading')
+    showError('Loading Failed', 'Failed to load return data. Some features may not work correctly.')
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('error', 'Returns Loading Failed', 'Could not load return data')
+    }
+  } finally {
+    isLoadingReturns.value = false
   }
 }
 
@@ -136,24 +420,38 @@ function getSaleStatusText(status, saleId) {
 // View sale details
 async function viewSaleDetails(saleId) {
   try {
+    showInfo('Loading Sale Details', 'Fetching sale information...')
+    
     selectedSale.value = await salesStore.getSaleById(saleId)
     showSaleDetailsModal.value = true
     closeDropdown()
+    
+    showSuccess('Sale Details Loaded', 'Sale details loaded successfully')
+    
   } catch (error) {
-    console.error('Error fetching sale details:', error)
-    alert('Error loading sale details')
+    handleNetworkError(error, 'Sale Details Loading')
+    showError('Loading Failed', 'Failed to load sale details. Please try again.')
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('error', 'Sale Details Loading Failed', 'Could not load sale details')
+    }
   }
 }
 
 // Print receipt
 async function printReceipt(sale) {
   try {
+    isPrintingReceipt.value = true
+    showInfo('Printing Receipt', 'Generating receipt for printing...')
+    
     // Fetch sale details and items
     const saleDetails = await window.electronAPI.sales.getById(sale.id)
     const saleItems = await window.electronAPI.sales.getItems(sale.id)
     
     if (!saleDetails) {
-      alert('Sale not found')
+      handleBusinessLogicError(new Error('Sale not found'), 'Receipt Printing')
+      showError('Sale Not Found', 'Sale details could not be found')
       return
     }
     
@@ -192,15 +490,27 @@ async function printReceipt(sale) {
     const printResult = await window.electronAPI.print.printReceipt(receiptText, '')
     
     if (printResult.success) {
-      alert('Receipt sent to printer successfully!')
+      showSuccess('Receipt Printed', 'Receipt has been sent to printer successfully')
+      
+      // Add notification
+      if (window.addNotification) {
+        window.addNotification('success', 'Receipt Printed', 'Receipt sent to printer')
+      }
     } else {
-      alert(`Failed to print receipt: ${printResult.message}`)
+      handleBusinessLogicError(new Error(printResult.message || 'Print failed'), 'Receipt Printing')
+      showError('Print Failed', printResult.message || 'Failed to print receipt')
     }
     
-    closeDropdown()
   } catch (error) {
-    console.error('Error printing receipt:', error)
-    alert('Error printing receipt. Please try again.')
+    handleNetworkError(error, 'Receipt Printing')
+    showError('Print Error', 'An error occurred while printing the receipt. Please try again.')
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('error', 'Print Failed', 'Could not print receipt')
+    }
+  } finally {
+    isPrintingReceipt.value = false
     closeDropdown()
   }
 }
@@ -208,12 +518,16 @@ async function printReceipt(sale) {
 // Preview receipt
 async function previewReceipt(sale) {
   try {
+    isPreviewingReceipt.value = true
+    showInfo('Generating Preview', 'Creating receipt preview...')
+    
     // Fetch sale details and items
     const saleDetails = await window.electronAPI.sales.getById(sale.id)
     const saleItems = await window.electronAPI.sales.getItems(sale.id)
     
     if (!saleDetails) {
-      alert('Sale not found')
+      handleBusinessLogicError(new Error('Sale not found'), 'Receipt Preview')
+      showError('Sale Not Found', 'Sale details could not be found')
       return
     }
     
@@ -266,10 +580,18 @@ async function previewReceipt(sale) {
     currentCustomer.value = customer
     currentCashier.value = { name: 'Current User' }
     
-    closeDropdown()
+    showSuccess('Preview Generated', 'Receipt preview generated successfully')
+    
   } catch (error) {
-    console.error('Error previewing receipt:', error)
-    alert('Error previewing receipt. Please try again.')
+    handleNetworkError(error, 'Receipt Preview')
+    showError('Preview Error', 'An error occurred while generating the preview. Please try again.')
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('error', 'Preview Failed', 'Could not generate receipt preview')
+    }
+  } finally {
+    isPreviewingReceipt.value = false
     closeDropdown()
   }
 }
@@ -294,31 +616,78 @@ function refundSale(sale) {
 
 // Delete sale
 async function deleteSale(sale) {
-  if (confirm(`Are you sure you want to delete sale #${sale.sale_number || sale.id}? This action cannot be undone.`)) {
-    try {
-      await salesStore.deleteSale(sale.id)
-      closeDropdown()
-    } catch (error) {
-      console.error('Error deleting sale:', error)
-      alert('Error deleting sale')
+  try {
+    isDeletingSale.value = true
+    
+    const saleName = sale.sale_number || `Sale #${sale.id}`
+    
+    showInfo('Deleting Sale', `Removing ${saleName}...`)
+    
+    await salesStore.deleteSale(sale.id)
+    
+    showSuccess('Sale Deleted', `${saleName} has been deleted successfully`)
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('success', 'Sale Deleted', `${saleName} has been removed`)
     }
+    
+  } catch (error) {
+    if (error.message?.includes('foreign key') || error.message?.includes('constraint')) {
+      handleDatabaseError(error, 'Sale Deletion')
+      showError('Cannot Delete Sale', 'This sale has associated records and cannot be deleted')
+    } else {
+      handleNetworkError(error, 'Sale Deletion')
+      showError('Delete Failed', 'Failed to delete sale. Please try again.')
+    }
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('error', 'Delete Failed', 'Could not delete sale')
+    }
+  } finally {
+    isDeletingSale.value = false
+    closeDropdown()
   }
 }
 
 // Export sales
 async function exportSalesData(format) {
   try {
+    isExporting.value = true
+    showInfo('Exporting Data', `Preparing ${format.toUpperCase()} export...`)
+    
+    if (!sales.value || sales.value.length === 0) {
+      handleBusinessLogicError(new Error('No sales to export'), 'Sales Export')
+      showWarning('No Data', 'There are no sales to export')
+      return
+    }
+    
     const success = await exportSales(sales.value, customers.value, format)
     
     if (success) {
-      alert(`Sales data exported successfully as ${format.toUpperCase()}`)
+      showSuccess('Export Complete', `Sales exported successfully as ${format.toUpperCase()}`)
+      
+      // Add notification
+      if (window.addNotification) {
+        window.addNotification('success', 'Export Complete', `${sales.value.length} sales exported as ${format.toUpperCase()}`)
+      }
     } else {
-      alert('Failed to export sales data')
+      handleBusinessLogicError(new Error('Export operation failed'), 'Sales Export')
+      showError('Export Failed', 'Failed to export sales data')
     }
+    
   } catch (error) {
-    console.error('Export error:', error)
-    console.error('Export error stack:', error.stack)
-    alert(`Error exporting sales data: ${error.message}`)
+    handleNetworkError(error, 'Sales Export')
+    showError('Export Error', 'An error occurred while exporting data. Please try again.')
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('error', 'Export Failed', 'Could not export sales')
+    }
+  } finally {
+    isExporting.value = false
+    showExportDropdown.value = false
   }
 }
 </script>
@@ -329,13 +698,13 @@ async function exportSalesData(format) {
     <div class="shadow-sm border-b">
       <div class="px-6 py-4">
         <div class="flex items-center justify-between">
-          <h1 class="text-2xl font-bold text-gray-900">Sales History</h1>
+          <h1 class="text-2xl font-bold text-gray-900">{{ t('sales.sales_history') }}</h1>
           <div class="flex items-center space-x-4">
             <router-link 
               to="/pos"
               class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
               >
-              Add Sale
+              {{ t('sales.add_sale') }}
             </router-link>
 
             <div class="relative">
@@ -343,7 +712,7 @@ async function exportSalesData(format) {
                 @click="showExportDropdown = !showExportDropdown"
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
               >
-                Export Sales
+                {{ t('sales.export_sales') }}
                 <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                 </svg>
@@ -362,7 +731,7 @@ async function exportSalesData(format) {
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
-                    Export as CSV
+                    {{ t('sales.export_as_csv') }}
                   </button>
                   <button
                     @click="exportSalesData('pdf'); showExportDropdown = false"
@@ -371,13 +740,159 @@ async function exportSalesData(format) {
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
                     </svg>
-                    Export as PDF
+                    {{ t('sales.export_as_pdf') }}
                   </button>
                 </div>
               </div>
             </div>
             <div class="text-sm text-gray-600">
-              Total Sales: {{ sales.length }}
+              {{ t('sales.total_sales') }}: {{ sales.length }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="p-4 border-b bg-white">
+      <div class="flex flex-col gap-4">
+        <!-- Main Search Bar -->
+        <div class="flex flex-col lg:flex-row gap-4">
+          <!-- Search Input -->
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-500 mb-2">Search Sales</label>
+            <div class="relative">
+              <input
+                v-model="searchQuery"
+                @keydown="handleSearchKeydown"
+                type="text"
+                placeholder="Search by sale number, customer, payment method, status, or amount..."
+                class="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+              <button 
+                v-if="searchQuery"
+                @click="searchQuery = ''"
+                class="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+              >
+                <span class="material-icons-outlined text-sm">clear</span>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Filter Controls -->
+          <div class="flex gap-2 items-end">
+            <button 
+              @click="showAdvancedFilters = !showAdvancedFilters"
+              class="btn btn-secondary rounded-lg px-4 py-3 hover:bg-gray-500 flex items-center"
+            >
+              <span class="material-icons-outlined">tune</span>
+              Filters
+              <span v-if="activeFiltersCount > 0" class="ml-2 bg-blue-500 text-white text-xs rounded-full px-2 py-1">
+                {{ activeFiltersCount }}
+              </span>
+            </button>
+            <button 
+              @click="clearAllFilters"
+              class="btn btn-secondary rounded-lg px-4 py-3 hover:bg-gray-500 flex items-center"
+            >
+              <span class="material-icons-outlined">clear_all</span>
+              Clear
+            </button>
+          </div>
+        </div>
+        
+        <!-- Advanced Filters Panel -->
+        <div v-if="showAdvancedFilters" class="border-t pt-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Customer Filter -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+              <select v-model="customerFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Customers</option>
+                <option v-for="customer in uniqueCustomers" :key="customer.id" :value="customer.id">{{ customer.name }}</option>
+              </select>
+            </div>
+            
+            <!-- Payment Method Filter -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+              <select v-model="paymentMethodFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Payment Methods</option>
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="credit">Credit</option>
+                <option value="check">Check</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            
+            <!-- Status Filter -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select v-model="statusFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Statuses</option>
+                <option value="completed">Completed</option>
+                <option value="returned">Returned</option>
+                <option value="refunded">Refunded</option>
+                <option value="pending">Pending</option>
+              </select>
+            </div>
+            
+            <!-- Amount Range Filter -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Amount Range</label>
+              <select v-model="amountRangeFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Amounts</option>
+                <option value="low">Under $50</option>
+                <option value="medium">$50 - $200</option>
+                <option value="high">$200 - $500</option>
+                <option value="premium">Over $500</option>
+              </select>
+            </div>
+            
+            <!-- Date Range Filter -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+              <select v-model="dateRangeFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Dates</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="quarter">This Quarter</option>
+                <option value="year">This Year</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- Sort Options -->
+          <div class="mt-4 flex flex-col md:flex-row gap-4">
+            <div class="flex-1">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+              <div class="flex gap-2">
+                <select v-model="sortBy" class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="date">Date</option>
+                  <option value="customer">Customer</option>
+                  <option value="amount">Amount</option>
+                  <option value="payment">Payment Method</option>
+                  <option value="status">Status</option>
+                </select>
+                <button 
+                  @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
+                  class="btn btn-secondary rounded-lg px-4 py-2 hover:bg-gray-500 flex items-center"
+                >
+                  <span class="material-icons-outlined">
+                    {{ sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                  </span>
+                  {{ sortOrder === 'asc' ? 'Ascending' : 'Descending' }}
+                </button>
+              </div>
+            </div>
+            
+            <!-- Results Count -->
+            <div class="flex items-end">
+              <div class="text-sm text-gray-600">
+                {{ filteredSales.length }} of {{ sales.length }} sales
+              </div>
             </div>
           </div>
         </div>
@@ -390,12 +905,16 @@ async function exportSalesData(format) {
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
 
-      <div v-else-if="sales.length === 0" class="text-center py-12">
+      <div v-else-if="filteredSales.length === 0" class="text-center py-12">
         <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
         </svg>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">No sales found</h3>
-        <p class="text-gray-500">Start making sales to see them here.</p>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">
+          {{ activeFiltersCount > 0 ? 'No sales match your search criteria' : t('sales.no_sales_found') }}
+        </h3>
+        <p class="text-gray-500">
+          {{ activeFiltersCount > 0 ? 'Try adjusting your filters or search terms' : t('sales.start_making_sales_to_see_them_here') }}
+        </p>
       </div>
 
       <div v-else class="rounded-lg shadow overflow-hidden relative">
@@ -404,33 +923,33 @@ async function exportSalesData(format) {
             <thead class="bg-gray-50">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Sale #
+                  {{ t('sales.sale_number') }}
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Customer
+                  {{ t('sales.customer') }}
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
+                  {{ t('sales.date') }}
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Items
+                  {{ t('sales.items') }}
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
+                  {{ t('sales.total') }}
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Payment
+                  {{ t('sales.payment') }}
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                  {{ t('sales.status') }}
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                  {{ t('sales.actions') }}
                 </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
-              <tr v-for="sale in sales" :key="sale.id" class="hover:bg-gray-50">
+              <tr v-for="sale in filteredSales" :key="sale.id" class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm font-medium text-gray-900">
                     {{ sale.sale_number || sale.invoice_number || `#${sale.id}` }}
@@ -491,7 +1010,7 @@ async function exportSalesData(format) {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                           </svg>
-                          View Details
+                          {{ t('sales.view_details') }}
                         </button>
                         <button
                           @click="printReceipt(sale)"
@@ -500,7 +1019,7 @@ async function exportSalesData(format) {
                           <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
                           </svg>
-                          Print Receipt
+                          {{ t('sales.print_receipt') }}
                         </button>
                         <button
                           @click="previewReceipt(sale)"
@@ -520,7 +1039,7 @@ async function exportSalesData(format) {
                           <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
                           </svg>
-                          Refund Sale
+                          {{ t('sales.refund_sale') }}
                         </button>
                         <div
                           v-else
@@ -529,17 +1048,17 @@ async function exportSalesData(format) {
                           <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
                           </svg>
-                          Already Returned
+                          {{ t('sales.already_returned') }}
                         </div>
                         <hr class="my-1">
                         <button
-                          @click="deleteSale(sale)"
+                          @click="showDeleteConfirmation(sale)"
                           class="flex items-center w-full px-4 py-2 text-sm text-red-600 bg-red-50"
                         >
                           <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                           </svg>
-                          Delete Sale
+                          {{ t('sales.delete_sale') }}
                         </button>
                       </div>
                     </div>
@@ -598,22 +1117,22 @@ async function exportSalesData(format) {
             </div>
 
             <div class="bg-gray-50 p-4 rounded-lg">
-              <h4 class="font-medium text-gray-900 mb-3">Financial Summary</h4>
+              <h4 class="font-medium text-gray-900 mb-3">{{ t('sales.financial_summary') }} </h4>
               <div class="space-y-2 text-sm">
                 <div class="flex justify-between">
-                  <span class="text-gray-600">Subtotal:</span>
+                  <span class="text-gray-600">{{ t('sales.subtotal') }}:</span>
                   <span class="font-medium text-gray-900">{{ formatCurrency(selectedSale.total_amount) }}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-gray-600">Tax:</span>
+                  <span class="text-gray-600">{{ t('sales.tax') }}:</span>
                   <span class="font-medium text-gray-900">{{ formatCurrency(selectedSale.tax_amount || 0) }}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-gray-600">Discount:</span>
+                  <span class="text-gray-600">{{ t('sales.discount') }}:</span>
                   <span class="font-medium text-gray-900">{{ formatCurrency(selectedSale.discount_amount || 0) }}</span>
                 </div>
                 <div class="flex justify-between border-t pt-2">
-                  <span class="text-gray-900 font-medium">Total:</span>
+                  <span class="text-gray-900 font-medium">{{ t('sales.total') }}:</span>
                   <span class="font-bold text-lg text-gray-900">{{ formatCurrency(selectedSale.final_amount || selectedSale.total_amount) }}</span>
                 </div>
               </div>
@@ -622,7 +1141,7 @@ async function exportSalesData(format) {
 
           <!-- Sale Items -->
           <div class="bg-gray-50 p-4 rounded-lg">
-            <h4 class="font-medium text-gray-900 mb-3">Sale Items</h4>
+            <h4 class="font-medium text-gray-900 mb-3">{{ t('sales.sale_items') }}</h4>
             <div v-if="selectedSale.items && selectedSale.items.length > 0" class="overflow-x-auto">
               <table class="min-w-full">
                 <thead>
@@ -673,9 +1192,85 @@ async function exportSalesData(format) {
       :cashier="currentCashier"
       @close="showReceiptPreview = false"
     />
+    
+    <!-- Loading Spinner -->
+    <LoadingSpinner 
+      v-if="isLoading || isDeletingSale || isExporting || isLoadingReturns || isPrintingReceipt || isPreviewingReceipt"
+      :message="getLoadingMessage()"
+      :fullscreen="true"
+    />
+    
+    <!-- Confirmation Dialog for Delete -->
+    <ConfirmationDialog
+      :is-open="showDeleteConfirm"
+      :title="'Delete Sale'"
+      :message="`Are you sure you want to delete ${saleToDelete?.sale_number || `Sale #${saleToDelete?.id || 'this sale'}`}? This action cannot be undone.`"
+      :type="'error'"
+      :confirm-text="'Delete'"
+      :cancel-text="'Cancel'"
+      :is-loading="isDeletingSale"
+      @confirm="confirmDelete"
+      @cancel="cancelDelete"
+    />
   </div>
 </template>
 
 <style scoped>
-/* Custom styles if needed */
+.btn {
+  @apply transition-colors duration-200;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700;
+}
+
+.btn-secondary {
+  @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
+}
+
+/* Dark theme support */
+:deep(.bg-gray-100) {
+  @apply bg-gray-800/30;
+}
+
+:deep(.text-gray-700) {
+  @apply text-gray-300;
+}
+
+:deep(.text-gray-600) {
+  @apply text-gray-400;
+}
+
+:deep(.border-gray-200) {
+  @apply border-gray-600;
+}
+
+:deep(.border-gray-300) {
+  @apply border-gray-500;
+}
+
+/* Dark theme adjustments */
+:deep(.bg-blue-100) {
+  @apply bg-blue-900/30;
+}
+
+:deep(.text-blue-600) {
+  @apply text-blue-400;
+}
+
+:deep(.bg-green-100) {
+  @apply bg-green-900/30;
+}
+
+:deep(.text-green-600) {
+  @apply text-green-400;
+}
+
+:deep(.bg-red-100) {
+  @apply bg-red-900/30;
+}
+
+:deep(.text-red-600) {
+  @apply text-red-400;
+}
 </style>

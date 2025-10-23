@@ -103,7 +103,7 @@
         <!-- Suppliers -->
         <li>
           <router-link
-            :to="{ name: 'Supplier' }"
+            :to="{ name: 'Suplier' }"
             class="nav-link"
             :class="{ 'active': $route.path === '/supplier', 'icon-only': isCollapsed }"
           >

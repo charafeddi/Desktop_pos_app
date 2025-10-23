@@ -32,7 +32,7 @@ class Sale {
             const saleId = saleResult.lastInsertRowid;
             console.log('Created sale with ID:', saleId);
 
-            // Insert sale items
+            // Insert sale items and update stock
             if (items && items.length > 0) {
                 const itemStmt = db.prepare(`
                     INSERT INTO sale_items (
@@ -40,7 +40,15 @@ class Sale {
                     ) VALUES (?, ?, ?, ?, ?, ?)
                 `);
 
+                // Prepare stock update statement
+                const stockUpdateStmt = db.prepare(`
+                    UPDATE products 
+                    SET current_stock = current_stock - ?, updated_at = ?
+                    WHERE id = ?
+                `);
+
                 for (const item of items) {
+                    // Insert sale item
                     itemStmt.run(
                         saleId,
                         item.product_id,
@@ -49,6 +57,19 @@ class Sale {
                         item.total_price || item.total_amount,
                         currentTime
                     );
+
+                    // Update product stock
+                    const stockResult = stockUpdateStmt.run(
+                        item.quantity,
+                        currentTime,
+                        item.product_id
+                    );
+
+                    if (stockResult.changes === 0) {
+                        console.warn(`Product with ID ${item.product_id} not found for stock update`);
+                    } else {
+                        console.log(`Updated stock for product ${item.product_id}: -${item.quantity}`);
+                    }
                 }
             }
 

@@ -1,6 +1,34 @@
 <template>
   <div class="min-h-screen py-6 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-7xl mx-auto">
+    <!-- Loading State -->
+    <LoadingSpinner 
+      v-if="isLoading || isSaving || isResetting || isRefreshingPrinters || isTestingPrinter || isBackingUp || isRestoring || isChoosingFolder || isChoosingFile"
+      :message="getLoadingMessage()"
+      :fullscreen="true"
+      :overlay="true"
+    />
+
+    <!-- Error State -->
+    <div v-else-if="hasError" class="flex flex-col items-center justify-center py-12">
+      <div class="text-center">
+        <div class="mb-4">
+          <svg class="w-16 h-16 mx-auto text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium mb-2" style="color: var(--color-text)">Settings Error</h3>
+        <p class="mb-4" style="color: var(--color-text-secondary)">{{ errorMessage }}</p>
+        <button 
+          @click="resetErrorState" 
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Try Again
+        </button>
+      </div>
+    </div>
+
+    <!-- Settings Content -->
+    <div v-else class="max-w-7xl mx-auto">
       <div class="mb-8">
         <h1 class="text-3xl font-bold">{{ t('settings.title') }}</h1>
       </div>
@@ -18,32 +46,40 @@
                 <input
                   v-model="companyInfo.name"
                   type="text"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  :class="validationErrors.name ? 'border-red-500' : 'border-gray-300'"
+                  class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 >
+                <p v-if="validationErrors.name" class="mt-1 text-sm text-red-600">{{ validationErrors.name }}</p>
               </div>
               <div>
                 <label class="block text-sm font-medium ">{{ t('settings.address') }}</label>
                 <input
                   v-model="companyInfo.address"
                   type="text"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  :class="validationErrors.address ? 'border-red-500' : 'border-gray-300'"
+                  class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 >
+                <p v-if="validationErrors.address" class="mt-1 text-sm text-red-600">{{ validationErrors.address }}</p>
               </div>
               <div>
                 <label class="block text-sm font-medium ">{{ t('settings.phone') }}</label>
                 <input
                   v-model="companyInfo.phone"
                   type="text"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  :class="validationErrors.phone ? 'border-red-500' : 'border-gray-300'"
+                  class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 >
+                <p v-if="validationErrors.phone" class="mt-1 text-sm text-red-600">{{ validationErrors.phone }}</p>
               </div>
               <div>
                 <label class="block text-sm font-medium ">{{ t('settings.email') }}</label>
                 <input
                   v-model="companyInfo.email"
                   type="email"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  :class="validationErrors.email ? 'border-red-500' : 'border-gray-300'"
+                  class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 >
+                <p v-if="validationErrors.email" class="mt-1 text-sm text-red-600">{{ validationErrors.email }}</p>
               </div>
             </div>
           </div>
@@ -167,16 +203,18 @@
         <!-- Save Button -->
         <div class="flex justify-between">
           <button
-            @click="resetToDefaults"
-            class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            @click="confirmReset"
+            :disabled="isResetting"
+            class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {{ t('settings.resetToDefaults') }}
+            {{ isResetting ? 'Resetting...' : t('settings.resetToDefaults') }}
           </button>
           <button
             @click="saveSettings"
-            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            :disabled="isSaving"
+            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {{ t('settings.saveSettings') }}
+            {{ isSaving ? 'Saving...' : t('settings.saveSettings') }}
           </button>
         </div>
 
@@ -268,10 +306,11 @@
                   </button>
                   <button
                     v-if="selectedRestoreFile"
-                    @click="restoreDatabase"
-                    class="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+                    @click="confirmRestore"
+                    :disabled="isRestoring"
+                    class="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {{ t('settings.restoreDatabase') }}
+                    {{ isRestoring ? 'Restoring...' : t('settings.restoreDatabase') }}
                   </button>
                 </div>
                 
@@ -289,6 +328,31 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirmation Dialogs -->
+    <ConfirmationDialog
+      :isOpen="showResetConfirm"
+      title="Reset Settings"
+      message="Are you sure you want to reset all settings to defaults? This action cannot be undone."
+      type="warning"
+      confirmText="Reset"
+      cancelText="Cancel"
+      :isLoading="isResetting"
+      @confirm="resetToDefaults"
+      @cancel="cancelReset"
+    />
+
+    <ConfirmationDialog
+      :isOpen="showRestoreConfirm"
+      title="Restore Database"
+      message="⚠️ WARNING: This will completely replace your current database! This action cannot be undone. Are you sure you want to continue?"
+      type="danger"
+      confirmText="Restore"
+      cancelText="Cancel"
+      :isLoading="isRestoring"
+      @confirm="restoreDatabase"
+      @cancel="cancelRestore"
+    />
   </div>
 </template> 
 
@@ -297,10 +361,39 @@ import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import { useI18n } from 'vue-i18n'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+import { useToast } from '@/utils/toastManager'
+import { useErrorHandler } from '@/utils/errorHandler'
+
 const { t, locale } = useI18n();
+const { success: showSuccess, error: showError, warning: showWarning, info: showInfo } = useToast()
+const { handleNetworkError, handleDatabaseError, handleValidationError, handleBusinessLogicError } = useErrorHandler()
+
 // Stores
 const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
+
+// Loading states
+const isLoading = ref(false)
+const isSaving = ref(false)
+const isResetting = ref(false)
+const isRefreshingPrinters = ref(false)
+const isTestingPrinter = ref(false)
+const isBackingUp = ref(false)
+const isRestoring = ref(false)
+const isChoosingFolder = ref(false)
+const isChoosingFile = ref(false)
+
+// Confirmation dialog states
+const showResetConfirm = ref(false)
+const showRestoreConfirm = ref(false)
+
+// Error states
+const hasError = ref(false)
+const errorMessage = ref('')
+const validationErrors = ref({})
+
 // Reactive Variables - Settings from Store
 const companyInfo = ref(settingsStore.getCompanyInfo)
 const taxRates = ref(settingsStore.getTaxRates)
@@ -315,83 +408,277 @@ const selectedRestoreFile = ref('')
 const selectedRestoreFilePath = ref('')
 const backupMessage = ref('')
 const backupMessageType = ref('success')
-// Methods
-function saveSettings() {
-    try {
-      // Update store with current values
-      settingsStore.updateCompanyInfo(companyInfo.value)
-      settingsStore.updateTaxRates(taxRates.value)
-      settingsStore.updatePrinterSettings(printerSettings.value)
-      settingsStore.updateBackupSettings(backupSettings.value)
-      settingsStore.setBackupFolder(backupFolder.value)
-      
-      // Show success message
-      backupMessage.value = 'Settings saved successfully!'
-      backupMessageType.value = 'success'
-      
-      // Clear message after 3 seconds
-      setTimeout(() => {
-        backupMessage.value = ''
-      }, 3000)
-      
-    } catch (error) {
-      backupMessage.value = 'Failed to save settings'
-      backupMessageType.value = 'error'
-      console.error('Error saving settings:', error)
-    }
-  }
-  
-  function resetToDefaults() {
-    if (confirm('Are you sure you want to reset all settings to defaults? This action cannot be undone.')) {
-      settingsStore.resetSettings()
-      
-      // Update local refs
-      companyInfo.value = settingsStore.getCompanyInfo
-      taxRates.value = settingsStore.getTaxRates
-      printerSettings.value = settingsStore.getPrinterSettings
-      backupSettings.value = settingsStore.getBackupSettings
-      backupFolder.value = settingsStore.getBackupFolder
-      
-      backupMessage.value = 'Settings reset to defaults successfully!'
-      backupMessageType.value = 'success'
-      
-      setTimeout(() => {
-        backupMessage.value = ''
-      }, 3000)
-    }
-  }
-  
-  function testPrinter() {
-    // Implement printer test logic
-  }
-  
-  async function refreshPrinters() {
-    try {
-      const list = await window.electronAPI.printers.getAll()
-      printers.value = Array.isArray(list) ? list : []
-      // If current selection no longer exists, clear it
-      if (!printers.value.some(p => p.name === printerSettings.value.printerName)) {
-        const defaultPrinter = printers.value.find(p => p.isDefault)
-        printerSettings.value.printerName = defaultPrinter?.name || ''
-      }
-    } catch (err) {
-      console.error('Failed to load printers', err)
-      printers.value = []
-    }
-  }
+// Helper methods
+const getLoadingMessage = () => {
+  if (isSaving.value) return 'Saving settings...'
+  if (isResetting.value) return 'Resetting settings...'
+  if (isRefreshingPrinters.value) return 'Refreshing printers...'
+  if (isTestingPrinter.value) return 'Testing printer...'
+  if (isBackingUp.value) return 'Creating backup...'
+  if (isRestoring.value) return 'Restoring database...'
+  if (isChoosingFolder.value) return 'Choosing folder...'
+  if (isChoosingFile.value) return 'Choosing file...'
+  return 'Loading...'
+}
 
-  onMounted(() => {
-    // Load settings from store
-    settingsStore.loadSettings()
+const resetErrorState = () => {
+  hasError.value = false
+  errorMessage.value = ''
+  validationErrors.value = {}
+}
+
+const validateCompanyInfo = () => {
+  const errors = {}
+  
+  if (!companyInfo.value.name?.trim()) {
+    errors.name = 'Company name is required'
+  }
+  
+  if (companyInfo.value.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(companyInfo.value.email)) {
+    errors.email = 'Please enter a valid email address'
+  }
+  
+  if (companyInfo.value.phone && !/^[\+]?[0-9\s\-\(\)]+$/.test(companyInfo.value.phone)) {
+    errors.phone = 'Please enter a valid phone number'
+  }
+  
+  return errors
+}
+
+const validateTaxRates = () => {
+  const errors = {}
+  
+  taxRates.value.forEach((rate, index) => {
+    if (!rate.name?.trim()) {
+      errors[`tax_${index}_name`] = 'Tax rate name is required'
+    }
+    
+    if (rate.rate < 0 || rate.rate > 100) {
+      errors[`tax_${index}_rate`] = 'Tax rate must be between 0 and 100'
+    }
+  })
+  
+  return errors
+}
+
+const confirmReset = () => {
+  showResetConfirm.value = true
+}
+
+const cancelReset = () => {
+  showResetConfirm.value = false
+}
+
+const confirmRestore = () => {
+  showRestoreConfirm.value = true
+}
+
+const cancelRestore = () => {
+  showRestoreConfirm.value = false
+}
+
+// Methods
+async function saveSettings() {
+  try {
+    isSaving.value = true
+    resetErrorState()
+    
+    // Validate form data
+    const companyErrors = validateCompanyInfo()
+    const taxErrors = validateTaxRates()
+    
+    if (Object.keys(companyErrors).length > 0 || Object.keys(taxErrors).length > 0) {
+      validationErrors.value = { ...companyErrors, ...taxErrors }
+      handleValidationError(new Error('Form validation failed'), 'Save Settings')
+      showError('Validation Error', 'Please fix the form errors before saving')
+      return
+    }
+    
+    showInfo('Saving Settings', 'Please wait while we save your settings...')
+    
+    // Update store with current values using async methods
+    await settingsStore.saveCompanyInfo(companyInfo.value)
+    await settingsStore.saveTaxRates(taxRates.value)
+    await settingsStore.savePrinterSettings(printerSettings.value)
+    settingsStore.updateBackupSettings(backupSettings.value)
+    settingsStore.setBackupFolder(backupFolder.value)
+    
+    showSuccess('Settings Saved', 'Your settings have been saved successfully!')
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('success', 'Settings Updated', 'Settings saved successfully')
+    }
+    
+    // Clear message after 3 seconds
+    setTimeout(() => {
+      backupMessage.value = ''
+    }, 3000)
+    
+  } catch (error) {
+    handleDatabaseError(error, 'Save Settings')
+    showError('Save Failed', 'Failed to save settings. Please try again.')
+    hasError.value = true
+    errorMessage.value = error.message || 'An error occurred while saving settings'
+    
+    backupMessage.value = 'Failed to save settings: ' + error.message
+    backupMessageType.value = 'error'
+  } finally {
+    isSaving.value = false
+  }
+}
+  
+async function resetToDefaults() {
+  try {
+    isResetting.value = true
+    resetErrorState()
+    
+    showWarning('Reset Settings', 'This will reset all settings to defaults. This action cannot be undone.')
+    
+    await settingsStore.resetSettings()
+    
+    // Update local refs
+    companyInfo.value = settingsStore.getCompanyInfo
+    taxRates.value = settingsStore.getTaxRates
+    printerSettings.value = settingsStore.getPrinterSettings
+    backupSettings.value = settingsStore.getBackupSettings
+    backupFolder.value = settingsStore.getBackupFolder
+    
+    showSuccess('Settings Reset', 'Settings have been reset to defaults successfully!')
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('success', 'Settings Reset', 'Settings reset to defaults')
+    }
+    
+    backupMessage.value = 'Settings reset to defaults successfully!'
+    backupMessageType.value = 'success'
+    
+    setTimeout(() => {
+      backupMessage.value = ''
+    }, 3000)
+    
+  } catch (error) {
+    handleDatabaseError(error, 'Reset Settings')
+    showError('Reset Failed', 'Failed to reset settings. Please try again.')
+    hasError.value = true
+    errorMessage.value = error.message || 'An error occurred while resetting settings'
+  } finally {
+    isResetting.value = false
+    showResetConfirm.value = false
+  }
+}
+  
+async function testPrinter() {
+  try {
+    isTestingPrinter.value = true
+    resetErrorState()
+    
+    if (!printerSettings.value.enabled) {
+      handleValidationError(new Error('Printing is not enabled'), 'Test Printer')
+      showError('Printer Test Failed', 'Please enable printing first')
+      return
+    }
+    
+    if (!printerSettings.value.printerName) {
+      handleValidationError(new Error('No printer selected'), 'Test Printer')
+      showError('Printer Test Failed', 'Please select a printer first')
+      return
+    }
+    
+    showInfo('Testing Printer', 'Sending test print to ' + printerSettings.value.printerName)
+    
+    // Implement printer test logic
+    const result = await window.electronAPI.print.testPrint(printerSettings.value.printerName)
+    
+    showSuccess('Printer Test', 'Test print sent successfully!')
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('success', 'Printer Test', 'Test print sent successfully')
+    }
+    
+  } catch (error) {
+    handleBusinessLogicError(error, 'Test Printer')
+    showError('Printer Test Failed', 'Failed to send test print. Please check your printer connection.')
+    hasError.value = true
+    errorMessage.value = error.message || 'An error occurred while testing the printer'
+  } finally {
+    isTestingPrinter.value = false
+  }
+}
+
+async function refreshPrinters() {
+  try {
+    isRefreshingPrinters.value = true
+    resetErrorState()
+    
+    showInfo('Refreshing Printers', 'Loading available printers...')
+    
+    const list = await window.electronAPI.printers.getAll()
+    printers.value = Array.isArray(list) ? list : []
+    
+    // If current selection no longer exists, clear it
+    if (!printers.value.some(p => p.name === printerSettings.value.printerName)) {
+      const defaultPrinter = printers.value.find(p => p.isDefault)
+      printerSettings.value.printerName = defaultPrinter?.name || ''
+    }
+    
+    showSuccess('Printers Refreshed', `Found ${printers.value.length} printer(s)`)
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('success', 'Printers Refreshed', `${printers.value.length} printers found`)
+    }
+    
+  } catch (error) {
+    handleNetworkError(error, 'Refresh Printers')
+    showError('Refresh Failed', 'Failed to load printers. Please check your printer connection.')
+    hasError.value = true
+    errorMessage.value = error.message || 'An error occurred while refreshing printers'
+    printers.value = []
+  } finally {
+    isRefreshingPrinters.value = false
+  }
+}
+
+onMounted(async () => {
+  try {
+    isLoading.value = true
+    resetErrorState()
+    
+    showInfo('Loading Settings', 'Loading your settings from database...')
+    
+    // Load settings from database
+    await settingsStore.loadSettings()
+    
+    // Update local refs with loaded data
+    companyInfo.value = settingsStore.getCompanyInfo
+    taxRates.value = settingsStore.getTaxRates
+    printerSettings.value = settingsStore.getPrinterSettings
+    backupSettings.value = settingsStore.getBackupSettings
+    backupFolder.value = settingsStore.getBackupFolder
     
     // Refresh printers list
-    refreshPrinters()
+    await refreshPrinters()
+    
+    showSuccess('Settings Loaded', 'Your settings have been loaded successfully!')
     
     // Debug: Check current locale and translations
     console.log('Settings component mounted')
     console.log('Current locale:', locale.value)
     console.log('Translation test:', t('settings.title'))
-  })
+    console.log('Loaded company info:', companyInfo.value)
+    
+  } catch (error) {
+    handleDatabaseError(error, 'Load Settings')
+    showError('Load Failed', 'Failed to load settings. Please refresh the page.')
+    hasError.value = true
+    errorMessage.value = error.message || 'An error occurred while loading settings'
+  } finally {
+    isLoading.value = false
+  }
+})
   
   // Watch for language changes
   watch(locale, (newLocale) => {
@@ -399,99 +686,227 @@ function saveSettings() {
     console.log('Translation test after change:', t('settings.title'))
   })
   
-  async function chooseBackupFolder() {
+async function chooseBackupFolder() {
+  try {
+    isChoosingFolder.value = true
+    resetErrorState()
+    
+    showInfo('Choosing Folder', 'Please select a backup folder...')
+    
     const folder = await window.electronAPI.backup.chooseFolder()
     if (folder) {
       backupFolder.value = folder
+      showSuccess('Folder Selected', 'Backup folder selected successfully!')
     }
+  } catch (error) {
+    handleBusinessLogicError(error, 'Choose Backup Folder')
+    showError('Folder Selection Failed', 'Failed to select backup folder. Please try again.')
+    hasError.value = true
+    errorMessage.value = error.message || 'An error occurred while selecting folder'
+  } finally {
+    isChoosingFolder.value = false
   }
+}
 
-  async function backupNow() {
+async function backupNow() {
+  try {
+    isBackingUp.value = true
+    resetErrorState()
+    
     if (!backupFolder.value) {
-      showMessage('Please select a backup folder first', 'error')
-      return
-    }
-    try {
-      const result = await window.electronAPI.backup.exportJSON(backupFolder.value)
-      showMessage(`Backup created successfully! File: ${result.filePath}, Tables: ${result.tables}`, 'success')
-    } catch (error) {
-      showMessage(`Backup failed: ${error.message}`, 'error')
-    }
-  }
-
-  async function enableDailyBackup() {
-    if (!backupFolder.value) {
-      showMessage('Please select a backup folder first', 'error')
-      return
-    }
-    try {
-      const result = await window.electronAPI.backup.scheduleDaily(backupFolder.value)
-      nextBackup.value = result.nextRun
-      showMessage(`Daily backups enabled! Next backup: ${formatDateTime(result.nextRun)}`, 'success')
-    } catch (error) {
-      showMessage(`Failed to enable daily backups: ${error.message}`, 'error')
-    }
-  }
-
-  async function enableWeeklyBackup() {
-    if (!backupFolder.value) {
-      showMessage('Please select a backup folder first', 'error')
-      return
-    }
-    try {
-      const result = await window.electronAPI.backup.scheduleWeekly(backupFolder.value)
-      nextBackup.value = result.nextRun
-      showMessage(`Weekly backups enabled! Next backup: ${formatDateTime(result.nextRun)}`, 'success')
-    } catch (error) {
-      showMessage(`Failed to enable weekly backups: ${error.message}`, 'error')
-    }
-  }
-
-  async function cancelSchedule() {
-    try {
-      await window.electronAPI.backup.cancelSchedule()
-      nextBackup.value = ''
-      showMessage('Backup schedule cancelled', 'success')
-    } catch (error) {
-      showMessage(`Failed to cancel schedule: ${error.message}`, 'error')
-    }
-  }
-
-  async function chooseRestoreFile() {
-    try {
-      const filePath = await window.electronAPI.backup.chooseRestoreFile()
-      if (filePath) {
-        selectedRestoreFilePath.value = filePath
-        selectedRestoreFile.value = filePath.split('/').pop() || filePath.split('\\').pop()
-        showMessage('Backup file selected', 'success')
-      }
-    } catch (error) {
-      showMessage(`Failed to select backup file: ${error.message}`, 'error')
-    }
-  }
-
-  async function restoreDatabase() {
-    if (!selectedRestoreFile.value) {
-      showMessage('Please select a backup file first', 'error')
+      handleValidationError(new Error('No backup folder selected'), 'Create Backup')
+      showError('Backup Failed', 'Please select a backup folder first')
       return
     }
     
-    const confirmRestore = confirm('⚠️ WARNING: This will completely replace your current database!\n\nThis action cannot be undone. Are you sure you want to continue?')
-    if (!confirmRestore) return
-
-    try {
-      const result = await window.electronAPI.backup.restoreFromJSON(selectedRestoreFilePath.value)
-      showMessage(`Database restored successfully! ${result.message}`, 'success')
-      selectedRestoreFile.value = ''
-      
-      // Refresh the app to reflect the restored data
-      setTimeout(() => {
-        window.location.reload()
-      }, 2000)
-    } catch (error) {
-      showMessage(`Restore failed: ${error.message}`, 'error')
+    showInfo('Creating Backup', 'Creating database backup...')
+    
+    const result = await window.electronAPI.backup.exportJSON(backupFolder.value)
+    
+    showSuccess('Backup Created', `Backup created successfully! File: ${result.filePath}, Tables: ${result.tables}`)
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('success', 'Backup Created', 'Database backup completed')
     }
+    
+    showMessage(`Backup created successfully! File: ${result.filePath}, Tables: ${result.tables}`, 'success')
+  } catch (error) {
+    handleDatabaseError(error, 'Create Backup')
+    showError('Backup Failed', 'Failed to create backup. Please try again.')
+    hasError.value = true
+    errorMessage.value = error.message || 'An error occurred while creating backup'
+    showMessage(`Backup failed: ${error.message}`, 'error')
+  } finally {
+    isBackingUp.value = false
   }
+}
+
+async function enableDailyBackup() {
+  try {
+    isBackingUp.value = true
+    resetErrorState()
+    
+    if (!backupFolder.value) {
+      handleValidationError(new Error('No backup folder selected'), 'Enable Daily Backup')
+      showError('Backup Failed', 'Please select a backup folder first')
+      return
+    }
+    
+    showInfo('Enabling Daily Backup', 'Setting up daily backup schedule...')
+    
+    const result = await window.electronAPI.backup.scheduleDaily(backupFolder.value)
+    nextBackup.value = result.nextRun
+    
+    showSuccess('Daily Backup Enabled', `Daily backups enabled! Next backup: ${formatDateTime(result.nextRun)}`)
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('success', 'Daily Backup Enabled', 'Daily backup schedule activated')
+    }
+    
+    showMessage(`Daily backups enabled! Next backup: ${formatDateTime(result.nextRun)}`, 'success')
+  } catch (error) {
+    handleDatabaseError(error, 'Enable Daily Backup')
+    showError('Backup Failed', 'Failed to enable daily backups. Please try again.')
+    hasError.value = true
+    errorMessage.value = error.message || 'An error occurred while enabling daily backups'
+    showMessage(`Failed to enable daily backups: ${error.message}`, 'error')
+  } finally {
+    isBackingUp.value = false
+  }
+}
+
+async function enableWeeklyBackup() {
+  try {
+    isBackingUp.value = true
+    resetErrorState()
+    
+    if (!backupFolder.value) {
+      handleValidationError(new Error('No backup folder selected'), 'Enable Weekly Backup')
+      showError('Backup Failed', 'Please select a backup folder first')
+      return
+    }
+    
+    showInfo('Enabling Weekly Backup', 'Setting up weekly backup schedule...')
+    
+    const result = await window.electronAPI.backup.scheduleWeekly(backupFolder.value)
+    nextBackup.value = result.nextRun
+    
+    showSuccess('Weekly Backup Enabled', `Weekly backups enabled! Next backup: ${formatDateTime(result.nextRun)}`)
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('success', 'Weekly Backup Enabled', 'Weekly backup schedule activated')
+    }
+    
+    showMessage(`Weekly backups enabled! Next backup: ${formatDateTime(result.nextRun)}`, 'success')
+  } catch (error) {
+    handleDatabaseError(error, 'Enable Weekly Backup')
+    showError('Backup Failed', 'Failed to enable weekly backups. Please try again.')
+    hasError.value = true
+    errorMessage.value = error.message || 'An error occurred while enabling weekly backups'
+    showMessage(`Failed to enable weekly backups: ${error.message}`, 'error')
+  } finally {
+    isBackingUp.value = false
+  }
+}
+
+async function cancelSchedule() {
+  try {
+    isBackingUp.value = true
+    resetErrorState()
+    
+    showInfo('Cancelling Schedule', 'Cancelling backup schedule...')
+    
+    await window.electronAPI.backup.cancelSchedule()
+    nextBackup.value = ''
+    
+    showSuccess('Schedule Cancelled', 'Backup schedule cancelled successfully!')
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('success', 'Schedule Cancelled', 'Backup schedule cancelled')
+    }
+    
+    showMessage('Backup schedule cancelled', 'success')
+  } catch (error) {
+    handleDatabaseError(error, 'Cancel Schedule')
+    showError('Cancel Failed', 'Failed to cancel backup schedule. Please try again.')
+    hasError.value = true
+    errorMessage.value = error.message || 'An error occurred while cancelling schedule'
+    showMessage(`Failed to cancel schedule: ${error.message}`, 'error')
+  } finally {
+    isBackingUp.value = false
+  }
+}
+
+async function chooseRestoreFile() {
+  try {
+    isChoosingFile.value = true
+    resetErrorState()
+    
+    showInfo('Choosing File', 'Please select a backup file to restore...')
+    
+    const filePath = await window.electronAPI.backup.chooseRestoreFile()
+    if (filePath) {
+      selectedRestoreFilePath.value = filePath
+      selectedRestoreFile.value = filePath.split('/').pop() || filePath.split('\\').pop()
+      showSuccess('File Selected', 'Backup file selected successfully!')
+      showMessage('Backup file selected', 'success')
+    }
+  } catch (error) {
+    handleBusinessLogicError(error, 'Choose Restore File')
+    showError('File Selection Failed', 'Failed to select backup file. Please try again.')
+    hasError.value = true
+    errorMessage.value = error.message || 'An error occurred while selecting file'
+    showMessage(`Failed to select backup file: ${error.message}`, 'error')
+  } finally {
+    isChoosingFile.value = false
+  }
+}
+
+async function restoreDatabase() {
+  try {
+    isRestoring.value = true
+    resetErrorState()
+    
+    if (!selectedRestoreFile.value) {
+      handleValidationError(new Error('No backup file selected'), 'Restore Database')
+      showError('Restore Failed', 'Please select a backup file first')
+      return
+    }
+    
+    showWarning('Restore Database', 'This will completely replace your current database! This action cannot be undone.')
+    
+    const result = await window.electronAPI.backup.restoreFromJSON(selectedRestoreFilePath.value)
+    
+    showSuccess('Database Restored', `Database restored successfully! ${result.message}`)
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('success', 'Database Restored', 'Database restored successfully')
+    }
+    
+    showMessage(`Database restored successfully! ${result.message}`, 'success')
+    selectedRestoreFile.value = ''
+    
+    // Refresh the app to reflect the restored data
+    setTimeout(() => {
+      window.location.reload()
+    }, 2000)
+    
+  } catch (error) {
+    handleDatabaseError(error, 'Restore Database')
+    showError('Restore Failed', 'Failed to restore database. Please try again.')
+    hasError.value = true
+    errorMessage.value = error.message || 'An error occurred while restoring database'
+    showMessage(`Restore failed: ${error.message}`, 'error')
+  } finally {
+    isRestoring.value = false
+    showRestoreConfirm.value = false
+  }
+}
 
   function showMessage(message, type) {
     backupMessage.value = message

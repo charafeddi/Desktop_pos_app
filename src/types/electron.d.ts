@@ -92,6 +92,20 @@ declare global {
         chooseRestoreFile: () => Promise<string | null>;
         restoreFromJSON: (filePath: string) => Promise<{ success: boolean; message: string; tablesRestored: number }>;
       };
+
+      settings: {
+        getCompanyInfo: () => Promise<any>;
+        saveCompanyInfo: (companyInfo: any) => Promise<any>;
+        getTaxRates: () => Promise<any>;
+        saveTaxRates: (taxRates: any) => Promise<any>;
+        getPrinterSettings: () => Promise<any>;
+        savePrinterSettings: (printerSettings: any) => Promise<any>;
+        getAll: () => Promise<any[]>;
+        setMultiple: (settings: any) => Promise<any>;
+        getByKey: (key: string) => Promise<any>;
+        setByKey: (key: string, value: string) => Promise<any>;
+        deleteByKey: (key: string) => Promise<boolean>;
+      };
       
       closePopup: () => void;
       submitProductForm: (data: unknown) => void;

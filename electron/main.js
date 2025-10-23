@@ -51,6 +51,8 @@ const setupUserProfileHandlers = require('../backend/ipc/userProfile.handlers');
 // Import cloud sync handlers
 const CloudSyncHandlers = require('../backend/ipc/cloudSync.handlers');
 const EmailHandlers = require('../backend/ipc/email.handlers');
+const setupAnalyticsHandlers = require('../backend/ipc/analytics.handlers');
+const setupSettingsHandlers = require('../backend/ipc/settings.handlers');
 
 let mainWindow = null;
 
@@ -69,9 +71,261 @@ function createWindow() {
     },
   });
 
-  // Custom context menu for right-click
-  mainWindow.webContents.on('context-menu', (event, params) => {
+// Bulk operations handlers
+ipcMain.handle('bulk-update-products', async (event, productIds, updateData) => {
+  try {
+    console.log('Bulk updating products:', productIds, updateData);
+    
+    const db = new Database(path.join(__dirname, '../backend/data/pos.db'));
+    let updatedCount = 0;
+    
+    for (const productId of productIds) {
+      try {
+        // Build update query dynamically based on provided fields
+        const updateFields = [];
+        const updateValues = [];
+        
+        if (updateData.category_id !== undefined) {
+          updateFields.push('category_id = ?');
+          updateValues.push(updateData.category_id);
+        }
+        
+        if (updateData.product_type_id !== undefined) {
+          updateFields.push('product_type_id = ?');
+          updateValues.push(updateData.product_type_id);
+        }
+        
+        if (updateData.product_unit_id !== undefined) {
+          updateFields.push('product_unit_id = ?');
+          updateValues.push(updateData.product_unit_id);
+        }
+        
+        if (updateData.supplier_id !== undefined) {
+          updateFields.push('supplier_id = ?');
+          updateValues.push(updateData.supplier_id);
+        }
+        
+        if (updateData.status !== undefined) {
+          updateFields.push('status = ?');
+          updateValues.push(updateData.status);
+        }
+        
+        if (updateData.tax_rate !== undefined) {
+          updateFields.push('tax_rate = ?');
+          updateValues.push(updateData.tax_rate);
+        }
+        
+        if (updateData.min_stock_level !== undefined) {
+          updateFields.push('min_stock_level = ?');
+          updateValues.push(updateData.min_stock_level);
+        }
+        
+        if (updateData.max_stock_level !== undefined) {
+          updateFields.push('max_stock_level = ?');
+          updateValues.push(updateData.max_stock_level);
+        }
+        
+        // Handle price operations
+        if (updateData.priceField && updateData.priceOperation && updateData.priceValue !== undefined) {
+          if (updateData.priceOperation === 'set') {
+            updateFields.push(`${updateData.priceField} = ?`);
+            updateValues.push(updateData.priceValue);
+          } else if (updateData.priceOperation === 'increase') {
+            updateFields.push(`${updateData.priceField} = ${updateData.priceField} * (1 + ?)`);
+            updateValues.push(updateData.priceValue / 100);
+          } else if (updateData.priceOperation === 'decrease') {
+            updateFields.push(`${updateData.priceField} = ${updateData.priceField} * (1 - ?)`);
+            updateValues.push(updateData.priceValue / 100);
+          }
+        }
+        
+        if (updateFields.length > 0) {
+          updateFields.push('updated_at = ?');
+          updateValues.push(new Date().toISOString());
+          updateValues.push(productId);
+          
+          const updateQuery = `UPDATE products SET ${updateFields.join(', ')} WHERE id = ?`;
+          const result = db.prepare(updateQuery).run(...updateValues);
+          
+          if (result.changes > 0) {
+            updatedCount++;
+          }
+        }
+      } catch (error) {
+        console.error(`Error updating product ${productId}:`, error);
+      }
+    }
+    
+    db.close();
+    
+    return {
+      success: true,
+      updatedCount: updatedCount,
+      message: `Successfully updated ${updatedCount} products`
+    };
+    
+  } catch (error) {
+    console.error('Bulk update error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('bulk-delete-products', async (event, productIds) => {
+  try {
+    console.log('Bulk deleting products:', productIds);
+    
+    const db = new Database(path.join(__dirname, '../backend/data/pos.db'));
+    let deletedCount = 0;
+    
+    for (const productId of productIds) {
+      try {
+        const result = db.prepare('DELETE FROM products WHERE id = ?').run(productId);
+        if (result.changes > 0) {
+          deletedCount++;
+        }
+      } catch (error) {
+        console.error(`Error deleting product ${productId}:`, error);
+      }
+    }
+    
+    db.close();
+    
+    return {
+      success: true,
+      deletedCount: deletedCount,
+      message: `Successfully deleted ${deletedCount} products`
+    };
+    
+  } catch (error) {
+    console.error('Bulk delete error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('export-products', async (event, productIds) => {
+  try {
+    console.log('Exporting products:', productIds);
+    
+    const db = new Database(path.join(__dirname, '../backend/data/pos.db'));
+    
+    // Get products data
+    const placeholders = productIds.map(() => '?').join(',');
+    const products = db.prepare(`
+      SELECT p.*, c.name as category_name, pt.name as product_type_name, 
+             pu.name as product_unit_name, pu.symbol as product_unit_symbol,
+             s.name as supplier_name
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN product_types pt ON p.product_type_id = pt.id
+      LEFT JOIN product_units pu ON p.product_unit_id = pu.id
+      LEFT JOIN suppliers s ON p.supplier_id = s.id
+      WHERE p.id IN (${placeholders})
+    `).all(...productIds);
+    
+    db.close();
+    
+    // Convert to CSV format
+    const csvHeaders = [
+      'ID', 'Name', 'SKU', 'Barcode', 'Description', 'Category', 'Product Type',
+      'Product Unit', 'Supplier', 'Purchase Price', 'Selling Price', 'Tax Rate',
+      'Min Stock Level', 'Max Stock Level', 'Current Stock', 'Status', 'Created At'
+    ];
+    
+    const csvRows = products.map(product => [
+      product.id,
+      product.name,
+      product.sku,
+      product.barcode || '',
+      product.description || '',
+      product.category_name || '',
+      product.product_type_name || '',
+      `${product.product_unit_name} (${product.product_unit_symbol})`,
+      product.supplier_name || '',
+      product.purchase_price,
+      product.selling_price,
+      product.tax_rate,
+      product.min_stock_level,
+      product.max_stock_level,
+      product.current_stock,
+      product.status,
+      product.created_at
+    ]);
+    
+    const csvContent = [csvHeaders, ...csvRows]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+    
+    // Save to file
+    const fs = require('fs');
+    const path = require('path');
+    const os = require('os');
+    
+    const filename = `products_export_${new Date().toISOString().split('T')[0]}.csv`;
+    const filepath = path.join(os.homedir(), 'Downloads', filename);
+    
+    fs.writeFileSync(filepath, csvContent);
+    
+    return {
+      success: true,
+      exportedCount: products.length,
+      filepath: filepath,
+      message: `Successfully exported ${products.length} products to ${filename}`
+    };
+    
+  } catch (error) {
+    console.error('Export error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+// Custom context menu for right-click
+mainWindow.webContents.on('context-menu', (event, params) => {
     const menu = new Menu();
+
+    // Add "Refresh App Data" option to the context menu
+    menu.append(
+      new MenuItem({
+        label: '🔄 Refresh App Data',
+        click: async () => {
+          try {
+            // Send refresh event to renderer process
+            mainWindow.webContents.send('app-refresh-start');
+            
+            // Trigger refresh of all stores
+            await Promise.all([
+              mainWindow.webContents.send('refresh-products'),
+              mainWindow.webContents.send('refresh-sales'),
+              mainWindow.webContents.send('refresh-customers'),
+              mainWindow.webContents.send('refresh-categories'),
+              mainWindow.webContents.send('refresh-suppliers'),
+              mainWindow.webContents.send('refresh-analytics'),
+              mainWindow.webContents.send('refresh-todos'),
+              mainWindow.webContents.send('refresh-settings')
+            ]);
+            
+            // Send completion event
+            mainWindow.webContents.send('app-refresh-complete');
+            
+            console.log('App data refreshed successfully');
+          } catch (error) {
+            console.error('Error refreshing app data:', error);
+            mainWindow.webContents.send('app-refresh-error', error.message);
+          }
+        },
+      })
+    );
+
+    // Add separator
+    menu.append(new MenuItem({ type: 'separator' }));
 
     // Add "Inspect Element" option to the context menu
     menu.append(
@@ -159,6 +413,8 @@ function createWindow() {
   setupSupplierHandlers();
   new EmailHandlers();
   new CloudSyncHandlers();
+  setupAnalyticsHandlers();
+  setupSettingsHandlers();
 
   // File save handler
   ipcMain.handle('save-file', async (event, data, filename, type) => {
@@ -235,23 +491,29 @@ function createWindow() {
     const dateStamp = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
     const filePath = path.join(folderPath, `pos-backup-${dateStamp}.json`);
 
-    const getAllTables = () => new Promise((resolve, reject) => {
-      db.all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'", (err, rows) => {
-        if (err) reject(err); else resolve(rows.map(r => r.name));
-      });
-    });
+    const getAllTables = () => {
+      try {
+        const stmt = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+        const rows = stmt.all();
+        return rows.map(r => r.name);
+      } catch (err) {
+        throw err;
+      }
+    };
 
-    const getTableRows = (tableName) => new Promise((resolve, reject) => {
-      db.all(`SELECT * FROM ${tableName}`, (err, rows) => {
-        if (err) reject(err); else resolve(rows);
-      });
-    });
+    const getTableRows = (tableName) => {
+      try {
+        const stmt = db.prepare(`SELECT * FROM ${tableName}`);
+        return stmt.all();
+      } catch (err) {
+        throw err;
+      }
+    };
 
-    const tables = await getAllTables();
+    const tables = getAllTables();
     const data = { createdAt: date.toISOString(), tables: {} };
     for (const t of tables) {
-      // eslint-disable-next-line no-await-in-loop
-      const rows = await getTableRows(t);
+      const rows = getTableRows(t);
       data.tables[t] = rows;
     }
     await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');

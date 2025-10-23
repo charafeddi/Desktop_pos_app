@@ -147,12 +147,12 @@
                   </svg>
                 </button>
                 
-                <button
-                  @click="deleteTodo(todo.id)"
-                  class="p-2 transition-colors"
-                  style="color: var(--color-text-secondary) !important;"
-                  :title="t('todo.deleteTodo')"
-                >
+              <button
+                @click="deleteTodo(todo)"
+                class="p-2 transition-colors"
+                style="color: var(--color-text-secondary) !important;"
+                :title="t('todo.deleteTodo')"
+              >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                   </svg>
@@ -163,7 +163,26 @@
         </div>
       </div>
 
-      <!-- Add/Edit Modal -->
+      <!-- Loading Spinner -->
+      <LoadingSpinner 
+        v-if="isLoading || isSaving || isDeleting || isTogglingStatus"
+        :message="getLoadingMessage()"
+        :fullscreen="true"
+        :overlay="true"
+      />
+
+      <!-- Confirmation Dialog -->
+      <ConfirmationDialog
+        :isOpen="showDeleteConfirm"
+        :title="t('todo.confirmDelete')"
+        :message="deleteConfirmMessage"
+        type="danger"
+        :confirmText="t('todo.delete')"
+        :cancelText="t('todo.cancel')"
+        :isLoading="isDeleting"
+        @confirm="confirmDelete"
+        @cancel="cancelDelete"
+      />
       <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
@@ -247,10 +266,10 @@
               </button>
               <button
                 type="submit"
-                :disabled="loading"
+                :disabled="isSaving"
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <svg v-if="loading" class="w-4 h-4 inline mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg v-if="isSaving" class="w-4 h-4 inline mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                 </svg>
                 {{ t('todo.save') }}
@@ -269,11 +288,19 @@ import { useTodoStore } from '@/stores/todo.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { useThemeStore } from '@/stores/theme.store'
 import { useI18n } from 'vue-i18n'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+import { useToast } from '@/utils/toastManager'
+import { useErrorHandler } from '@/utils/errorHandler'
 
 const { t } = useI18n()
 const todoStore = useTodoStore()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
+
+// Error handling and toast composables
+const { success: showSuccess, error: showError, warning: showWarning, info: showInfo } = useToast()
+const { handleNetworkError, handleDatabaseError, handleValidationError, handleBusinessLogicError } = useErrorHandler()
 
 // Reactive data
 const searchQuery = ref('')
@@ -281,6 +308,16 @@ const statusFilter = ref('')
 const showModal = ref(false)
 const isEditing = ref(false)
 const loading = ref(false)
+
+// Loading states
+const isLoading = ref(false)
+const isSaving = ref(false)
+const isDeleting = ref(false)
+const isTogglingStatus = ref(false)
+
+// Confirmation dialog state
+const showDeleteConfirm = ref(false)
+const todoToDelete = ref(null)
 
 // Todo form
 const todoForm = ref({
@@ -320,6 +357,53 @@ const filteredTodos = computed(() => {
   })
 })
 
+const deleteConfirmMessage = computed(() => {
+  if (!todoToDelete.value) return ''
+  return `Are you sure you want to delete "${todoToDelete.value.title}"? This action cannot be undone.`
+})
+
+// Helper methods
+const getLoadingMessage = () => {
+  if (isLoading.value) return 'Loading todos...'
+  if (isSaving.value) return 'Saving todo...'
+  if (isDeleting.value) return 'Deleting todo...'
+  if (isTogglingStatus.value) return 'Updating status...'
+  return 'Processing...'
+}
+
+const confirmDelete = async () => {
+  try {
+    isDeleting.value = true
+    showInfo('Deleting Todo', 'Removing todo item...')
+    
+    await todoStore.deleteTodo(todoToDelete.value.id)
+    
+    showSuccess('Todo Deleted', 'Todo item has been successfully removed')
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('success', 'Todo Deleted', 'Todo item removed')
+    }
+  } catch (error) {
+    handleDatabaseError(error, 'Delete Todo')
+    showError('Delete Failed', 'An error occurred while deleting the todo')
+  } finally {
+    isDeleting.value = false
+    showDeleteConfirm.value = false
+    todoToDelete.value = null
+  }
+}
+
+const cancelDelete = () => {
+  showDeleteConfirm.value = false
+  todoToDelete.value = null
+}
+
+const showDeleteConfirmation = (todo) => {
+  todoToDelete.value = todo
+  showDeleteConfirm.value = true
+}
+
 // Methods
 const openAddModal = () => {
   isEditing.value = false
@@ -327,7 +411,7 @@ const openAddModal = () => {
   showModal.value = true
 }
 
-const openEditModal = (todo: any) => {
+const openEditModal = (todo) => {
   isEditing.value = true
   todoForm.value = {
     id: todo.id,
@@ -357,11 +441,26 @@ const resetForm = () => {
 }
 
 const saveTodo = async () => {
-  loading.value = true
   try {
+    // Validation
+    if (!todoForm.value.title.trim()) {
+      handleValidationError(new Error('Todo title is required'), 'Save Todo')
+      showError('Validation Error', 'Todo title is required')
+      return
+    }
+
+    if (todoForm.value.title.length > 255) {
+      handleValidationError(new Error('Todo title is too long'), 'Save Todo')
+      showError('Validation Error', 'Todo title must be less than 255 characters')
+      return
+    }
+
+    isSaving.value = true
+    showInfo('Saving Todo', isEditing.value ? 'Updating todo item...' : 'Creating new todo...')
+
     const todoData = {
-      title: todoForm.value.title,
-      description: todoForm.value.description,
+      title: todoForm.value.title.trim(),
+      description: todoForm.value.description?.trim() || '',
       priority: todoForm.value.priority,
       status: todoForm.value.status,
       due_date: todoForm.value.due_date || null,
@@ -370,45 +469,67 @@ const saveTodo = async () => {
 
     if (isEditing.value) {
       await todoStore.updateTodo({ ...todoData, id: todoForm.value.id })
-      showMessage(t('todo.todoUpdated'), 'success')
+      showSuccess('Todo Updated', 'Todo item has been successfully updated')
+      
+      // Add notification
+      if (window.addNotification) {
+        window.addNotification('success', 'Todo Updated', 'Todo item updated')
+      }
     } else {
       await todoStore.addTodo(todoData)
-      showMessage(t('todo.todoAdded'), 'success')
+      showSuccess('Todo Created', 'New todo item has been successfully created')
+      
+      // Add notification
+      if (window.addNotification) {
+        window.addNotification('success', 'Todo Created', 'New todo item added')
+      }
     }
     
     closeModal()
   } catch (error) {
-    console.error('Error saving todo:', error)
-    showMessage(isEditing.value ? t('todo.errorUpdating') : t('todo.errorAdding'), 'error')
+    if (error.message?.includes('UNIQUE constraint')) {
+      handleDatabaseError(error, 'Save Todo')
+      showError('Duplicate Todo', 'A todo with this title already exists')
+    } else if (error.message?.includes('validation')) {
+      handleValidationError(error, 'Save Todo')
+      showError('Validation Error', error.message)
+    } else {
+      handleNetworkError(error, 'Save Todo')
+      showError('Save Failed', isEditing.value ? 'Failed to update todo' : 'Failed to create todo')
+    }
   } finally {
-    loading.value = false
+    isSaving.value = false
   }
 }
 
-const toggleStatus = async (todo: any) => {
+const toggleStatus = async (todo) => {
   try {
+    isTogglingStatus.value = true
     const newStatus = todo.status === 'completed' ? 'pending' : 'completed'
+    
+    showInfo('Updating Status', `Changing status to ${newStatus}...`)
+    
     await todoStore.updateTodo({ ...todo, status: newStatus })
-    showMessage(t('todo.todoUpdated'), 'success')
+    
+    showSuccess('Status Updated', `Todo status changed to ${newStatus}`)
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('success', 'Status Updated', `Todo marked as ${newStatus}`)
+    }
   } catch (error) {
-    console.error('Error updating todo:', error)
-    showMessage(t('todo.errorUpdating'), 'error')
+    handleDatabaseError(error, 'Toggle Status')
+    showError('Update Failed', 'Failed to update todo status')
+  } finally {
+    isTogglingStatus.value = false
   }
 }
 
-const deleteTodo = async (id: number) => {
-  if (!confirm(t('todo.confirmDelete'))) return
-  
-  try {
-    await todoStore.deleteTodo(id)
-    showMessage(t('todo.todoDeleted'), 'success')
-  } catch (error) {
-    console.error('Error deleting todo:', error)
-    showMessage(t('todo.errorDeleting'), 'error')
-  }
+const deleteTodo = async (todo) => {
+  showDeleteConfirmation(todo)
 }
 
-const getPriorityClass = (priority: string) => {
+const getPriorityClass = (priority) => {
   const classes = {
     high: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
     medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
@@ -417,7 +538,7 @@ const getPriorityClass = (priority: string) => {
   return classes[priority] || classes.medium
 }
 
-const getStatusClass = (status: string) => {
+const getStatusClass = (status) => {
   const classes = {
     pending: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
     inProgress: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
@@ -426,25 +547,35 @@ const getStatusClass = (status: string) => {
   return classes[status] || classes.pending
 }
 
-const formatDate = (dateString: string) => {
+const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString()
 }
 
-const formatDateForInput = (dateString: string) => {
+const formatDateForInput = (dateString) => {
   const date = new Date(dateString)
   return date.toISOString().slice(0, 16)
 }
 
-const showMessage = (message: string, type: 'success' | 'error') => {
-  // Simple alert for now - you can replace with a toast notification
-  alert(message)
-}
-
 // Lifecycle
 onMounted(async () => {
-  await todoStore.fetchTodos()
-  themeStore.loadTheme()
+  try {
+    isLoading.value = true
+    showInfo('Loading Todos', 'Fetching your todo items...')
+    
+    await Promise.all([
+      todoStore.fetchTodos(),
+      themeStore.loadTheme()
+    ])
+    
+    showSuccess('Todos Loaded', 'Your todo items have been loaded successfully')
+  } catch (error) {
+    handleNetworkError(error, 'Load Todos')
+    showError('Load Failed', 'Failed to load todo items')
+  } finally {
+    isLoading.value = false
+  }
 })
+
 </script>
 
 <style scoped>

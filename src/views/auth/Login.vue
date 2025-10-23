@@ -24,7 +24,7 @@
           </button>
         </form>
         <div class="register-forget opacity">
-          <a href="#" @click.prevent="goToRegister">REGISTER</a>
+          <router-link to="/register">REGISTER</router-link>
           <router-link to="/forgot-password">FORGOT PASSWORD</router-link>
         </div>
       </div>
@@ -37,9 +37,13 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
+import { useToast } from '@/utils/toastManager'
+import { useErrorHandler } from '@/utils/errorHandler'
 
 // Composables
 const router = useRouter()
+const { error: showError, success: showSuccess } = useToast()
+const { handleNetworkError, handleValidationError } = useErrorHandler()
 
 // Stores
 const authStore = useAuthStore()
@@ -83,8 +87,8 @@ const themes = [
   ]
   
 // Methods
-function setTheme(theme: any) {
-  const root = document.querySelector(":root") as HTMLElement
+function setTheme(theme) {
+  const root = document.querySelector(":root")
   root.style.setProperty("--background", theme.background)
   root.style.setProperty("--color", theme.color)
   root.style.setProperty("--primary-color", theme.primaryColor)
@@ -111,17 +115,27 @@ onMounted(() => {
 async function handleLogin() {
   try {
     isLoading.value = true
+    
+    // Basic validation
+    if (!email.value.trim()) {
+      handleValidationError(new Error('Email is required'), 'Login')
+      return
+    }
+    
+    if (!password.value.trim()) {
+      handleValidationError(new Error('Password is required'), 'Login')
+      return
+    }
+    
     await authStore.login(email.value, password.value)
+    showSuccess('Login Successful', 'Welcome back!')
     router.push('/')
   } catch (error) {
-    console.error('Login failed:', error)
+    handleNetworkError(error, 'Login')
+    showError('Login Failed', error.message || 'Invalid credentials')
   } finally {
     isLoading.value = false
   }
-}
-
-function goToRegister() {
-  router.push('/register')
 }
 </script>
 <style scoped>

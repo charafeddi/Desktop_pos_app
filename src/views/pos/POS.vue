@@ -9,9 +9,15 @@ import { useI18n } from 'vue-i18n'
 import Quagga from 'quagga'
 import { Receipt, createReceiptFromSale } from '@/utils/receiptUtils'
 import ReceiptPreview from '@/components/printer/ReceiptPreview.vue'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+import { useToast } from '@/utils/toastManager'
+import { useErrorHandler } from '@/utils/errorHandler'
 
 // Composables
 const { t } = useI18n()
+const { success: showSuccess, error: showError, warning: showWarning, info: showInfo } = useToast()
+const { handleNetworkError, handleDatabaseError, handleValidationError, handleBusinessLogicError } = useErrorHandler()
 
 // Stores
 const productStore = useProductStore()
@@ -33,13 +39,68 @@ const showCustomPrice = ref(false)
 const selectedTaxRate = ref(null)
 const selectedCustomerId = ref(null)
 const discountPercentage = ref(0)
+const discountAmount = ref(0)
+const discountType = ref('percentage') // 'percentage' or 'amount'
 const paymentMethod = ref('cash')
 const cashReceived = ref(0)
 const showPaymentModal = ref(false)
 const showScannerModal = ref(false)
-const isScanning = ref(false)
 const scannerError = ref('')
 const showReceiptPreview = ref(false)
+const receiptData = ref(null)
+
+// Advanced filter variables
+const categoryFilter = ref('')
+const priceRangeFilter = ref('')
+const stockFilter = ref('')
+const supplierFilter = ref('')
+const sortBy = ref('name')
+const sortOrder = ref('asc')
+const showAdvancedFilters = ref(false)
+
+// Loading states
+const isLoading = ref(false)
+const isProcessingPayment = ref(false)
+const isClearingCart = ref(false)
+const isScanning = ref(false)
+
+// Confirmation dialog state
+const showClearCartConfirm = ref(false)
+
+// Helper methods
+const getLoadingMessage = () => {
+  if (isLoading.value) return 'Loading POS data...'
+  if (isProcessingPayment.value) return 'Processing payment...'
+  if (isClearingCart.value) return 'Clearing cart...'
+  if (isScanning.value) return 'Scanning barcode...'
+  return 'Processing...'
+}
+
+const confirmClearCart = async () => {
+  try {
+    isClearingCart.value = true
+    showInfo('Clearing Cart', 'Removing all items from cart...')
+    
+    cart.value = []
+    
+    showSuccess('Cart Cleared', 'All items have been removed from cart')
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('success', 'Cart Cleared', 'All items removed')
+    }
+  } catch (error) {
+    handleNetworkError(error, 'Clear Cart')
+    showError('Clear Failed', 'An error occurred while clearing the cart')
+  } finally {
+    isClearingCart.value = false
+    showClearCartConfirm.value = false
+  }
+}
+
+const cancelClearCart = () => {
+  showClearCartConfirm.value = false
+}
 // Computed Properties
 const products = computed(() => productStore.getProducts)
 const customers = computed(() => customerStore.getCustomers)
@@ -47,15 +108,170 @@ const categories = computed(() => {
   const cats = ['all', ...new Set(products.value.map(p => p.category_id))]
   return cats
 })
-const filteredProducts = computed(() => {
-  return products.value.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-                         product.barcode.includes(searchQuery.value)
-    const matchesCategory = selectedCategory.value === 'all' || product.category_id.toString() === selectedCategory.value
-    const isActive = product.is_active !== false
-    return matchesSearch && matchesCategory && isActive
+
+// Unique values for filter dropdowns
+const uniqueCategories = computed(() => {
+  const categoryMap = new Map()
+  products.value.forEach(product => {
+    if (product.category_id && product.category_name) {
+      categoryMap.set(product.category_id, {
+        id: product.category_id,
+        name: product.category_name
+      })
+    }
   })
+  return Array.from(categoryMap.values()).sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const uniqueSuppliers = computed(() => {
+  const supplierMap = new Map()
+  products.value.forEach(product => {
+    if (product.supplier_id && product.supplier_name) {
+      supplierMap.set(product.supplier_id, {
+        id: product.supplier_id,
+        name: product.supplier_name
+      })
+    }
+  })
+  return Array.from(supplierMap.values()).sort((a, b) => a.name.localeCompare(b.name))
+})
+
+// Active filters count
+const activeFiltersCount = computed(() => {
+  let count = 0
+  if (categoryFilter.value) count++
+  if (priceRangeFilter.value) count++
+  if (stockFilter.value) count++
+  if (supplierFilter.value) count++
+  return count
+})
+
+// Advanced search and filter implementation
+const filteredProducts = computed(() => {
+  if (!Array.isArray(products.value) || products.value.length === 0) {
+    return []
+  }
+  
+  let filtered = [...products.value]
+  
+  // Text search - search in name, SKU, barcode, description, category name, supplier name
+  if (searchQuery.value && searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase().trim()
+    filtered = filtered.filter(product => {
+      const name = (product.name || '').toLowerCase()
+      const sku = (product.sku || '').toLowerCase()
+      const barcode = (product.barcode || '').toLowerCase()
+      const description = (product.description || '').toLowerCase()
+      const categoryName = (product.category_name || '').toLowerCase()
+      const supplierName = (product.supplier_name || '').toLowerCase()
+      
+      return name.includes(query) ||
+             sku.includes(query) ||
+             barcode.includes(query) ||
+             description.includes(query) ||
+             categoryName.includes(query) ||
+             supplierName.includes(query)
+    })
+  }
+  
+  // Category filter
+  if (categoryFilter.value && categoryFilter.value !== '') {
+    filtered = filtered.filter(product => 
+      product.category_id.toString() === categoryFilter.value
+    )
+  }
+  
+  // Price range filter
+  if (priceRangeFilter.value && priceRangeFilter.value !== '') {
+    filtered = filtered.filter(product => {
+      const price = Number(product.selling_price) || 0
+      
+      switch (priceRangeFilter.value) {
+        case 'low':
+          return price < 10
+        case 'medium':
+          return price >= 10 && price < 50
+        case 'high':
+          return price >= 50 && price < 100
+        case 'premium':
+          return price >= 100
+        default:
+          return true
+      }
+    })
+  }
+  
+  // Stock level filter
+  if (stockFilter.value && stockFilter.value !== '') {
+    filtered = filtered.filter(product => {
+      const stock = Number(product.current_stock) || 0
+      const minStock = Number(product.min_stock_level) || 0
+      const maxStock = Number(product.max_stock_level) || 0
+      
+      switch (stockFilter.value) {
+        case 'in_stock':
+          return stock > minStock
+        case 'low_stock':
+          return stock > 0 && stock <= minStock
+        case 'out_of_stock':
+          return stock === 0
+        case 'overstocked':
+          return maxStock > 0 && stock > maxStock
+        default:
+          return true
+      }
+    })
+  }
+  
+  // Supplier filter
+  if (supplierFilter.value && supplierFilter.value !== '') {
+    filtered = filtered.filter(product => 
+      product.supplier_id.toString() === supplierFilter.value
+    )
+  }
+  
+  // Only show active products
+  filtered = filtered.filter(product => product.is_active !== false)
+  
+  // Sort products
+  if (sortBy.value && sortBy.value !== '') {
+    filtered.sort((a, b) => {
+      let aValue, bValue
+      
+      switch (sortBy.value) {
+        case 'name':
+          aValue = (a.name || '').toLowerCase()
+          bValue = (b.name || '').toLowerCase()
+          break
+        case 'price':
+          aValue = Number(a.selling_price) || 0
+          bValue = Number(b.selling_price) || 0
+          break
+        case 'stock':
+          aValue = Number(a.current_stock) || 0
+          bValue = Number(b.current_stock) || 0
+          break
+        case 'sku':
+          aValue = (a.sku || '').toLowerCase()
+          bValue = (b.sku || '').toLowerCase()
+          break
+        case 'category':
+          aValue = (a.category_name || '').toLowerCase()
+          bValue = (b.category_name || '').toLowerCase()
+          break
+        default:
+          return 0
+      }
+      
+      if (sortOrder.value === 'desc') {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0
+      } else {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0
+      }
+    })
+  }
+  
+  return filtered
 })
 
 const cartSubtotal = computed(() => {
@@ -66,20 +282,32 @@ const cartSubtotal = computed(() => {
     return total + (discountedPrice * item.quantity)
   }, 0)
 })
+
+const overallDiscountAmount = computed(() => {
+  if (discountType.value === 'percentage') {
+    return cartSubtotal.value * (discountPercentage.value / 100)
+  } else {
+    return Math.min(discountAmount.value, cartSubtotal.value) // Can't discount more than subtotal
+  }
+})
+
+const cartAfterDiscount = computed(() => {
+  return cartSubtotal.value - overallDiscountAmount.value
+})
   
-  const cartTax = computed(() => {
-    return cart.value.reduce((total, item) => {
-      const price = item.customPrice || item.selling_price
-      const discount = item.discount || 0
-      const discountedPrice = price * (1 - discount / 100)
-      const itemSubtotal = discountedPrice * item.quantity
-      
-      // Use item-specific tax rate if available, otherwise use default
-      const taxRate = item.taxRate || (settingsStore.getDefaultTaxRate?.rate || 0)
-      
-      return total + (itemSubtotal * taxRate / 100)
-    }, 0)
-  })
+const cartTax = computed(() => {
+  return cart.value.reduce((total, item) => {
+    const price = item.customPrice || item.selling_price
+    const discount = item.discount || 0
+    const discountedPrice = price * (1 - discount / 100)
+    const itemSubtotal = discountedPrice * item.quantity
+    
+    // Use item-specific tax rate if available, otherwise use default
+    const taxRate = item.taxRate || (settingsStore.getDefaultTaxRate?.rate || 0)
+    
+    return total + (itemSubtotal * taxRate / 100)
+  }, 0)
+})
   
   // Calculate tax breakdown by rate
   const taxBreakdown = computed(() => {
@@ -108,9 +336,9 @@ const cartSubtotal = computed(() => {
     }))
   })
   
-  const cartTotal = computed(() => {
-    return cartSubtotal.value + cartTax.value
-  })
+const cartTotal = computed(() => {
+  return cartAfterDiscount.value + cartTax.value
+})
   
   const change = computed(() => {
     return Math.max(0, cashReceived.value - cartTotal.value)
@@ -118,10 +346,92 @@ const cartSubtotal = computed(() => {
   
   // Load data on mount
   onMounted(async () => {
-    await productStore.getAllProducts()
-    await categoryStore.fetchCategories()
-    await customerStore.fetchCustomers()
-})
+    try {
+      isLoading.value = true
+      showInfo('Loading POS Data', 'Fetching products, categories, and customers...')
+      
+      // Load all required data with error handling
+      await Promise.all([
+        productStore.getAllProducts(),
+        categoryStore.fetchCategories(),
+        customerStore.fetchCustomers()
+      ])
+      
+      showSuccess('POS Ready', 'Point of sale system loaded successfully')
+      
+      // Add keyboard shortcut event listeners
+      window.addEventListener('complete-sale', handleCompleteSaleShortcut)
+      window.addEventListener('cancel-operation', handleCancelOperation)
+      window.addEventListener('focus-search', handleFocusSearch)
+      
+    } catch (error) {
+      handleNetworkError(error, 'POS Data Loading')
+      showError('Loading Failed', 'Failed to load POS data. Please refresh the page.')
+    } finally {
+      isLoading.value = false
+    }
+  })
+
+  onUnmounted(() => {
+    // Remove keyboard shortcut event listeners
+    window.removeEventListener('complete-sale', handleCompleteSaleShortcut)
+    window.removeEventListener('cancel-operation', handleCancelOperation)
+    window.removeEventListener('focus-search', handleFocusSearch)
+  })
+
+  // Keyboard shortcut handlers
+  const handleCompleteSaleShortcut = () => {
+    if (cart.value.length > 0 && !showPaymentModal.value) {
+      showPaymentModal.value = true
+    }
+  }
+
+  const handleCancelOperation = () => {
+    if (showPaymentModal.value) {
+      showPaymentModal.value = false
+    } else if (showQuantityModal.value) {
+      showQuantityModal.value = false
+    } else if (showScannerModal.value) {
+      showScannerModal.value = false
+    } else if (showReceiptPreview.value) {
+      showReceiptPreview.value = false
+    }
+  }
+
+  const handleFocusSearch = () => {
+    // Focus on the search input
+    const searchInput = document.querySelector('input[type="text"]')
+    if (searchInput) {
+      searchInput.focus()
+    }
+  }
+
+// Clear all filters method
+const clearAllFilters = () => {
+  searchQuery.value = ''
+  categoryFilter.value = ''
+  priceRangeFilter.value = ''
+  stockFilter.value = ''
+  supplierFilter.value = ''
+  sortBy.value = 'name'
+  sortOrder.value = 'asc'
+  showAdvancedFilters.value = false
+  
+  showInfo('Filters Cleared', 'All search and filter options have been reset')
+}
+
+// Handle search input key events
+const handleSearchKeydown = (event) => {
+  if (event.key === 'Enter') {
+    // Focus on first result or show advanced filters
+    if (filteredProducts.value.length === 0) {
+      showAdvancedFilters.value = true
+    }
+  } else if (event.key === 'Escape') {
+    searchQuery.value = ''
+    showAdvancedFilters.value = false
+  }
+}
 
 // Methods
 function addToCart(product, quantity = 1) {
@@ -233,14 +543,32 @@ function addToCart(product, quantity = 1) {
   }
   
   function searchByBarcode() {
-    if (barcodeInput.value.trim()) {
+    try {
+      if (!barcodeInput.value.trim()) {
+        handleValidationError(new Error('Barcode is required'), 'Barcode Search')
+        showError('Barcode Required', 'Please enter a barcode to search')
+        return
+      }
+
       const product = products.value.find(p => p.barcode === barcodeInput.value.trim())
+      
       if (product) {
         openQuantityModal(product)
+        showSuccess('Product Found', `${product.name} found`)
         barcodeInput.value = ''
+        
+        // Add notification
+        if (window.addNotification) {
+          window.addNotification('success', 'Product Found', `${product.name} ready to add`)
+        }
       } else {
-        alert(t('POS.product_not_found'))
+        handleBusinessLogicError(new Error('Product not found'), 'Barcode Search')
+        showWarning('Product Not Found', `No product found with barcode: ${barcodeInput.value}`)
+        barcodeInput.value = ''
       }
+    } catch (error) {
+      handleNetworkError(error, 'Barcode Search')
+      showError('Search Failed', 'An error occurred while searching for product')
     }
   }
 
@@ -260,68 +588,95 @@ function addToCart(product, quantity = 1) {
   }
 
   function startScanner() {
-    if (isScanning.value) return
+    try {
+      if (isScanning.value) return
 
-    isScanning.value = true
-    scannerError.value = ''
+      isScanning.value = true
+      scannerError.value = ''
+      showInfo('Starting Scanner', 'Initializing barcode scanner...')
 
-    Quagga.init({
-      inputStream: {
-        name: "Live",
-        type: "LiveStream",
-        target: document.querySelector('#scanner-container'),
-        constraints: {
-          width: 640,
-          height: 480,
-          facingMode: "environment" // Use back camera
+      Quagga.init({
+        inputStream: {
+          name: "Live",
+          type: "LiveStream",
+          target: document.querySelector('#scanner-container'),
+          constraints: {
+            width: 640,
+            height: 480,
+            facingMode: "environment" // Use back camera
+          },
         },
-      },
-      decoder: {
-        readers: [
-          "code_128_reader",
-          "ean_reader",
-          "ean_8_reader",
-          "code_39_reader",
-          "code_39_vin_reader",
-          "codabar_reader",
-          "upc_reader",
-          "upc_e_reader",
-          "i2of5_reader"
-        ]
-      },
-      locate: true,
-      locator: {
-        patchSize: "medium",
-        halfSample: true
-      }
-    }, function(err) {
-      if (err) {
-        console.error('Scanner initialization error:', err)
-        scannerError.value = 'Failed to initialize camera scanner'
-        isScanning.value = false
-        return
-      }
-      Quagga.start()
-    })
-
-    // Handle successful barcode detection
-    Quagga.onDetected(function(result) {
-      const code = result.codeResult.code
-      
-      // Find product by barcode
-      const product = products.value.find(p => p.barcode === code)
-      if (product) {
-        // Stop scanner and close modal
-        stopScanner()
-        showScannerModal.value = false
+        decoder: {
+          readers: [
+            "code_128_reader",
+            "ean_reader",
+            "ean_8_reader",
+            "code_39_reader",
+            "code_39_vin_reader",
+            "codabar_reader",
+            "upc_reader",
+            "upc_e_reader",
+            "i2of5_reader"
+          ]
+        },
+        locate: true,
+        locator: {
+          patchSize: "medium",
+          halfSample: true
+        }
+      }, function(err) {
+        if (err) {
+          console.error('Scanner initialization error:', err)
+          handleNetworkError(err, 'Barcode Scanner')
+          showError('Scanner Error', 'Failed to initialize barcode scanner')
+          scannerError.value = 'Failed to initialize camera scanner'
+          isScanning.value = false
+          return
+        }
         
-        // Add product to cart
-        openQuantityModal(product)
-      } else {
-        scannerError.value = `Product with barcode ${code} not found`
-        // Keep scanner running for next scan
-      }
-    })
+        showSuccess('Scanner Ready', 'Barcode scanner initialized successfully')
+        Quagga.start()
+      })
+
+      // Handle successful barcode detection
+      Quagga.onDetected(function(result) {
+        try {
+          const code = result.codeResult.code
+          
+          // Find product by barcode
+          const product = products.value.find(p => p.barcode === code)
+          if (product) {
+            showSuccess('Product Scanned', `${product.name} detected`)
+            
+            // Stop scanner and close modal
+            stopScanner()
+            showScannerModal.value = false
+            
+            // Add product to cart
+            openQuantityModal(product)
+            
+            // Add notification
+            if (window.addNotification) {
+              window.addNotification('success', 'Product Scanned', `${product.name} detected`)
+            }
+          } else {
+            handleBusinessLogicError(new Error('Product not found'), 'Barcode Scanner')
+            showWarning('Product Not Found', `No product found with barcode: ${code}`)
+            scannerError.value = `Product with barcode ${code} not found`
+            // Keep scanner running for next scan
+          }
+        } catch (error) {
+          handleNetworkError(error, 'Barcode Detection')
+          showError('Detection Error', 'An error occurred while processing barcode')
+          scannerError.value = 'Error processing barcode'
+        }
+      })
+    } catch (error) {
+      handleNetworkError(error, 'Barcode Scanner')
+      showError('Scanner Failed', 'An error occurred while starting the scanner')
+      scannerError.value = 'Failed to start scanner'
+      isScanning.value = false
+    }
   }
 
   function stopScanner() {
@@ -347,51 +702,145 @@ function addToCart(product, quantity = 1) {
   
   async function processPayment() {
     try {
+      isProcessingPayment.value = true
+      
+      // Validate required data
+      if (!cart.value || cart.value.length === 0) {
+        handleValidationError(new Error('Cart is empty'), 'Payment Processing')
+        showError('Empty Cart', 'Please add items to cart before processing payment')
+        return
+      }
+
+      // Validate payment method
+      if (!paymentMethod.value) {
+        handleValidationError(new Error('Payment method not selected'), 'Payment Processing')
+        showError('Payment Method Required', 'Please select a payment method')
+        return
+      }
+
+      // Validate cash payment
+      if (paymentMethod.value === 'cash' && cashReceived.value < cartTotal.value) {
+        handleValidationError(new Error('Insufficient cash received'), 'Payment Processing')
+        showError('Insufficient Cash', `Cash received ($${cashReceived.value}) is less than total ($${cartTotal.value})`)
+        return
+      }
+
+      showInfo('Processing Payment', 'Creating sale record...')
+
+      // Get default tax rate safely
+      const defaultTaxRate = settingsStore?.getDefaultTaxRate?.rate || 0
+
       // Prepare sale data
       const saleData = {
-        customer_id: selectedCustomerId.value,
-        total_amount: cartSubtotal.value,
-        discount_amount: 0, // TODO: Implement discount calculation
-        tax_amount: cartTax.value,
-        final_amount: cartTotal.value,
-        payment_method: paymentMethod.value,
+        customer_id: selectedCustomerId.value || null,
+        total_amount: cartSubtotal.value || 0,
+        discount_amount: overallDiscountAmount.value || 0,
+        tax_amount: cartTax.value || 0,
+        final_amount: cartTotal.value || 0,
+        payment_method: paymentMethod.value || 'cash',
+        discount_type: discountType.value || 'percentage',
+        discount_value: discountType.value === 'percentage' ? 
+          (discountPercentage.value || 0) : (discountAmount.value || 0),
         items: cart.value.map(item => ({
           product_id: item.id,
-          quantity: item.quantity,
-          unit_price: item.customPrice || item.selling_price,
-          total_amount: (item.customPrice || item.selling_price) * item.quantity,
-          tax_rate: settingsStore.getDefaultTaxRate?.rate || 0
+          quantity: item.quantity || 1,
+          unit_price: item.customPrice || item.selling_price || 0,
+          total_amount: (item.customPrice || item.selling_price || 0) * (item.quantity || 1),
+          discount_amount: item.discount || 0,
+          tax_rate: item.taxRate || defaultTaxRate
         }))
       }
-      
       
       // Create the sale in the database
       const newSale = await salesStore.createSale(saleData)
       
+      if (!newSale) {
+        throw new Error('Failed to create sale record')
+      }
       
       // Get customer and cashier info for receipt
       const customerInfo = selectedCustomerId.value ? 
-        customers.value.find(c => c.id === selectedCustomerId.value) : null
+        (customers.value || []).find(c => c.id === selectedCustomerId.value) : null
       
-      // Show receipt preview with sale data
-      showReceiptPreview.value = true
+      // Store sale data for receipt before clearing cart
+      const receiptSaleData = {
+        customer_id: selectedCustomerId.value,
+        total_amount: cartSubtotal.value,
+        discount_amount: overallDiscountAmount.value,
+        tax_amount: cartTax.value,
+        final_amount: cartTotal.value,
+        payment_method: paymentMethod.value,
+        discount_type: discountType.value,
+        discount_value: discountType.value === 'percentage' ? 
+          (discountPercentage.value || 0) : (discountAmount.value || 0),
+        items: cart.value.map(item => ({
+          product_id: item.id,
+          name: item.name,
+          quantity: item.quantity || 1,
+          unit_price: item.customPrice || item.selling_price || 0,
+          total_amount: (item.customPrice || item.selling_price || 0) * (item.quantity || 1),
+          tax_rate: item.taxRate || defaultTaxRate,
+          discount_amount: item.discount || 0
+        }))
+      }
+      
+      // Show success message
+      showSuccess('Payment Processed', `Sale completed successfully! Total: $${cartTotal.value}`)
+      
+      // Add notification
+      if (window.addNotification) {
+        window.addNotification('success', 'Sale Completed', `Payment processed for $${cartTotal.value}`)
+      }
+      
+      // Close payment modal
+      showPaymentModal.value = false
       
       // Clear cart and reset form
       cart.value = []
       selectedCustomerId.value = null
       discountPercentage.value = 0
-      showPaymentModal.value = false
+      discountAmount.value = 0
+      discountType.value = 'percentage'
+      cashReceived.value = 0
       
-      alert('Sale completed successfully! Check receipt preview.')
+      // Show receipt preview with stored sale data
+      showReceiptPreview.value = true
+      receiptData.value = receiptSaleData
+      
     } catch (error) {
-      console.error('Error processing payment:', error)
-      alert('Error processing payment. Please try again.')
+      if (error.message?.includes('validation') || error.message?.includes('required')) {
+        handleValidationError(error, 'Payment Processing')
+        showError('Validation Error', error.message)
+      } else if (error.message?.includes('database') || error.message?.includes('constraint')) {
+        handleDatabaseError(error, 'Payment Processing')
+        showError('Database Error', 'Failed to save sale record. Please try again.')
+      } else {
+        handleNetworkError(error, 'Payment Processing')
+        showError('Payment Failed', 'An error occurred while processing payment. Please try again.')
+      }
+      
+      // Add notification
+      if (window.addNotification) {
+        window.addNotification('error', 'Payment Failed', 'Could not process payment')
+      }
+    } finally {
+      isProcessingPayment.value = false
     }
   }
   
   function clearCart() {
-    if (confirm('Are you sure you want to clear the cart?')) {
-      cart.value = []
+    try {
+      if (cart.value.length === 0) {
+        handleBusinessLogicError(new Error('Cart is already empty'), 'Clear Cart')
+        showWarning('Empty Cart', 'Cart is already empty')
+        return
+      }
+
+      // Show confirmation dialog
+      showClearCartConfirm.value = true
+    } catch (error) {
+      handleNetworkError(error, 'Clear Cart')
+      showError('Clear Failed', 'An error occurred while clearing the cart')
     }
   }
 
@@ -433,70 +882,164 @@ function addToCart(product, quantity = 1) {
     <div class="flex h-[calc(100vh-80px)]">
       <!-- Products Section -->
       <div class="flex-1 flex flex-col">
-        <!-- Search and Barcode Section -->
+        <!-- Search and Filter Section -->
         <div class="p-4 border-b">
-          <div class="flex space-x-4">
-            <!-- Barcode Scanner Input -->
-            <div class="flex-1">
-              <label class="block text-sm font-medium text-gray-500 mb-2">{{ t('POS.barcode_scanner') }}</label>
-              <div class="flex">
-                <input
-                  v-model="barcodeInput"
-                  type="text"
-                  :placeholder="t('POS.scan_or_enter_barcode')"
-                  class="flex-1 px-4 py-3 text-lg border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  @keydown.enter="searchByBarcode"
+          <div class="flex flex-col gap-4">
+            <!-- Main Search Bar -->
+            <div class="flex flex-col lg:flex-row gap-4">
+              <!-- Barcode Scanner Input -->
+              <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-500 mb-2">{{ t('POS.barcode_scanner') }}</label>
+                <div class="flex">
+                  <input
+                    v-model="barcodeInput"
+                    type="text"
+                    :placeholder="t('POS.scan_or_enter_barcode')"
+                    class="flex-1 px-4 py-3 text-lg border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    @keydown.enter="searchByBarcode"
+                  >
+                  <button
+                    @click="openScanner"
+                    class="px-4 py-3 bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    :title="t('POS.open_camera_scanner')"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                  </button>
+                  <button
+                    @click="searchByBarcode"
+                    class="px-6 py-3 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Product Search Input -->
+              <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-500 mb-2">Search Products</label>
+                <div class="relative">
+                  <input
+                    v-model="searchQuery"
+                    @keydown="handleSearchKeydown"
+                    type="text"
+                    placeholder="Search by name, SKU, barcode, description, category, or supplier..."
+                    class="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                  <button 
+                    v-if="searchQuery"
+                    @click="searchQuery = ''"
+                    class="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                  >
+                    <span class="material-icons-outlined text-sm">clear</span>
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Filter Controls -->
+              <div class="flex gap-2 items-end">
+                <button 
+                  @click="showAdvancedFilters = !showAdvancedFilters"
+                  class="btn btn-secondary rounded-lg px-4 py-3 hover:bg-gray-500 flex items-center"
                 >
-                <button
-                  @click="openScanner"
-                  class="px-4 py-3 bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  :title="t('POS.open_camera_scanner')"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  </svg>
+                  <span class="material-icons-outlined">tune</span>
+                  Filters
+                  <span v-if="activeFiltersCount > 0" class="ml-2 bg-blue-500 text-white text-xs rounded-full px-2 py-1">
+                    {{ activeFiltersCount }}
+                  </span>
                 </button>
-                <button
-                  @click="searchByBarcode"
-                  class="px-6 py-3 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                <button 
+                  @click="clearAllFilters"
+                  class="btn btn-secondary rounded-lg px-4 py-3 hover:bg-gray-500 flex items-center"
                 >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                  </svg>
+                  <span class="material-icons-outlined">clear_all</span>
+                  Clear
                 </button>
               </div>
             </div>
             
-            <!-- Search Input -->
-            <div class="flex-1">
-              <label class="block text-sm font-medium text-gray-500 mb-2">Search Products</label>
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Search by name, SKU, or description..."
-                class="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
+            <!-- Advanced Filters Panel -->
+            <div v-if="showAdvancedFilters" class="border-t pt-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Category Filter -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <select v-model="categoryFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Categories</option>
+                    <option v-for="category in uniqueCategories" :key="category.id" :value="category.id">{{ category.name }}</option>
+                  </select>
+                </div>
+                
+                <!-- Price Range Filter -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Price Range</label>
+                  <select v-model="priceRangeFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Prices</option>
+                    <option value="low">Under $10</option>
+                    <option value="medium">$10 - $50</option>
+                    <option value="high">$50 - $100</option>
+                    <option value="premium">Over $100</option>
+                  </select>
+                </div>
+                
+                <!-- Stock Level Filter -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Stock Level</label>
+                  <select v-model="stockFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Stock Levels</option>
+                    <option value="in_stock">In Stock</option>
+                    <option value="low_stock">Low Stock</option>
+                    <option value="out_of_stock">Out of Stock</option>
+                    <option value="overstocked">Overstocked</option>
+                  </select>
+                </div>
+                
+                <!-- Supplier Filter -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+                  <select v-model="supplierFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Suppliers</option>
+                    <option v-for="supplier in uniqueSuppliers" :key="supplier.id" :value="supplier.id">{{ supplier.name }}</option>
+                  </select>
+                </div>
+              </div>
+              
+              <!-- Sort Options -->
+              <div class="mt-4 flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                  <div class="flex gap-2">
+                    <select v-model="sortBy" class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="name">Name</option>
+                      <option value="price">Price</option>
+                      <option value="stock">Stock Level</option>
+                      <option value="sku">SKU</option>
+                      <option value="category">Category</option>
+                    </select>
+                    <button 
+                      @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
+                      class="btn btn-secondary rounded-lg px-4 py-2 hover:bg-gray-500 flex items-center"
+                    >
+                      <span class="material-icons-outlined">
+                        {{ sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                      </span>
+                      {{ sortOrder === 'asc' ? 'Ascending' : 'Descending' }}
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Results Count -->
+                <div class="flex items-end">
+                  <div class="text-sm text-gray-600">
+                    {{ filteredProducts.length }} of {{ products.length }} products
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Category Filter -->
-        <div class=" p-4 border-b">
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="category in categories"
-              :key="category"
-              @click="selectedCategory = category"
-              :class="[
-                'px-4 py-2 rounded-lg font-medium transition-colors',
-                selectedCategory === category
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              ]"
-            >
-              {{ category === 'all' ? 'All Categories' : `Category ${category}` }}
-            </button>
           </div>
         </div>
 
@@ -636,6 +1179,12 @@ function addToCart(product, quantity = 1) {
             <div class="flex justify-between text-sm">
               <span class="text-gray-400">Subtotal:</span>
               <span class="font-medium">{{ formatCurrency(cartSubtotal) }}</span>
+            </div>
+            
+            <!-- Discount Line -->
+            <div v-if="overallDiscountAmount > 0" class="flex justify-between text-sm text-green-600">
+              <span class="text-gray-400">Discount:</span>
+              <span class="font-medium">-{{ formatCurrency(overallDiscountAmount) }}</span>
             </div>
             
             <!-- Tax Breakdown -->
@@ -787,6 +1336,43 @@ function addToCart(product, quantity = 1) {
             </select>
           </div>
           
+          <!-- Discount Section -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Discount</label>
+            <div class="flex space-x-2 mb-2">
+              <select
+                v-model="discountType"
+                class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="percentage">Percentage (%)</option>
+                <option value="amount">Fixed Amount ($)</option>
+              </select>
+              <input
+                v-if="discountType === 'percentage'"
+                v-model.number="discountPercentage"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                placeholder="0"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+              <input
+                v-else
+                v-model.number="discountAmount"
+                type="number"
+                min="0"
+                :max="cartSubtotal"
+                step="0.01"
+                placeholder="0.00"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+            </div>
+            <div v-if="overallDiscountAmount > 0" class="text-sm text-green-600">
+              Discount: -{{ formatCurrency(overallDiscountAmount) }}
+            </div>
+          </div>
+
           <div v-if="paymentMethod === 'cash'">
             <label class="block text-sm font-medium text-gray-700 mb-2">Cash Received</label>
             <input
@@ -800,10 +1386,23 @@ function addToCart(product, quantity = 1) {
             </div>
           </div>
           
-          <div class="bg-gray-50 p-3 rounded-lg">
-            <div class="text-center">
-              <div class="text-2xl font-bold text-blue-600">{{ formatCurrency(cartTotal) }}</div>
-              <div class="text-sm text-gray-500">Total Amount</div>
+          <!-- Order Summary -->
+          <div class="bg-gray-50 p-3 rounded-lg space-y-2">
+            <div class="flex justify-between text-sm">
+              <span>Subtotal:</span>
+              <span>{{ formatCurrency(cartSubtotal) }}</span>
+            </div>
+            <div v-if="overallDiscountAmount > 0" class="flex justify-between text-sm text-green-600">
+              <span>Discount:</span>
+              <span>-{{ formatCurrency(overallDiscountAmount) }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span>Tax:</span>
+              <span>{{ formatCurrency(cartTax) }}</span>
+            </div>
+            <div class="border-t pt-2 flex justify-between font-semibold">
+              <span>Total:</span>
+              <span class="text-blue-600">{{ formatCurrency(cartTotal) }}</span>
             </div>
           </div>
         </div>
@@ -917,27 +1516,91 @@ function addToCart(product, quantity = 1) {
 
     <!-- Receipt Preview Modal -->
     <ReceiptPreview 
-      v-if="showReceiptPreview"
-      :sale-data="{
-        customer_id: selectedCustomerId.value,
-        total_amount: cartSubtotal.value,
-        discount_amount: 0,
-        tax_amount: cartTax.value,
-        final_amount: cartTotal.value,
-        payment_method: paymentMethod.value,
-        items: cart.value.map(item => ({
-          product_id: item.id,
-          name: item.name,
-          quantity: item.quantity,
-          unit_price: item.customPrice || item.selling_price,
-          total_amount: (item.customPrice || item.selling_price) * item.quantity,
-          tax_rate: settingsStore.getDefaultTaxRate?.rate || 0,
-          discount_amount: item.discount || 0
-        }))
-      }"
-      :customer="selectedCustomerId.value ? customers.find(c => c.id === selectedCustomerId.value) : null"
+      v-if="showReceiptPreview && receiptData"
+      :sale-data="receiptData"
+      :customer="receiptData.customer_id ? customers.find(c => c.id === receiptData.customer_id) : null"
       :cashier="{ name: 'Current User' }"
-      @close="showReceiptPreview = false"
+      @close="showReceiptPreview = false; receiptData = null"
+    />
+    
+    <!-- Loading Spinner -->
+    <LoadingSpinner 
+      v-if="isLoading || isProcessingPayment || isClearingCart"
+      :message="getLoadingMessage()"
+      :fullscreen="true"
+    />
+    
+    <!-- Confirmation Dialog for Clear Cart -->
+    <ConfirmationDialog
+      :is-open="showClearCartConfirm"
+      :title="'Clear Cart'"
+      :message="'Are you sure you want to clear all items from the cart? This action cannot be undone.'"
+      :type="'warning'"
+      :confirm-text="'Clear Cart'"
+      :cancel-text="'Cancel'"
+      :is-loading="isClearingCart"
+      @confirm="confirmClearCart"
+      @cancel="cancelClearCart"
     />
   </div>
 </template>
+
+<style scoped>
+.btn {
+  @apply transition-colors duration-200;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700;
+}
+
+.btn-secondary {
+  @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
+}
+
+/* Dark theme support */
+:deep(.bg-gray-100) {
+  @apply bg-gray-800/30;
+}
+
+:deep(.text-gray-700) {
+  @apply text-gray-300;
+}
+
+:deep(.text-gray-600) {
+  @apply text-gray-400;
+}
+
+:deep(.border-gray-200) {
+  @apply border-gray-600;
+}
+
+:deep(.border-gray-300) {
+  @apply border-gray-500;
+}
+
+/* Dark theme adjustments */
+:deep(.bg-blue-100) {
+  @apply bg-blue-900/30;
+}
+
+:deep(.text-blue-600) {
+  @apply text-blue-400;
+}
+
+:deep(.bg-green-100) {
+  @apply bg-green-900/30;
+}
+
+:deep(.text-green-600) {
+  @apply text-green-400;
+}
+
+:deep(.bg-red-100) {
+  @apply bg-red-900/30;
+}
+
+:deep(.text-red-600) {
+  @apply text-red-400;
+}
+</style>

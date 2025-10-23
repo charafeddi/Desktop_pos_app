@@ -64,20 +64,129 @@
                     </div>
                 </div>
 
-                <!-- Search Bar -->
+                <!-- Search and Filter Bar -->
                 <div class="bg-transparent rounded-lg shadow p-4 mb-6">
-                    <div class="flex flex-col md:flex-row gap-4">
-                        <div class="flex-1">
-                            <div class="relative">
-                                <input 
-                                    type="text" 
-                                    v-model="searchQuery"
-                                    :placeholder="t('Supplier.search_suppliers')"
-                                    class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    <div class="flex flex-col gap-4">
+                        <!-- Main Search Bar -->
+                        <div class="flex flex-col md:flex-row gap-4">
+                            <div class="flex-1">
+                                <div class="relative">
+                                    <input 
+                                        type="text" 
+                                        v-model="searchQuery"
+                                        @keydown="handleSearchKeydown"
+                                        placeholder="Search suppliers by name, contact person, email, phone, city, country, or address..."
+                                        class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                    <span class="material-icons-outlined absolute left-3 top-3 text-gray-400">
+                                        search
+                                    </span>
+                                    <button 
+                                        v-if="searchQuery"
+                                        @click="searchQuery = ''"
+                                        class="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                                    >
+                                        <span class="material-icons-outlined text-sm">clear</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button 
+                                    @click="showAdvancedFilters = !showAdvancedFilters"
+                                    class="btn btn-secondary rounded-lg px-4 py-2 hover:bg-gray-500 flex items-center"
                                 >
-                                <span class="material-icons-outlined absolute left-3 top-3 text-gray-400">
-                                    search
-                                </span>
+                                    <span class="material-icons-outlined">tune</span>
+                                    Advanced Filters
+                                    <span v-if="activeFiltersCount > 0" class="ml-2 bg-blue-500 text-white text-xs rounded-full px-2 py-1">
+                                        {{ activeFiltersCount }}
+                                    </span>
+                                </button>
+                                <button 
+                                    @click="clearAllFilters"
+                                    class="btn btn-secondary rounded-lg px-4 py-2 hover:bg-gray-500 flex items-center"
+                                >
+                                    <span class="material-icons-outlined">clear_all</span>
+                                    Clear All
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Advanced Filters Panel -->
+                        <div v-if="showAdvancedFilters" class="border-t pt-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <!-- Country Filter -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                                    <select v-model="countryFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="">All Countries</option>
+                                        <option v-for="country in uniqueCountries" :key="country" :value="country">{{ country }}</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- City Filter -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                    <select v-model="cityFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="">All Cities</option>
+                                        <option v-for="city in uniqueCities" :key="city" :value="city">{{ city }}</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Contact Type Filter -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Contact Type</label>
+                                    <select v-model="contactTypeFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="">All Contact Types</option>
+                                        <option value="with_email">With Email</option>
+                                        <option value="with_phone">With Phone</option>
+                                        <option value="with_both">With Both</option>
+                                        <option value="incomplete">Incomplete Contact</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Business Volume Filter -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Business Volume</label>
+                                    <select v-model="volumeFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="">All Volumes</option>
+                                        <option value="high">High Volume ($1000+)</option>
+                                        <option value="medium">Medium Volume ($100-$1000)</option>
+                                        <option value="low">Low Volume (Under $100)</option>
+                                        <option value="none">No Business</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Sort Options -->
+                            <div class="mt-4 flex flex-col md:flex-row gap-4">
+                                <div class="flex-1">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                                    <div class="flex gap-2">
+                                        <select v-model="sortBy" class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option value="name">Name</option>
+                                            <option value="total_amount">Business Volume</option>
+                                            <option value="product_count">Product Count</option>
+                                            <option value="created_at">Date Created</option>
+                                            <option value="updated_at">Last Updated</option>
+                                        </select>
+                                        <button 
+                                            @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
+                                            class="btn btn-secondary rounded-lg px-4 py-2 hover:bg-gray-500 flex items-center"
+                                        >
+                                            <span class="material-icons-outlined">
+                                                {{ sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                                            </span>
+                                            {{ sortOrder === 'asc' ? 'Ascending' : 'Descending' }}
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Results Count -->
+                                <div class="flex items-end">
+                                    <div class="text-sm text-gray-600">
+                                        {{ filteredSuppliers.length }} of {{ suppliers.length }} suppliers
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -244,14 +353,27 @@
 import { ref, computed, onMounted } from 'vue'
 import { useSupplierStore } from '../../stores/supplier.store'
 import { useI18n } from 'vue-i18n'
+import { useToast } from '@/utils/toastManager'
+import { useErrorHandler } from '@/utils/errorHandler'
 const supplierStore = useSupplierStore()
 const { t } = useI18n()
+const { success: showSuccess, error: showError, warning: showWarning, info: showInfo } = useToast()
+const { handleNetworkError, handleDatabaseError, handleValidationError } = useErrorHandler()
 // Reactive data
 const searchQuery = ref('')
 const showAddForm = ref(false)
 const showEditForm = ref(false)
 const selectedSupplier = ref(null)
 const loading = ref(false)
+
+// Advanced filter variables
+const countryFilter = ref('')
+const cityFilter = ref('')
+const contactTypeFilter = ref('')
+const volumeFilter = ref('')
+const sortBy = ref('name')
+const sortOrder = ref('asc')
+const showAdvancedFilters = ref(false)
 
 const formData = ref({
     name: '',
@@ -274,17 +396,157 @@ const lastUpdated = computed(() => {
     return formatDate(latest.updated_at)
 })
 
+// Unique values for filter dropdowns
+const uniqueCountries = computed(() => {
+    const countries = suppliers.value
+        .map(s => s.country)
+        .filter(Boolean)
+        .filter((country, index, arr) => arr.indexOf(country) === index)
+    return countries.sort()
+})
+
+const uniqueCities = computed(() => {
+    const cities = suppliers.value
+        .map(s => s.city)
+        .filter(Boolean)
+        .filter((city, index, arr) => arr.indexOf(city) === index)
+    return cities.sort()
+})
+
+// Active filters count
+const activeFiltersCount = computed(() => {
+    let count = 0
+    if (countryFilter.value) count++
+    if (cityFilter.value) count++
+    if (contactTypeFilter.value) count++
+    if (volumeFilter.value) count++
+    return count
+})
+
+// Advanced search and filter implementation
 const filteredSuppliers = computed(() => {
-    if (!searchQuery.value) return suppliers.value
-    const query = searchQuery.value.toLowerCase()
-    return suppliers.value.filter(s =>
-        (s.name && s.name.toLowerCase().includes(query)) ||
-        (s.contact_person && s.contact_person.toLowerCase().includes(query)) ||
-        (s.email && s.email.toLowerCase().includes(query)) ||
-        (s.phone && s.phone.toLowerCase().includes(query)) ||
-        (s.city && s.city.toLowerCase().includes(query)) ||
-        (s.country && s.country.toLowerCase().includes(query))
-    )
+    if (!Array.isArray(suppliers.value) || suppliers.value.length === 0) {
+        return []
+    }
+    
+    let filtered = [...suppliers.value]
+    
+    // Text search - search in name, contact person, email, phone, city, country, address
+    if (searchQuery.value && searchQuery.value.trim()) {
+        const query = searchQuery.value.toLowerCase().trim()
+        filtered = filtered.filter(supplier => {
+            const name = (supplier.name || '').toLowerCase()
+            const contactPerson = (supplier.contact_person || '').toLowerCase()
+            const email = (supplier.email || '').toLowerCase()
+            const phone = (supplier.phone || '').toLowerCase()
+            const city = (supplier.city || '').toLowerCase()
+            const country = (supplier.country || '').toLowerCase()
+            const address = (supplier.address || '').toLowerCase()
+            
+            return name.includes(query) ||
+                   contactPerson.includes(query) ||
+                   email.includes(query) ||
+                   phone.includes(query) ||
+                   city.includes(query) ||
+                   country.includes(query) ||
+                   address.includes(query)
+        })
+    }
+    
+    // Country filter
+    if (countryFilter.value && countryFilter.value !== '') {
+        filtered = filtered.filter(supplier => 
+            supplier.country === countryFilter.value
+        )
+    }
+    
+    // City filter
+    if (cityFilter.value && cityFilter.value !== '') {
+        filtered = filtered.filter(supplier => 
+            supplier.city === cityFilter.value
+        )
+    }
+    
+    // Contact type filter
+    if (contactTypeFilter.value && contactTypeFilter.value !== '') {
+        filtered = filtered.filter(supplier => {
+            const hasEmail = !!supplier.email
+            const hasPhone = !!supplier.phone
+            
+            switch (contactTypeFilter.value) {
+                case 'with_email':
+                    return hasEmail
+                case 'with_phone':
+                    return hasPhone
+                case 'with_both':
+                    return hasEmail && hasPhone
+                case 'incomplete':
+                    return !hasEmail && !hasPhone
+                default:
+                    return true
+            }
+        })
+    }
+    
+    // Business volume filter
+    if (volumeFilter.value && volumeFilter.value !== '') {
+        filtered = filtered.filter(supplier => {
+            const amount = Number(supplier.total_amount_count) || 0
+            
+            switch (volumeFilter.value) {
+                case 'high':
+                    return amount >= 1000
+                case 'medium':
+                    return amount >= 100 && amount < 1000
+                case 'low':
+                    return amount > 0 && amount < 100
+                case 'none':
+                    return amount === 0
+                default:
+                    return true
+            }
+        })
+    }
+    
+    // Sort suppliers
+    if (sortBy.value && sortBy.value !== '') {
+        filtered.sort((a, b) => {
+            let aValue, bValue
+            
+            switch (sortBy.value) {
+                case 'name':
+                    aValue = (a.name || '').toLowerCase()
+                    bValue = (b.name || '').toLowerCase()
+                    break
+                case 'total_amount':
+                    aValue = Number(a.total_amount_count) || 0
+                    bValue = Number(b.total_amount_count) || 0
+                    break
+                case 'product_count':
+                    aValue = Number(a.product_count) || 0
+                    bValue = Number(b.product_count) || 0
+                    break
+                case 'created_at':
+                    aValue = new Date(a.created_at || 0)
+                    bValue = new Date(b.created_at || 0)
+                    break
+                case 'updated_at':
+                    aValue = new Date(a.updated_at || 0)
+                    bValue = new Date(b.updated_at || 0)
+                    break
+                default:
+                    return 0
+            }
+            
+            if (sortOrder.value === 'desc') {
+                return aValue > bValue ? -1 : aValue < bValue ? 1 : 0
+            } else {
+                return aValue < bValue ? -1 : aValue > bValue ? 1 : 0
+            }
+        })
+    }
+    
+    return filtered
 })
 
 // Methods
@@ -296,6 +558,33 @@ const formatDate = (dateString) => {
 const formatCurrency = (value) => {
     const amount = Number(value || 0)
     return amount.toLocaleString(undefined, { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
+}
+
+// Clear all filters method
+const clearAllFilters = () => {
+    searchQuery.value = ''
+    countryFilter.value = ''
+    cityFilter.value = ''
+    contactTypeFilter.value = ''
+    volumeFilter.value = ''
+    sortBy.value = 'name'
+    sortOrder.value = 'asc'
+    showAdvancedFilters.value = false
+    
+    showInfo('Filters Cleared', 'All search and filter options have been reset')
+}
+
+// Handle search input key events
+const handleSearchKeydown = (event) => {
+    if (event.key === 'Enter') {
+        // Focus on first result or show advanced filters
+        if (filteredSuppliers.value.length === 0) {
+            showAdvancedFilters.value = true
+        }
+    } else if (event.key === 'Escape') {
+        searchQuery.value = ''
+        showAdvancedFilters.value = false
+    }
 }
 
 const closeForm = () => {
@@ -366,11 +655,20 @@ const deleteSupplier = async (id) => {
 }
 
 // Load data on mount
-onMounted(() => {
-    supplierStore.fetchSuppliers()
+onMounted(async () => {
+    try {
+        loading.value = true
+        showInfo('Loading Suppliers', 'Fetching supplier data...')
+        await supplierStore.fetchSuppliers()
+        showSuccess('Suppliers Loaded', 'Supplier data loaded successfully')
+    } catch (error) {
+        handleNetworkError(error, 'Supplier Data Loading')
+        showError('Loading Failed', 'Failed to load supplier data. Please refresh the page.')
+    } finally {
+        loading.value = false
+    }
 })
 </script>
-
 <style scoped>
 .btn {
     @apply transition-colors duration-200;
@@ -378,6 +676,31 @@ onMounted(() => {
 
 .btn-primary {
     @apply bg-blue-600 text-white hover:bg-blue-700;
+}
+
+.btn-secondary {
+    @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
+}
+
+/* Dark theme support */
+:deep(.bg-gray-100) {
+    @apply bg-gray-800/30;
+}
+
+:deep(.text-gray-700) {
+    @apply text-gray-300;
+}
+
+:deep(.text-gray-600) {
+    @apply text-gray-400;
+}
+
+:deep(.border-gray-200) {
+    @apply border-gray-600;
+}
+
+:deep(.border-gray-300) {
+    @apply border-gray-500;
 }
 
 /* Dark theme adjustments */

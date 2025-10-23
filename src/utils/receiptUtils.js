@@ -27,10 +27,19 @@ class ReceiptItem {
   constructor(name, quantity, price, discount = 0, tax = 0) {
     this.name = name
     this.quantity = quantity
-    this.unit_price = price
+    this.original_price = price
     this.discount = discount
     this.tax_amount = tax
-    this.subtotal = ((quantity * price) - discount)
+    
+    // Calculate discounted unit price (for individual item discounts)
+    if (discount > 0) {
+      this.unit_price = price - (discount / quantity)
+    } else {
+      this.unit_price = price
+    }
+    
+    // Calculate subtotal and total
+    this.subtotal = (quantity * this.unit_price)
     this.total = this.subtotal + (this.subtotal * (tax / 100))
   }
 }
@@ -368,6 +377,14 @@ export function createReceiptFromSale(saleData, customer = null, cashier = null)
         tax_rate: item.tax_rate || receipt.config.tax_rate
       })
     })
+  }
+
+  // Apply overall discount to the receipt
+  if (saleData.discount_amount && saleData.discount_amount > 0) {
+    receipt.discount_total = saleData.discount_amount
+    receipt.subtotal = saleData.total_amount || receipt.subtotal
+    receipt.tax_total = saleData.tax_amount || receipt.tax_total
+    receipt.total = saleData.final_amount || receipt.total
   }
 
   // Set payment info

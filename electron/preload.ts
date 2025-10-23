@@ -88,6 +88,12 @@ contextBridge.exposeInMainWorld(
       delete: (id: number) => ipcRenderer.invoke('delete-sale', id)
     },
 
+    // Analytics methods
+    analytics: {
+      supplierSpend: () => ipcRenderer.invoke('analytics:supplier-spend'),
+      productPriceCompare: () => ipcRenderer.invoke('analytics:product-price-compare'),
+    },
+
     returns: {
       getAll: () => ipcRenderer.invoke('get-returns'),
       getById: (id: number) => ipcRenderer.invoke('get-return-by-id', id),
@@ -187,6 +193,56 @@ contextBridge.exposeInMainWorld(
       startAutoSync: () => ipcRenderer.invoke('cloud-sync:start-auto-sync'),
       stopAutoSync: () => ipcRenderer.invoke('cloud-sync:stop-auto-sync'),
       getStatus: () => ipcRenderer.invoke('cloud-sync:get-status')
-    }
+    },
+
+    // Settings methods
+    settings: {
+      getCompanyInfo: () => ipcRenderer.invoke('settings:get-company-info'),
+      saveCompanyInfo: (companyInfo: any) => ipcRenderer.invoke('settings:save-company-info', companyInfo),
+      getTaxRates: () => ipcRenderer.invoke('settings:get-tax-rates'),
+      saveTaxRates: (taxRates: any) => ipcRenderer.invoke('settings:save-tax-rates', taxRates),
+      getPrinterSettings: () => ipcRenderer.invoke('settings:get-printer-settings'),
+      savePrinterSettings: (printerSettings: any) => ipcRenderer.invoke('settings:save-printer-settings', printerSettings),
+      getAll: () => ipcRenderer.invoke('settings:get-all'),
+      setMultiple: (settings: any) => ipcRenderer.invoke('settings:set-multiple', settings),
+      getByKey: (key: string) => ipcRenderer.invoke('settings:get-by-key', key),
+      setByKey: (key: string, value: string) => ipcRenderer.invoke('settings:set-by-key', key, value),
+      deleteByKey: (key: string) => ipcRenderer.invoke('settings:delete-by-key', key)
+    },
+
+    // Refresh event listeners
+    onRefreshStart: (callback: () => void) => ipcRenderer.on('app-refresh-start', callback),
+    onRefreshComplete: (callback: () => void) => ipcRenderer.on('app-refresh-complete', callback),
+    onRefreshError: (callback: (error: string) => void) => ipcRenderer.on('app-refresh-error', (_event, error) => callback(error)),
+    
+    // Individual refresh event listeners
+    onRefreshProducts: (callback: () => void) => ipcRenderer.on('refresh-products', callback),
+    onRefreshSales: (callback: () => void) => ipcRenderer.on('refresh-sales', callback),
+    onRefreshCustomers: (callback: () => void) => ipcRenderer.on('refresh-customers', callback),
+    onRefreshCategories: (callback: () => void) => ipcRenderer.on('refresh-categories', callback),
+    onRefreshSuppliers: (callback: () => void) => ipcRenderer.on('refresh-suppliers', callback),
+    onRefreshAnalytics: (callback: () => void) => ipcRenderer.on('refresh-analytics', callback),
+    onRefreshTodos: (callback: () => void) => ipcRenderer.on('refresh-todos', callback),
+    onRefreshSettings: (callback: () => void) => ipcRenderer.on('refresh-settings', callback),
+
+  // Remove refresh event listeners
+  removeRefreshListeners: () => {
+    ipcRenderer.removeAllListeners('app-refresh-start');
+    ipcRenderer.removeAllListeners('app-refresh-complete');
+    ipcRenderer.removeAllListeners('app-refresh-error');
+    ipcRenderer.removeAllListeners('refresh-products');
+    ipcRenderer.removeAllListeners('refresh-sales');
+    ipcRenderer.removeAllListeners('refresh-customers');
+    ipcRenderer.removeAllListeners('refresh-categories');
+    ipcRenderer.removeAllListeners('refresh-suppliers');
+    ipcRenderer.removeAllListeners('refresh-analytics');
+    ipcRenderer.removeAllListeners('refresh-todos');
+    ipcRenderer.removeAllListeners('refresh-settings');
+  },
+
+  // Bulk operations
+  bulkUpdateProducts: (productIds: number[], updateData: any) => ipcRenderer.invoke('bulk-update-products', productIds, updateData),
+  bulkDeleteProducts: (productIds: number[]) => ipcRenderer.invoke('bulk-delete-products', productIds),
+  exportProducts: (productIds: number[]) => ipcRenderer.invoke('export-products', productIds)
   }
 ) 

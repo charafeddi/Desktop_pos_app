@@ -12,7 +12,9 @@
               placeholder="Full Name" 
               v-model="formData.name"
               required
+              :class="{ 'error': validationErrors.name, 'valid': formData.name && !validationErrors.name }"
             />
+            <div v-if="validationErrors.name" class="field-error">{{ validationErrors.name }}</div>
           </div>
           <div class="form-group">
             <input 
@@ -20,7 +22,9 @@
               placeholder="Email" 
               v-model="formData.email"
               required
+              :class="{ 'error': validationErrors.email, 'valid': formData.email && !validationErrors.email }"
             />
+            <div v-if="validationErrors.email" class="field-error">{{ validationErrors.email }}</div>
           </div>
           <div class="form-group">
             <input 
@@ -28,19 +32,23 @@
               placeholder="Mobile Phone" 
               v-model="formData.mobile_phone"
               required
+              :class="{ 'error': validationErrors.mobile_phone, 'valid': formData.mobile_phone && !validationErrors.mobile_phone }"
             />
+            <div v-if="validationErrors.mobile_phone" class="field-error">{{ validationErrors.mobile_phone }}</div>
           </div>
           <div class="form-group">
             <select 
               v-model="formData.role"
               required
               class="form-select"
+              :class="{ 'error': validationErrors.role, 'valid': formData.role && !validationErrors.role }"
             >
               <option value="" disabled>Select Role</option>
               <option value="admin">Admin</option>
               <option value="manager">Manager</option>
               <option value="cashier">Cashier</option>
             </select>
+            <div v-if="validationErrors.role" class="field-error">{{ validationErrors.role }}</div>
           </div>
           <div class="password-group">
             <div class="form-group">
@@ -49,7 +57,9 @@
                 placeholder="Password" 
                 v-model="formData.password"
                 required
+                :class="{ 'error': validationErrors.password, 'valid': formData.password && !validationErrors.password }"
               />
+              <div v-if="validationErrors.password" class="field-error">{{ validationErrors.password }}</div>
             </div>
             <div class="form-group">
               <input 
@@ -57,14 +67,16 @@
                 placeholder="Confirm Password" 
                 v-model="confirmPassword"
                 required
+                :class="{ 'error': validationErrors.confirmPassword, 'valid': confirmPassword && !validationErrors.confirmPassword }"
               />
+              <div v-if="validationErrors.confirmPassword" class="field-error">{{ validationErrors.confirmPassword }}</div>
             </div>
           </div>
           <div class="error-message" v-if="error">
             {{ error }}
           </div>
-          <button class="opacity" type="submit" :disabled="isLoading">
-            <span v-if="isLoading">Registering...</span>
+          <button class="opacity" type="submit" :disabled="isRegistering || isValidationInProgress">
+            <span v-if="isRegistering || isValidationInProgress">Processing...</span>
             <span v-else>CREATE ACCOUNT</span>
           </button>
         </form>
@@ -75,6 +87,14 @@
       <div class="circle circle-two"></div>
     </div>
     <div class="theme-btn-container"></div>
+    
+    <!-- Loading Spinner -->
+    <LoadingSpinner 
+      v-if="isRegistering || isValidationInProgress"
+      :message="getLoadingMessage()"
+      :fullscreen="true"
+      :overlay="true"
+    />
   </section>
 </template>
 
@@ -82,9 +102,15 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+import { useToast } from '@/utils/toastManager'
+import { useErrorHandler } from '@/utils/errorHandler'
 
 // Composables
 const router = useRouter()
+const { success: showSuccess, error: showError, warning: showWarning, info: showInfo } = useToast()
+const { handleNetworkError, handleDatabaseError, handleValidationError, handleBusinessLogicError } = useErrorHandler()
 
 // Stores
 const authStore = useAuthStore()
@@ -101,6 +127,20 @@ const formData = reactive({
 const confirmPassword = ref('')
 const isLoading = ref(false)
 const error = ref('')
+
+// Loading states
+const isRegistering = ref(false)
+const isValidationInProgress = ref(false)
+
+// Form validation errors
+const validationErrors = reactive({
+  name: '',
+  email: '',
+  mobile_phone: '',
+  password: '',
+  confirmPassword: '',
+  role: ''
+})
 
 const themes = [
   {
@@ -135,6 +175,84 @@ const themes = [
   }
 ]
 
+// Helper methods
+const getLoadingMessage = () => {
+  if (isRegistering.value) return 'Creating your account...'
+  if (isValidationInProgress.value) return 'Validating form...'
+  return 'Processing...'
+}
+
+const validateForm = () => {
+  isValidationInProgress.value = true
+  
+  // Clear previous errors
+  Object.keys(validationErrors).forEach(key => {
+    validationErrors[key] = ''
+  })
+  
+  let isValid = true
+  
+  // Name validation
+  if (!formData.name.trim()) {
+    validationErrors.name = 'Full name is required'
+    isValid = false
+  } else if (formData.name.trim().length < 2) {
+    validationErrors.name = 'Name must be at least 2 characters'
+    isValid = false
+  } else if (formData.name.trim().length > 50) {
+    validationErrors.name = 'Name must be less than 50 characters'
+    isValid = false
+  }
+  
+  // Email validation
+  if (!formData.email.trim()) {
+    validationErrors.email = 'Email is required'
+    isValid = false
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+    validationErrors.email = 'Please enter a valid email address'
+    isValid = false
+  }
+  
+  // Phone validation
+  if (!formData.mobile_phone.trim()) {
+    validationErrors.mobile_phone = 'Mobile phone is required'
+    isValid = false
+  } else if (!/^[+]?[0-9\s\-()]{10,15}$/.test(formData.mobile_phone.trim())) {
+    validationErrors.mobile_phone = 'Please enter a valid phone number'
+    isValid = false
+  }
+  
+  // Role validation
+  if (!formData.role) {
+    validationErrors.role = 'Please select a role'
+    isValid = false
+  }
+  
+  // Password validation
+  if (!formData.password) {
+    validationErrors.password = 'Password is required'
+    isValid = false
+  } else if (formData.password.length < 6) {
+    validationErrors.password = 'Password must be at least 6 characters'
+    isValid = false
+  } else if (formData.password.length > 128) {
+    validationErrors.password = 'Password must be less than 128 characters'
+    isValid = false
+  }
+  
+  // Confirm password validation
+  if (!confirmPassword.value) {
+    validationErrors.confirmPassword = 'Please confirm your password'
+    isValid = false
+  } else if (formData.password !== confirmPassword.value) {
+    validationErrors.confirmPassword = 'Passwords do not match'
+    isValid = false
+  }
+  
+  isValidationInProgress.value = false
+  return isValid
+}
+
 // Methods
 function setTheme(theme) {
   const root = document.querySelector(":root")
@@ -166,34 +284,66 @@ onMounted(() => {
 async function handleRegister() {
   try {
     error.value = ''
-    isLoading.value = true
     
-    if (formData.password !== confirmPassword.value) {
-      error.value = 'Passwords do not match'
+    // Validate form
+    if (!validateForm()) {
+      handleValidationError(new Error('Form validation failed'), 'Registration')
+      showError('Validation Error', 'Please fix the errors below and try again')
       return
     }
-
-    if (!formData.role) {
-      error.value = 'Please select a role'
-      return
-    }
-
+    
+    isRegistering.value = true
+    showInfo('Creating Account', 'Setting up your new account...')
+    
     // Create a clean object with only the data we want to send
     const registrationData = {
-      name: formData.name,
-      email: formData.email,
-      mobile_phone: formData.mobile_phone,
+      name: formData.name.trim(),
+      email: formData.email.trim().toLowerCase(),
+      mobile_phone: formData.mobile_phone.trim(),
       password: formData.password,
       role: formData.role
     }
-
+    
     await authStore.register(registrationData)
+    
+    showSuccess('Account Created', 'Welcome! Your account has been successfully created')
+    
+    // Add notification
+    if (window.addNotification) {
+      window.addNotification('success', 'Account Created', 'Welcome to the POS system!')
+    }
+    
     router.push('/dashboard')
   } catch (err) {
     const errorMessage = err && typeof err === 'object' && 'message' in err ? err.message : ''
+    
+    if (errorMessage.includes('UNIQUE constraint') || errorMessage.includes('duplicate')) {
+      if (errorMessage.includes('email')) {
+        handleDatabaseError(err, 'Registration')
+        showError('Email Already Exists', 'An account with this email already exists. Please use a different email.')
+        validationErrors.email = 'This email is already registered'
+      } else if (errorMessage.includes('phone')) {
+        handleDatabaseError(err, 'Registration')
+        showError('Phone Already Exists', 'An account with this phone number already exists. Please use a different phone number.')
+        validationErrors.mobile_phone = 'This phone number is already registered'
+      } else {
+        handleDatabaseError(err, 'Registration')
+        showError('Account Exists', 'An account with this information already exists')
+      }
+    } else if (errorMessage.includes('validation') || errorMessage.includes('required')) {
+      handleValidationError(err, 'Registration')
+      showError('Validation Error', errorMessage || 'Please check your input and try again')
+    } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+      handleNetworkError(err, 'Registration')
+      showError('Connection Error', 'Unable to connect to the server. Please check your internet connection and try again.')
+    } else {
+      handleNetworkError(err, 'Registration')
+      showError('Registration Failed', errorMessage || 'An unexpected error occurred. Please try again.')
+    }
+    
     error.value = errorMessage || 'Registration failed. Please try again.'
   } finally {
-    isLoading.value = false
+    isRegistering.value = false
   }
 }
 

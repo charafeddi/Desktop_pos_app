@@ -18,6 +18,7 @@
     "english": "Anglais",
     "french": "Français",
     "status_bar": "Barre d'état",
+    "refresh": "Actualiser les Données",
     "about": "À propos",
     "documentation": "Documentation"
   },
@@ -69,7 +70,34 @@
     "no_recent_activity": "Aucune activité récente"
   },
   "sales": {
-    "total": "Total des ventes dans la période"
+    "total_sales_period": "Total des ventes dans la période",
+    "ratio": "Ratio",
+    "sales_history": "Historique des ventes",
+    "add_sale": "Ajouter une vente",
+    "export_sales": "Exporter les ventes",
+    "export_as_csv": "Exporter en CSV",
+    "export_as_pdf": "Exporter en PDF",
+    "total_sales": "Total des ventes",
+    "no_sales_found": "Aucune vente trouvée",
+    "start_making_sales_to_see_them_here": "Commencez à faire des ventes pour les voir ici",
+    "sale_number": "Numéro de vente",
+    "customer": "Client",
+    "date": "Date",
+    "items": "Articles",
+    "total": "Total",
+    "payment": "Paiement",
+    "status": "Statut",
+    "actions": "Actions",
+    "view_details": "Voir les détails",
+    "print_receipt": "Imprimer le reçu",
+    "refund_sale": "Rembourser la vente",
+    "already_returned": "Déjà remboursé",
+    "delete_sale": "Supprimer la vente",
+    "financial_summary": "Résumé financier",
+    "subtotal": "Sous-total",
+    "tax": "Taxe",
+    "discount": "Remise",
+    "sale_items": "Articles de vente"
   },
   "products": {
     "title": "Produits populaires",
@@ -494,5 +522,43 @@
     "errorAdding": "Erreur lors de l'ajout de la tâche",
     "errorUpdating": "Erreur lors de la mise à jour de la tâche",
     "errorDeleting": "Erreur lors de la suppression de la tâche"
+  },
+  "shortcuts": {
+    "title": "Raccourcis Clavier",
+    "navigation": "Navigation",
+    "products": "Produits",
+    "pos": "PDV",
+    "general": "Général",
+    "theme": "Thème",
+    "quickActions": "Actions Rapides",
+    "print": "Impression",
+    "export": "Exportation",
+    "help": "Appuyez sur Ctrl+H pour basculer cette aide"
+  },
+  "header": {
+    "profile": "Profil",
+    "settings": "Paramètres",
+    "logout": "Déconnexion",
+    "notifications": "Notifications",
+    "theme": "Thème",
+    "search": "Rechercher...",
+    "searchResults": "Résultats de Recherche",
+    "results": "résultats",
+    "noResults": "Aucun résultat trouvé",
+    "markAllRead": "Marquer tout comme lu",
+    "noNotifications": "Aucune notification",
+    "viewAllNotifications": "Voir toutes les notifications",
+    "closeNotifications": "Fermer",
+    "clearAll": "Tout effacer",
+    "dismiss": "Ignorer"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Restez informé des notifications et alertes importantes du système",
+    "markAllRead": "Tout marquer comme lu",
+    "clearAll": "Tout effacer",
+    "emptyTitle": "Aucune notification",
+    "emptyDescription": "Vous êtes à jour ! Aucune nouvelle notification pour le moment.",
+    "viewDetails": "Voir les détails"
   }
 } 

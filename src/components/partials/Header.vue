@@ -41,9 +41,56 @@
             </a>
           </li>
           <li class="nav-item">
-            <a href="#" class="nav-link" :title="t('header.notifications')">
+            <a href="#" class="nav-link" :title="t('header.notifications')" @click.prevent="toggleNotifications">
               <span class="material-icons">notifications</span>
+              <span v-if="unreadNotifications.length > 0" class="notification-badge">{{ unreadNotifications.length }}</span>
             </a>
+            <!-- Notifications Dropdown -->
+            <div v-if="showNotifications" class="notifications-dropdown">
+               <div class="notifications-header">
+                 <h3>{{ t('header.notifications') }}</h3>
+                 <div class="header-actions">
+                   <button @click="markAllAsRead" class="mark-all-read" v-if="unreadNotifications.length > 0">
+                     {{ t('header.markAllRead') }}
+                   </button>
+                   <button @click="clearAllNotifications" class="clear-all" v-if="notifications.length > 0">
+                     {{ t('header.clearAll') }}
+                   </button>
+                 </div>
+               </div>
+              <div class="notifications-list">
+                <div v-if="notifications.length === 0" class="no-notifications">
+                  <span class="material-icons">notifications_none</span>
+                  <span>{{ t('header.noNotifications') }}</span>
+                </div>
+                 <div 
+                   v-for="notification in notifications" 
+                   :key="notification.id"
+                   class="notification-item"
+                   :class="{ 'unread': !notification.read }"
+                 >
+                   <div class="notification-main" @click="handleNotificationClick(notification)">
+                     <div class="notification-icon" :class="notification.type">
+                       <span class="material-icons">{{ getNotificationIcon(notification.type) }}</span>
+                     </div>
+                     <div class="notification-content">
+                       <div class="notification-title">{{ notification.title }}</div>
+                       <div class="notification-message">{{ notification.message }}</div>
+                       <div class="notification-time">{{ formatTime(notification.timestamp) }}</div>
+                     </div>
+                     <div v-if="!notification.read" class="unread-indicator"></div>
+                   </div>
+                   <button @click="removeNotification(notification.id)" class="dismiss-btn" :title="t('header.dismiss')">
+                     <span class="material-icons">close</span>
+                   </button>
+                 </div>
+              </div>
+               <div class="notifications-footer">
+                 <router-link :to="{ name: 'Notifications' }" class="view-all">
+                   {{ t('header.viewAllNotifications') }}
+                 </router-link>
+               </div>
+            </div>
           </li>
           <li class="nav-item">
             <a href="#" class="nav-link" :title="t('header.theme')" @click.prevent="toggleTheme">
@@ -125,15 +172,22 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import { useThemeStore } from '@/stores/theme.store'
 import { useI18n } from 'vue-i18n'
+import { useToast } from '@/utils/toastManager'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 const { t } = useI18n()
+const { success, error, warning, info } = useToast()
 
 const isDropdownOpen = ref(false)
 const dropdownTrigger = ref(null)
 const dropdownMenu = ref(null)
+
+// Notifications
+const showNotifications = ref(false)
+const notifications = ref([])
+const notificationIdCounter = ref(0)
 
 // Search functionality
 const searchQuery = ref('')
@@ -154,6 +208,11 @@ const userAvatar = computed(() => {
     : 'https://ui-avatars.com/api/?name=U&background=random'
 })
 
+// Unread notifications count
+const unreadNotifications = computed(() => {
+  return notifications.value.filter(n => !n.read)
+})
+
 // Toggle dropdown
 const toggleDropdown = () => {
   isDropdownOpen.value = !isDropdownOpen.value
@@ -164,11 +223,144 @@ const toggleTheme = () => {
   themeStore.toggleTheme()
 }
 
+// Notification methods
+const toggleNotifications = () => {
+  showNotifications.value = !showNotifications.value
+  showSearchResults.value = false // Close search if open
+}
+
+const addNotification = (type, title, message, action = null, autoDismiss = true, dismissDelay = 5000) => {
+  const notification = {
+    id: `notification-${++notificationIdCounter.value}`,
+    type, // 'success', 'error', 'warning', 'info'
+    title,
+    message,
+    action,
+    read: false,
+    timestamp: new Date()
+  }
+  
+  notifications.value.unshift(notification)
+  
+  // Keep only last 50 notifications
+  if (notifications.value.length > 50) {
+    notifications.value = notifications.value.slice(0, 50)
+  }
+  
+  // Auto-dismiss notification after specified delay
+  if (autoDismiss) {
+    setTimeout(() => {
+      removeNotification(notification.id)
+    }, dismissDelay)
+  }
+  
+  // Show toast notification as well
+  switch (type) {
+    case 'success':
+      success(title, message)
+      break
+    case 'error':
+      error(title, message)
+      break
+    case 'warning':
+      warning(title, message)
+      break
+    case 'info':
+    default:
+      info(title, message)
+      break
+  }
+}
+
+const markAsRead = (notificationId) => {
+  const notification = notifications.value.find(n => n.id === notificationId)
+  if (notification) {
+    notification.read = true
+  }
+}
+
+const markAllAsRead = () => {
+  notifications.value.forEach(notification => {
+    notification.read = true
+  })
+}
+
+const removeNotification = (notificationId) => {
+  const index = notifications.value.findIndex(n => n.id === notificationId)
+  if (index > -1) {
+    notifications.value.splice(index, 1)
+  }
+}
+
+const clearAllNotifications = () => {
+  notifications.value = []
+}
+
+const dismissNotification = (notificationId) => {
+  // Mark as read first, then remove after a short delay
+  markAsRead(notificationId)
+  setTimeout(() => {
+    removeNotification(notificationId)
+  }, 500) // Remove after 500ms
+}
+
+const handleNotificationClick = (notification) => {
+  markAsRead(notification.id)
+  
+  if (notification.action) {
+    // Handle notification action (navigate, execute function, etc.)
+    if (notification.action.type === 'navigate') {
+      router.push(notification.action.route)
+    } else if (notification.action.type === 'function') {
+      notification.action.function()
+    }
+  }
+  
+  // Dismiss the notification after clicking
+  dismissNotification(notification.id)
+  showNotifications.value = false
+}
+
+const getNotificationIcon = (type) => {
+  const icons = {
+    success: 'check_circle',
+    error: 'error',
+    warning: 'warning',
+    info: 'info',
+    product: 'inventory_2',
+    sale: 'receipt',
+    customer: 'person',
+    supplier: 'business'
+  }
+  return icons[type] || 'notifications'
+}
+
+const formatTime = (timestamp) => {
+  const now = new Date()
+  const diff = now - timestamp
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+  
+  if (minutes < 1) return 'Just now'
+  if (minutes < 60) return `${minutes}m ago`
+  if (hours < 24) return `${hours}h ago`
+  if (days < 7) return `${days}d ago`
+  
+  return timestamp.toLocaleDateString()
+}
+
 // Handle click outside to close dropdown
 const handleClickOutside = (event) => {
   if (!dropdownTrigger.value?.contains(event.target) && 
       !dropdownMenu.value?.contains(event.target)) {
     isDropdownOpen.value = false
+  }
+  
+  // Close notifications if clicking outside
+  if (!event.target.closest('.notifications-dropdown') && 
+      !event.target.closest('.nav-link[title*="notifications"]')) {
+    showNotifications.value = false
   }
 }
 
@@ -343,11 +535,42 @@ const performGlobalSearch = async (query) => {
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   themeStore.loadTheme()
+  
+  // Add keyboard shortcut event listeners
+  window.addEventListener('focus-search', handleFocusSearch)
+  
+  // Add demo notifications (remove in production)
+  setTimeout(() => {
+    addNotification('success', 'Welcome!', 'Your POS system is ready to use')
+  }, 1000)
+  
+  setTimeout(() => {
+    addNotification('info', 'New Feature', 'Bulk operations are now available for products')
+  }, 3000)
+  
+  setTimeout(() => {
+    addNotification('warning', 'Low Stock', '5 products are running low on stock')
+  }, 5000)
 })
+
+// Expose addNotification for global use
+window.addNotification = addNotification
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  
+  // Remove keyboard shortcut event listeners
+  window.removeEventListener('focus-search', handleFocusSearch)
 })
+
+// Keyboard shortcut handlers
+const handleFocusSearch = () => {
+  // Focus on the global search input
+  if (searchInput.value) {
+    searchInput.value.focus()
+    showSearchResults.value = true
+  }
+}
 </script>
 
 <style>
@@ -383,6 +606,7 @@ onUnmounted(() => {
 
 .nav-item {
   margin-inline: 0.5rem;
+  position: relative;
 }
 
 .nav-link {
@@ -393,6 +617,7 @@ onUnmounted(() => {
   text-decoration: none;
   transition: all 0.2s ease;
   border-radius: 0.375rem;
+  position: relative;
 }
 
 .nav-link:hover {
@@ -719,11 +944,259 @@ onUnmounted(() => {
   display: block;
 }
 
+/* Notification Badge */
+.notification-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background-color: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-surface);
+  z-index: 10;
+  min-width: 18px;
+  line-height: 1;
+}
+
+/* Notifications Dropdown */
+.notifications-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: 400px;
+  max-width: 90vw;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  max-height: 500px;
+  overflow: hidden;
+}
+
+.notifications-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-surface);
+}
+
+.notifications-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mark-all-read, .clear-all {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s;
+}
+
+.mark-all-read:hover, .clear-all:hover {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.clear-all {
+  color: var(--color-error);
+}
+
+.clear-all:hover {
+  background-color: var(--color-error);
+  color: white;
+}
+
+.notifications-list {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.no-notifications {
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.no-notifications .material-icons {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+}
+
+.notification-item:hover {
+  background-color: var(--color-background);
+}
+
+.notification-item.unread {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.notification-main {
+  display: flex;
+  align-items: flex-start;
+  flex: 1;
+  cursor: pointer;
+}
+
+.dismiss-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s;
+  opacity: 0;
+  margin-left: 0.5rem;
+}
+
+.notification-item:hover .dismiss-btn {
+  opacity: 1;
+}
+
+.dismiss-btn:hover {
+  background-color: var(--color-error);
+  color: white;
+}
+
+.notification-icon {
+  margin-right: 0.75rem;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.notification-icon.success {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.notification-icon.error {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.notification-icon.warning {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.notification-icon.info {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.notification-icon .material-icons {
+  font-size: 18px;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-title {
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.notification-message {
+  color: var(--color-text-secondary);
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.notification-time {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.unread-indicator {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-primary);
+  border-radius: 50%;
+}
+
+.notifications-footer {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+  background: var(--color-surface);
+}
+
+.view-all {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: color 0.2s;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  display: inline-block;
+}
+
+.view-all:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+  background-color: var(--color-background);
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .search-results {
     left: -1rem;
     right: -1rem;
+  }
+  
+  .notifications-dropdown {
+    right: -1rem;
+    width: calc(100vw - 2rem);
   }
 }
 </style>

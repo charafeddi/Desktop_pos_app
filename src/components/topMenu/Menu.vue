@@ -167,6 +167,41 @@ const handleStatusBar = () => {
     activeDropdown.value = null
 }
 
+const handleRefresh = async () => {
+    try {
+        // Show loading indicator
+        const refreshEvent = new CustomEvent('app-refresh-start')
+        window.dispatchEvent(refreshEvent)
+        
+        // Refresh all stores
+        await Promise.all([
+            // Refresh products
+            window.dispatchEvent(new CustomEvent('refresh-products')),
+            // Refresh sales
+            window.dispatchEvent(new CustomEvent('refresh-sales')),
+            // Refresh customers
+            window.dispatchEvent(new CustomEvent('refresh-customers')),
+            // Refresh categories
+            window.dispatchEvent(new CustomEvent('refresh-categories')),
+            // Refresh suppliers
+            window.dispatchEvent(new CustomEvent('refresh-suppliers')),
+            // Refresh analytics
+            window.dispatchEvent(new CustomEvent('refresh-analytics'))
+        ])
+        
+        // Show success message
+        const successEvent = new CustomEvent('app-refresh-complete')
+        window.dispatchEvent(successEvent)
+        
+        console.log('App data refreshed successfully')
+    } catch (error) {
+        console.error('Error refreshing app data:', error)
+        const errorEvent = new CustomEvent('app-refresh-error', { detail: error.message })
+        window.dispatchEvent(errorEvent)
+    }
+    activeDropdown.value = null
+}
+
 // Help menu actions
 const handleAbout = () => {
     // Show about dialog

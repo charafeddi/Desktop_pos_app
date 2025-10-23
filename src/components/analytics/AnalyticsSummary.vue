@@ -139,11 +139,62 @@
         ⚙️ Configure Settings
       </button>
     </div>
+    <!-- Supplier Spend Summary (shown only when data exists) -->
+    <div v-if="supplierSpend && supplierSpend.length" class="mt-8 bg-white rounded-lg p-4 shadow-md">
+      <h3 class="font-semibold text-gray-900 mb-4">Supplier Spend</h3>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr class="text-left text-gray-600">
+              <th class="py-2 pr-4">Supplier</th>
+              <th class="py-2 pr-4">Total Spend</th>
+              <th class="py-2 pr-4">Products</th>
+              <th class="py-2 pr-4">Sales</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in supplierSpend" :key="row.supplier_id" class="border-t">
+              <td class="py-2 pr-4">{{ row.supplier_name }}</td>
+              <td class="py-2 pr-4">{{ Number(row.total_spend).toLocaleString() }}</td>
+              <td class="py-2 pr-4">{{ row.products_count }}</td>
+              <td class="py-2 pr-4">{{ row.sales_count }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Product Price Comparison (shown only when data exists) -->
+    <div v-if="priceComparisons && priceComparisons.length" class="mt-6 bg-white rounded-lg p-4 shadow-md">
+      <h3 class="font-semibold text-gray-900 mb-4">Product Price Comparison (by supplier)</h3>
+      <div class="space-y-4">
+        <div v-for="group in priceComparisons" :key="group.product_name + (group.sku||'')" class="border rounded p-3">
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="font-medium text-gray-800">{{ group.product_name }} <span v-if="group.sku" class="text-gray-500">(SKU: {{ group.sku }})</span></div>
+              <div class="text-xs text-gray-500">Min: {{ group.min_price }} | Max: {{ group.max_price }} | Avg: {{ group.avg_price }}</div>
+            </div>
+          </div>
+          <div class="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div v-for="s in group.suppliers" :key="s.supplier_id + ':' + s.purchase_price" class="p-2 rounded border">
+              <div class="text-gray-700">{{ s.supplier_name || 'Unassigned' }}</div>
+              <div class="text-sm text-gray-500">Price: {{ s.purchase_price }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
-
 <script setup>
-// This component showcases all the analytics features
+import { ref, onMounted } from 'vue'
+const supplierSpend = ref([])
+const priceComparisons = ref([])
+
+onMounted(async () => {
+  try { supplierSpend.value = await window.electronAPI.analytics.supplierSpend() } catch {}
+  try { priceComparisons.value = await window.electronAPI.analytics.productPriceCompare() } catch {}
+})
 </script>
 
 <style scoped>

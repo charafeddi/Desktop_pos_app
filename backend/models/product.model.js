@@ -6,7 +6,8 @@ class Product {
             name, sku, barcode, description,
             category_id, product_type_id, product_unit_id,
             supplier_id, purchase_price, selling_price,
-            tax_rate, min_stock_level, current_stock
+            tax_rate, min_stock_level, current_stock,
+            max_stock_level, status, image
         } = productData;
 
         try {
@@ -15,15 +16,21 @@ class Product {
                     name, sku, barcode, description,
                     category_id, product_type_id, product_unit_id,
                     supplier_id, purchase_price, selling_price,
-                    tax_rate, min_stock_level, current_stock
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    tax_rate, min_stock_level, current_stock,
+                    max_stock_level, status, is_active, image
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
+            const normalizedBarcode = (typeof barcode === 'string' && barcode.trim() === '') ? null : barcode;
+            const productStatus = status || 'active';
+            const isActive = productStatus === 'active' ? 1 : 0;
             const result = stmt.run(
-                name, sku, barcode, description,
+                name, sku, normalizedBarcode, description,
                 category_id, product_type_id, product_unit_id,
                 supplier_id, purchase_price, selling_price,
-                tax_rate, min_stock_level, current_stock
+                tax_rate, min_stock_level, current_stock,
+                max_stock_level || null, productStatus, isActive, image
             );
+            
             return result.lastInsertRowid;
         } catch (error) {
             throw error;
@@ -75,7 +82,8 @@ class Product {
             name, sku, barcode, description,
             category_id, product_type_id, product_unit_id,
             supplier_id, purchase_price, selling_price,
-            tax_rate, min_stock_level, current_stock
+            tax_rate, min_stock_level, current_stock,
+            image
         } = productData;
 
         try {
@@ -84,7 +92,10 @@ class Product {
             
             if (name !== undefined) { updateFields.push('name = ?'); values.push(name); }
             if (sku !== undefined) { updateFields.push('sku = ?'); values.push(sku); }
-            if (barcode !== undefined) { updateFields.push('barcode = ?'); values.push(barcode); }
+            if (barcode !== undefined) { 
+                const normalized = (typeof barcode === 'string' && barcode.trim() === '') ? null : barcode;
+                updateFields.push('barcode = ?'); values.push(normalized); 
+            }
             if (description !== undefined) { updateFields.push('description = ?'); values.push(description); }
             if (category_id !== undefined) { updateFields.push('category_id = ?'); values.push(category_id); }
             if (product_type_id !== undefined) { updateFields.push('product_type_id = ?'); values.push(product_type_id); }
@@ -95,6 +106,15 @@ class Product {
             if (tax_rate !== undefined) { updateFields.push('tax_rate = ?'); values.push(tax_rate); }
             if (min_stock_level !== undefined) { updateFields.push('min_stock_level = ?'); values.push(min_stock_level); }
             if (current_stock !== undefined) { updateFields.push('current_stock = ?'); values.push(current_stock); }
+            if (productData.status !== undefined) { 
+                updateFields.push('status = ?'); 
+                values.push(productData.status);
+                // Also update is_active based on status
+                const isActive = productData.status === 'active' ? 1 : 0;
+                updateFields.push('is_active = ?'); 
+                values.push(isActive);
+            }
+            if (image !== undefined) { updateFields.push('image = ?'); values.push(image); }
             
             updateFields.push('updated_at = CURRENT_TIMESTAMP');
             values.push(id);
@@ -141,6 +161,7 @@ class Product {
 
     static async getLowStock() {
         try {
+            console.log('Executing getLowStock query...');
             const stmt = db.prepare(`
                 SELECT p.*, 
                     c.name as category_name,
@@ -156,8 +177,12 @@ class Product {
                 WHERE p.current_stock <= p.min_stock_level
                 ORDER BY p.current_stock ASC
             `);
-            return stmt.all();
+            const results = stmt.all();
+            console.log('Low stock products found:', results.length);
+            console.log('Low stock products:', results);
+            return results;
         } catch (error) {
+            console.error('Error in getLowStock:', error);
             throw error;
         }
     }

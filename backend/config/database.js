@@ -450,6 +450,28 @@ try {
     ensureColumn('products', 'min_stock_level', 'INTEGER', 0);
     ensureColumn('products', 'current_stock', 'INTEGER', 0);
     ensureColumn('products', 'max_stock_level', 'INTEGER', 0);
+    // Product status (active/inactive/out_of_stock)
+    ensureColumn('products', 'status', 'TEXT', '"active"');
+    // Product is_active flag (for backward compatibility)
+    ensureColumn('products', 'is_active', 'INTEGER', 1);
+    // Ensure image column exists for product images
+    ensureColumn('products', 'image', 'TEXT');
+
+    // Normalize existing empty-string barcodes to NULL to avoid UNIQUE conflicts on blank values
+    try {
+        db.exec(`UPDATE products SET barcode = NULL WHERE barcode = '' OR barcode = ' '`);
+    } catch (err) {
+        console.warn('Could not normalize empty barcodes to NULL:', err.message);
+    }
+
+    // Synchronize is_active with status field for existing products
+    try {
+        db.exec(`UPDATE products SET is_active = 1 WHERE status = 'active' OR status IS NULL`);
+        db.exec(`UPDATE products SET is_active = 0 WHERE status = 'inactive' OR status = 'out_of_stock'`);
+        console.log('Synchronized is_active field with status field.');
+    } catch (err) {
+        console.error('Error synchronizing is_active field:', err);
+    }
     
     // Add missing is_active column to customers table
     ensureColumn('customers', 'is_active', 'INTEGER', 1);

@@ -115,10 +115,10 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/supplier',
-    name: 'Supplier',
+    name: 'Suplier',
     component: () => import('@/views/suplier/Suplier.vue'),
     meta:{
-      title: 'Suplier',
+      title: 'Supplier',
       requiresAuth: true
     }
   },
@@ -146,6 +146,15 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/returns/Returns.vue'),
     meta:{
       title: 'Returns & Refunds',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/notifications',
+    name: 'Notifications',
+    component: () => import('@/views/notifications/Notifications.vue'),
+    meta:{
+      title: 'Notifications',
       requiresAuth: true
     }
   }
