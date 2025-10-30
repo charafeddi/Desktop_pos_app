@@ -123,7 +123,7 @@
                                     <button @click="editProductType(productType)" class="text-blue-400 hover:text-blue-300 mr-3">
                                         <span class="material-icons-outlined">edit</span>
                                     </button>
-                                    <button @click="deleteProductType(productType.id)" class="text-red-400 hover:text-red-300">
+                                    <button @click="showDeleteConfirmation(productType)" class="text-red-400 hover:text-red-300">
                                         <span class="material-icons-outlined">delete</span>
                                     </button>
                                 </td>
@@ -192,12 +192,26 @@
                 </form>
             </div>
         </div>
+        
+        <!-- Confirmation Dialog for Delete -->
+        <ConfirmationDialog
+            :is-visible="showDeleteConfirm"
+            :title="'Delete Product Type'"
+            :message="`Are you sure you want to delete ${productTypeToDelete?.name || 'this product type'}? This action cannot be undone.`"
+            :type="'error'"
+            :confirm-text="'Delete'"
+            :cancel-text="'Cancel'"
+            :loading="isDeleting"
+            @confirm="confirmDelete"
+            @cancel="cancelDelete"
+        />
     </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useProductTypeStore } from '../../stores/productType.store';
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue';
 
 const productTypeStore = useProductTypeStore();
 
@@ -207,6 +221,11 @@ const showAddForm = ref(false);
 const showEditForm = ref(false);
 const selectedProductType = ref(null);
 const loading = ref(false);
+
+// Delete confirmation
+const showDeleteConfirm = ref(false);
+const productTypeToDelete = ref(null);
+const isDeleting = ref(false);
 
 const formData = ref({
     name: '',
@@ -280,15 +299,45 @@ const handleSubmit = async () => {
 };
 
 const deleteProductType = async (id) => {
-    if (confirm('Are you sure you want to delete this product type?')) {
-        try {
-            await productTypeStore.delete(id);
-            await productTypeStore.fetchProductTypes();
-        } catch (error) {
-            console.error('Error deleting product type:', error);
-            alert('Error deleting product type. Please try again.');
-        }
+    try {
+        isDeleting.value = true;
+        
+        // Find the product type to get its name for the notification
+        const productType = productTypes.value.find(pt => pt.id === id);
+        const productTypeName = productType?.name || 'Product Type';
+        
+        await productTypeStore.delete(id);
+        await productTypeStore.fetchProductTypes();
+        
+        console.log(`Product type ${productTypeName} deleted successfully`);
+        
+    } catch (error) {
+        console.error('Error deleting product type:', error);
+        alert('Error deleting product type. Please try again.');
+    } finally {
+        isDeleting.value = false;
     }
+};
+
+// Show delete confirmation
+const showDeleteConfirmation = (productType) => {
+    productTypeToDelete.value = productType;
+    showDeleteConfirm.value = true;
+};
+
+// Confirm delete
+const confirmDelete = async () => {
+    if (productTypeToDelete.value?.id) {
+        await deleteProductType(productTypeToDelete.value.id);
+    }
+    showDeleteConfirm.value = false;
+    productTypeToDelete.value = null;
+};
+
+// Cancel delete
+const cancelDelete = () => {
+    showDeleteConfirm.value = false;
+    productTypeToDelete.value = null;
 };
 
 // Load data on mount

@@ -27,6 +27,7 @@
     "electron:build:all": "npm run build:preload && npm run build && electron-builder --win --mac --linux",
     "electron:preview": "vite preview",
     "build:preload": "tsc -p electron/tsconfig.json",
+    "generate:license": "node scripts/generate-license.js",
     "dist": "npm run electron:build",
     "pack": "npm run build:preload && npm run build && electron-builder --dir"
   },
@@ -78,7 +79,7 @@
     "appId": "com.pos.desktop",
     "productName": "POS System",
     "copyright": "Copyright © 2024 POS System",
-    "icon": "public/assets/img/logo.png",
+    "icon": "build/icon.png",
     "directories": {
       "output": "desktop-app",
       "buildResources": "build"

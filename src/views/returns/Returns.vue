@@ -504,13 +504,13 @@
       
       <!-- Confirmation Dialog for Delete -->
       <ConfirmationDialog
-        :is-open="showDeleteConfirm"
+        :is-visible="showDeleteConfirm"
         :title="'Delete Return'"
         :message="`Are you sure you want to delete Return #${returnToDelete || 'this return'}? This action cannot be undone.`"
         :type="'error'"
         :confirm-text="'Delete'"
         :cancel-text="'Cancel'"
-        :is-loading="isDeletingReturn"
+        :loading="isDeletingReturn"
         @confirm="confirmDelete"
         @cancel="cancelDelete"
       />
@@ -529,6 +529,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 import { useToast } from '@/utils/toastManager'
 import { useErrorHandler } from '@/utils/errorHandler'
+import { formatCurrency } from '@/utils/currency'
 
 // Composables
 const { t } = useI18n()
@@ -803,12 +804,7 @@ const returnTotals = computed(() => {
 })
 
 // Methods
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(value || 0)
-}
+// Using centralized formatCurrency from currency.ts
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -1068,6 +1064,9 @@ const deleteReturn = async (returnId) => {
     showInfo('Deleting Return', `Removing ${returnName}...`)
     
     await returnsStore.deleteReturn(returnId)
+    
+    // Refresh returns from the store to update the UI
+    await returnsStore.fetchReturns()
     
     showSuccess('Return Deleted', `${returnName} has been deleted successfully`)
     

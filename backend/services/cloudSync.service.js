@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { google } = require('googleapis');
+// const { google } = require('googleapis'); // Disabled - googleapis not installed
 
 class CloudSyncService {
     constructor() {
@@ -23,6 +23,10 @@ class CloudSyncService {
         try {
             if (this.isInitialized) return true;
 
+            // Cloud sync is disabled - googleapis not installed
+            console.log('Cloud sync is disabled - googleapis module not available');
+            return false;
+            
             // Check if we have stored credentials
             const credentialsPath = path.join(process.env.APPDATA || process.env.HOME, 'POS-System', 'credentials.json');
             
@@ -54,6 +58,12 @@ class CloudSyncService {
 
     async authenticate() {
         try {
+            // Cloud sync is disabled - googleapis not installed
+            return {
+                success: false,
+                error: 'Cloud sync is disabled - googleapis module not available'
+            };
+            
             this.oauth2Client = new google.auth.OAuth2(
                 this.clientId,
                 this.clientSecret,

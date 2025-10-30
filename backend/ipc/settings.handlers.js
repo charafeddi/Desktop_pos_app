@@ -153,6 +153,43 @@ function setupSettingsHandlers() {
         }
     });
 
+    // Get currency settings
+    ipcMain.handle('settings:get-currency', async (event) => {
+        try {
+            console.log('Getting currency settings...');
+            const currency = SettingsModel.getCurrency();
+            console.log('Currency settings retrieved:', currency);
+            return currency;
+        } catch (error) {
+            console.error('Error getting currency:', error);
+            throw error;
+        }
+    });
+
+    // Save currency settings
+    ipcMain.handle('settings:save-currency', async (event, currency) => {
+        try {
+            console.log('Saving currency settings:', currency);
+            
+            // Validate currency data
+            if (!currency || !currency.code || !currency.symbol || !currency.name) {
+                throw new Error('Invalid currency data: missing required fields');
+            }
+            
+            const savedCurrency = SettingsModel.saveCurrency(currency);
+            console.log('Currency settings saved successfully:', savedCurrency);
+            
+            // Verify it was saved by reading it back
+            const verifyCurrency = SettingsModel.getCurrency();
+            console.log('Verified saved currency:', verifyCurrency);
+            
+            return savedCurrency;
+        } catch (error) {
+            console.error('Error saving currency:', error);
+            throw error;
+        }
+    });
+
     console.log('Settings IPC handlers setup complete');
 }
 

@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { electronAPI } from '@/utils/electronAPI'
 
 // Use the exposed electronAPI from preload script
 
@@ -60,17 +61,17 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       try {
         // Send registration request through IPC
-        const response = await window.electronAPI.auth.register(userData)
+        const response = await electronAPI.auth.register(userData)
         
-        if (response.success) {
-          this.token = response.data.token
-          this.user = response.data.user
+        if (response && response.success) {
+          this.token = response.data?.token || null
+          this.user = response.data?.user || null
           // Persist auth data to localStorage
-          localStorage.setItem('auth_token', response.data.token)
-          localStorage.setItem('auth_user', JSON.stringify(response.data.user))
+          if (this.token) localStorage.setItem('auth_token', this.token)
+          if (this.user) localStorage.setItem('auth_user', JSON.stringify(this.user))
           return response.data
         } else {
-          throw new Error(response.message || 'Registration failed')
+          throw new Error(response?.message || 'Registration failed')
         }
       } catch (error) {
         throw error
@@ -83,17 +84,17 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       try {
         // Send login request through IPC
-        const response = await window.electronAPI.auth.login({ email, password })
+        const response = await electronAPI.auth.login({ email, password })
         
-        if (response.success) {
-          this.token = response.data.token
-          this.user = response.data.user
+        if (response && response.success) {
+          this.token = response.data?.token || null
+          this.user = response.data?.user || null
           // Persist auth data to localStorage
-          localStorage.setItem('auth_token', response.data.token)
-          localStorage.setItem('auth_user', JSON.stringify(response.data.user))
+          if (this.token) localStorage.setItem('auth_token', this.token)
+          if (this.user) localStorage.setItem('auth_user', JSON.stringify(this.user))
           return response.data
         } else {
-          throw new Error(response.message || 'Login failed')
+          throw new Error(response?.message || 'Login failed')
         }
       } catch (error) {
         throw error
@@ -104,7 +105,7 @@ export const useAuthStore = defineStore('auth', {
 
     logout() {
       // Send logout request through IPC if needed
-      window.electronAPI.auth.logout()
+      electronAPI.auth.logout()
       
       // Clear auth data from localStorage
       localStorage.removeItem('auth_token')

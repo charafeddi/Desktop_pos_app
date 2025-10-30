@@ -1,15 +1,27 @@
 <!-- Root template with authentication check -->
 <template>
   <ErrorBoundary>
+    <!-- License Activation Modal (blocks app if required) -->
+    <LicenseModal
+      :is-visible="showLicenseModal"
+      :is-required="true"
+      @activated="handleLicenseActivated"
+    />
+
     <Menu />
     
     <!-- Loading state -->
-    <div v-if="isLoading" class="loading-container">
+    <div v-if="isLoading || isCheckingLicense" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>Loading...</p>
+      <p>{{ isCheckingLicense ? 'Checking license...' : 'Loading...' }}</p>
     </div>
     
-    <!-- Login/Register view when not authenticated -->
+    <!-- Show nothing if license is not activated -->
+    <div v-else-if="!isLicenseActivated" class="w-full h-full">
+      <!-- License modal will handle this, but we block the UI -->
+    </div>
+    
+    <!-- Login/Register view when not authenticated but license is valid -->
     <div v-else-if="!isAuthenticated" class="w-full h-full">
       <router-view></router-view>
     </div>
@@ -44,6 +56,7 @@ import '@material-design-icons/font'
 import Menu from './components/topMenu/Menu.vue'
 import ErrorBoundary from './components/common/ErrorBoundary.vue'
 import ToastNotification from './components/common/ToastNotification.vue'
+import LicenseModal from './components/license/LicenseModal.vue'
 import { toastManager } from './utils/toastManager'
 
 // Initialize route, router, and stores
@@ -74,21 +87,60 @@ const handleSidebarToggle = (collapsed: boolean) => {
 
 // Loading state for initial auth check
 const isLoading = ref(true)
+const isCheckingLicense = ref(true)
+const isLicenseActivated = ref(false)
+const showLicenseModal = ref(false)
 
 // Computed property to check if user is authenticated
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 
+// Check license status
+const checkLicense = async () => {
+  try {
+    isCheckingLicense.value = true
+    const result = await window.electronAPI.license.check()
+    
+    if (result.success && result.activated && result.valid) {
+      isLicenseActivated.value = true
+      showLicenseModal.value = false
+    } else {
+      // License not activated - show modal
+      isLicenseActivated.value = false
+      showLicenseModal.value = true
+    }
+  } catch (error) {
+    console.error('❌ License check error:', error)
+    // On error, show license modal
+    isLicenseActivated.value = false
+    showLicenseModal.value = true
+  } finally {
+    isCheckingLicense.value = false
+  }
+}
+
+// Handle license activation
+const handleLicenseActivated = async () => {
+  // Re-check license status
+  await checkLicense()
+}
+
 // Initialize authentication state
 onMounted(async () => {
   try {
-    // Check if we have stored auth data
-    const token = localStorage.getItem('auth_token')
-    const user = localStorage.getItem('auth_user')
+    // First check license (REQUIRED BEFORE EVERYTHING)
+    await checkLicense()
     
-    if (token && user) {
-      // Restore auth state
-      authStore.setToken(token)
-      authStore.setUser(JSON.parse(user))
+    // Only proceed with auth if license is valid
+    if (isLicenseActivated.value) {
+      // Check if we have stored auth data
+      const token = localStorage.getItem('auth_token')
+      const user = localStorage.getItem('auth_user')
+      
+      if (token && user) {
+        // Restore auth state
+        authStore.setToken(token)
+        authStore.setUser(JSON.parse(user))
+      }
     }
   } catch (error) {
     console.error('❌ Authentication initialization error:', error)
@@ -96,7 +148,7 @@ onMounted(async () => {
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_user')
   } finally {
-    // Always finish loading after auth check
+    // Always finish loading after checks
     setTimeout(() => {
       isLoading.value = false
     }, 100)

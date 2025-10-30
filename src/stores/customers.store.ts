@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { electronAPI } from '@/utils/electronAPI'
 
 interface Customer {
     id: number,
@@ -106,7 +107,7 @@ export const useCustomerStore = defineStore('customer', {
             this.error = null;
             try {
                 console.log('Fetching customers...');
-                const customers = await window.electronAPI.customers.getAll();
+                const customers = await electronAPI.customers.getAll();
                 console.log('Customers fetched:', customers);
                 this.customers = customers;
                 this.lastFetchTime = now;
@@ -125,7 +126,7 @@ export const useCustomerStore = defineStore('customer', {
             this.error = null;
             try {
                 console.log('Creating customer with data:', customerData);
-                const newCustomer = await window.electronAPI.customers.create(customerData);
+                const newCustomer = await electronAPI.customers.create(customerData);
                 console.log('Customer created successfully:', newCustomer);
                 if (newCustomer && typeof newCustomer === 'object') {
                     this.customers = [newCustomer, ...this.customers];
@@ -145,7 +146,7 @@ export const useCustomerStore = defineStore('customer', {
             this.loading = true;
             this.error = null;
             try {
-                const result = await window.electronAPI.customers.update(id, customerData);
+                const result = await electronAPI.customers.update(id, customerData);
                 const index = this.customers.findIndex(c => String(c.id) === String(id));
                 if (index !== -1) {
                     if (result && typeof result === 'object') {
@@ -168,7 +169,7 @@ export const useCustomerStore = defineStore('customer', {
             this.loading = true;
             this.error = null;
             try {
-                await window.electronAPI.customers.delete(id);
+                await electronAPI.customers.delete(id);
                 this.customers = this.customers.filter(c => String(c.id) !== String(id));
             } catch (error: any) {
                 this.error = error?.message || 'Failed to delete customer';
@@ -181,7 +182,7 @@ export const useCustomerStore = defineStore('customer', {
             this.loading = true;
             this.error = null;
             try {
-                const updatedCustomer = await window.electronAPI.customers.toggleStatus(id);
+                const updatedCustomer = await electronAPI.customers.toggleStatus(id);
                 const index = this.customers.findIndex(c => String(c.id) === String(id));
                 if (index !== -1 && updatedCustomer) {
                     const next = [...this.customers];

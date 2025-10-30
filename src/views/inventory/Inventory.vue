@@ -7,6 +7,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 import { useToast } from '@/utils/toastManager'
 import { useErrorHandler } from '@/utils/errorHandler'
+import { formatCurrency } from '@/utils/currency'
 
 const { t } = useI18n()
 const { success: showSuccess, error: showError, warning: showWarning, info: showInfo } = useToast()
@@ -427,12 +428,7 @@ function getCategoryName(categoryId) {
   return category ? category.name : `Category ${categoryId}`
 }
 
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(value)
-}
+// Using centralized formatCurrency from currency.ts
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
@@ -463,15 +459,15 @@ onUnmounted(() => {
 })
 </script>
 <template>
-  <div class="min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-gray-100 dark:bg-gray-900 py-6 px-4 sm:px-6 lg:px-8">
     <div class="max-w-7xl mx-auto">
       <!-- Header -->
       <div class="mb-8 flex justify-between items-center">
-        <h1 class="text-3xl font-bold text-gray-900">{{ t('Inventory.title') }}</h1>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">{{ t('Inventory.title') }}</h1>
         <div class="flex space-x-4">
           <router-link 
             to="/product" 
-            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            class="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors duration-200"
           >
             {{ t('Inventory.add_product') }}
           </router-link>
@@ -480,65 +476,65 @@ onUnmounted(() => {
 
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-lg p-6 border border-gray-200 dark:border-gray-700">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <span class="text-blue-600 text-sm font-bold">{{ products.length }}</span>
+              <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                <span class="text-blue-600 dark:text-blue-400 text-sm font-bold">{{ products.length }}</span>
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500">{{ t('Inventory.total_products') }}</p>
-              <p class="text-2xl font-semibold text-gray-900">{{ products.length }}</p>
+              <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ t('Inventory.total_products') }}</p>
+              <p class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ products.length }}</p>
             </div>
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-lg p-6 border border-gray-200 dark:border-gray-700">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                <span class="text-yellow-600 text-sm font-bold">{{ lowStockItems.length }}</span>
+              <div class="w-8 h-8 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center">
+                <span class="text-yellow-600 dark:text-yellow-400 text-sm font-bold">{{ lowStockItems.length }}</span>
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500">{{ t('Inventory.low_stock_items') }}</p>
-              <p class="text-2xl font-semibold text-gray-900">{{ lowStockItems.length }}</p>
+              <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ t('Inventory.low_stock_items') }}</p>
+              <p class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ lowStockItems.length }}</p>
             </div>
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-lg p-6 border border-gray-200 dark:border-gray-700">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                <span class="text-red-600 text-sm font-bold">{{ outOfStockItems.length }}</span>
+              <div class="w-8 h-8 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                <span class="text-red-600 dark:text-red-400 text-sm font-bold">{{ outOfStockItems.length }}</span>
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500">{{ t('Inventory.out_of_stock_items') }}</p>
-              <p class="text-2xl font-semibold text-gray-900">{{ outOfStockItems.length }}</p>
+              <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ t('Inventory.out_of_stock_items') }}</p>
+              <p class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ outOfStockItems.length }}</p>
             </div>
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-lg p-6 border border-gray-200 dark:border-gray-700">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span class="text-green-600 text-sm font-bold">$</span>
+              <div class="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                <span class="material-icons-outlined text-green-600 dark:text-green-400 text-sm">attach_money</span>
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500">{{ t('Inventory.total_value') }}</p>
-              <p class="text-2xl font-semibold text-gray-900">{{ formatCurrency(totalInventoryValue) }}</p>
+              <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ t('Inventory.total_value') }}</p>
+              <p class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ formatCurrency(totalInventoryValue) }}</p>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Advanced Search and Filters -->
-      <div class="mb-6 bg-white rounded-lg shadow p-6">
+      <div class="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-lg p-6 border border-gray-200 dark:border-gray-700">
         <!-- Search Bar -->
         <div class="mb-4">
           <div class="relative">
@@ -546,11 +542,11 @@ onUnmounted(() => {
               v-model="searchQuery"
               type="text"
               placeholder="Search products by name, SKU, barcode, description, category, or supplier..."
-              class="w-full px-4 py-3 pl-10 pr-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-4 py-3 pl-10 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               @keydown="handleSearchKeydown"
             >
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
               </svg>
             </div>
@@ -559,7 +555,7 @@ onUnmounted(() => {
               @click="searchQuery = ''"
               class="absolute inset-y-0 right-0 pr-3 flex items-center"
             >
-              <svg class="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
             </button>
@@ -571,13 +567,13 @@ onUnmounted(() => {
           <!-- Advanced Filters Toggle -->
           <button
             @click="showAdvancedFilters = !showAdvancedFilters"
-            class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors duration-200 flex items-center gap-2"
+            class="px-4 py-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors duration-200 flex items-center gap-2"
           >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
             </svg>
             Advanced Filters
-            <span v-if="activeFiltersCount > 0" class="bg-indigo-600 text-white text-xs px-2 py-1 rounded-full">
+            <span v-if="activeFiltersCount > 0" class="bg-indigo-600 dark:bg-indigo-500 text-white text-xs px-2 py-1 rounded-full">
               {{ activeFiltersCount }}
             </span>
           </button>
@@ -586,7 +582,7 @@ onUnmounted(() => {
           <button
             v-if="activeFiltersCount > 0 || searchQuery"
             @click="clearAllFilters"
-            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center gap-2"
+            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center gap-2"
           >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -595,20 +591,20 @@ onUnmounted(() => {
           </button>
 
           <!-- Results Counter -->
-          <div class="text-sm text-gray-600">
+          <div class="text-sm text-gray-600 dark:text-gray-400">
             Showing {{ sortedAndFilteredInventory.length }} of {{ products.length }} products
           </div>
         </div>
 
         <!-- Advanced Filters Panel -->
-        <div v-if="showAdvancedFilters" class="mt-6 p-4 bg-gray-50 rounded-lg">
+        <div v-if="showAdvancedFilters" class="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Category Filter -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
               <select
                 v-model="categoryFilter"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">All Categories</option>
                 <option v-for="category in uniqueCategories" :key="category.id" :value="category.id">
@@ -619,10 +615,10 @@ onUnmounted(() => {
 
             <!-- Stock Level Filter -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Stock Level</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Stock Level</label>
               <select
                 v-model="stockLevelFilter"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">All Stock Levels</option>
                 <option value="in_stock">In Stock</option>
@@ -634,10 +630,10 @@ onUnmounted(() => {
 
             <!-- Price Range Filter -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Price Range</label>
               <select
                 v-model="priceRangeFilter"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">All Prices</option>
                 <option value="low">Under $10</option>
@@ -649,10 +645,10 @@ onUnmounted(() => {
 
             <!-- Supplier Filter -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Supplier</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Supplier</label>
               <select
                 v-model="supplierFilter"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">All Suppliers</option>
                 <option v-for="supplier in uniqueSuppliers" :key="supplier.id" :value="supplier.id">
@@ -665,10 +661,10 @@ onUnmounted(() => {
           <!-- Sort Options -->
           <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sort By</label>
               <select
                 v-model="sortBy"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="name">Product Name</option>
                 <option value="current_stock">Stock Quantity</option>
@@ -678,10 +674,10 @@ onUnmounted(() => {
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Sort Order</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sort Order</label>
               <select
                 v-model="sortOrder"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="asc">Ascending</option>
                 <option value="desc">Descending</option>
@@ -693,13 +689,13 @@ onUnmounted(() => {
 
       <!-- Alerts -->
       <div v-if="lowStockItems.length > 0" class="mb-6">
-        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-500 p-4">
           <div class="flex">
             <div class="flex-shrink-0">
               ⚠️
             </div>
             <div class="ml-3">
-              <p class="text-sm text-yellow-700">
+              <p class="text-sm text-yellow-700 dark:text-yellow-300">
                 {{ lowStockItems.length }} items are running low on stock
               </p>
             </div>
@@ -708,13 +704,13 @@ onUnmounted(() => {
       </div>
 
       <div v-if="outOfStockItems.length > 0" class="mb-6">
-        <div class="bg-red-50 border-l-4 border-red-400 p-4">
+        <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 dark:border-red-500 p-4">
           <div class="flex">
             <div class="flex-shrink-0">
               🚫
             </div>
             <div class="ml-3">
-              <p class="text-sm text-red-700">
+              <p class="text-sm text-red-700 dark:text-red-300">
                 {{ outOfStockItems.length }} items are out of stock
               </p>
             </div>
@@ -724,77 +720,77 @@ onUnmounted(() => {
 
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 dark:border-indigo-400"></div>
       </div>
 
       <!-- Inventory Table -->
-      <div v-else class="bg-white shadow rounded-lg overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead>
+      <div v-else class="bg-white dark:bg-gray-800 shadow dark:shadow-lg rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead class="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 {{ t('Inventory.product') }}
               </th>
-              <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 {{ t('Inventory.sku') }}
               </th>
-              <th class="px-6 py-3 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 {{ t('Inventory.current_stock') }}
               </th>
-              <th class="px-6 py-3 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 {{ t('Inventory.min_stock') }}
               </th>
-              <th class="px-6 py-3 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 {{ t('Inventory.price') }}
               </th>
-              <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 {{ t('Inventory.category') }}
               </th>
-              <th class="px-6 py-3 bg-gray-50 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 {{ t('Inventory.actions') }}
               </th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             <tr v-for="item in sortedAndFilteredInventory" :key="item.id"
                 :class="{ 
-                  'bg-red-50': item.current_stock === 0,
-                  'bg-yellow-50': item.current_stock > 0 && item.current_stock <= item.min_stock_level 
+                  'bg-red-50 dark:bg-red-900/20': item.current_stock === 0,
+                  'bg-yellow-50 dark:bg-yellow-900/20': item.current_stock > 0 && item.current_stock <= item.min_stock_level 
                 }">
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                 {{ item.name }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                 {{ item.sku }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right">
                 <span :class="{
-                  'text-red-600 font-bold': item.current_stock === 0,
-                  'text-yellow-600 font-medium': item.current_stock > 0 && item.current_stock <= item.min_stock_level,
-                  'text-green-600': item.current_stock > item.min_stock_level
+                  'text-red-600 dark:text-red-400 font-bold': item.current_stock === 0,
+                  'text-yellow-600 dark:text-yellow-400 font-medium': item.current_stock > 0 && item.current_stock <= item.min_stock_level,
+                  'text-green-600 dark:text-green-400': item.current_stock > item.min_stock_level
                 }">
                   {{ item.current_stock }}
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right">
                 {{ item.min_stock_level }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right">
                 {{ formatCurrency(item.selling_price) }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                 {{ getCategoryName(item.category_id) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                 <button 
                   @click="openStockModal(item)"
-                  class="text-indigo-600 hover:text-indigo-900 mr-3"
+                  class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mr-3 transition-colors duration-200"
                 >
                   {{ t('Inventory.adjust_stock') }}
                 </button>
                 <router-link 
                   :to="`/product?edit=${item.id}`"
-                  class="text-green-600 hover:text-green-900"
+                  class="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors duration-200"
                 >
                   {{ t('Inventory.edit') }}
                 </router-link>
@@ -806,19 +802,19 @@ onUnmounted(() => {
 
       <!-- Empty State -->
       <div v-if="!loading && sortedAndFilteredInventory.length === 0" class="text-center py-12">
-        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
         </svg>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
           {{ (searchQuery || activeFiltersCount > 0) ? 'No products match your search criteria' : t('Inventory.no_products_found') }}
         </h3>
-        <p class="text-gray-500 mb-4">
+        <p class="text-gray-500 dark:text-gray-400 mb-4">
           {{ (searchQuery || activeFiltersCount > 0) ? 'Try adjusting your search terms or filters' : 'Start by adding some products to your inventory.' }}
         </p>
         <button
           v-if="searchQuery || activeFiltersCount > 0"
           @click="clearAllFilters"
-          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200"
+          class="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors duration-200"
         >
           Clear Filters
         </button>
@@ -826,11 +822,11 @@ onUnmounted(() => {
     </div>
 
     <!-- Stock Adjustment Modal -->
-    <div v-if="showStockModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-xl p-6 w-96 max-w-md mx-4">
+    <div v-if="showStockModal" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
+      <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-96 max-w-md mx-4 border border-gray-200 dark:border-gray-700">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">{{ t('Inventory.adjust_stock') }}</h3>
-          <button @click="closeStockModal" class="text-gray-400 hover:text-gray-600">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ t('Inventory.adjust_stock') }}</h3>
+          <button @click="closeStockModal" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
@@ -838,16 +834,16 @@ onUnmounted(() => {
         </div>
 
         <div v-if="selectedProduct" class="space-y-4">
-          <div class="bg-gray-50 p-3 rounded-lg">
-            <h4 class="font-medium text-gray-900">{{ selectedProduct.name }}</h4>
-            <p class="text-sm text-gray-500">{{ t('Inventory.current_stock') }}: {{ selectedProduct.current_stock }}</p>
+          <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
+            <h4 class="font-medium text-gray-900 dark:text-gray-100">{{ selectedProduct.name }}</h4>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('Inventory.current_stock') }}: {{ selectedProduct.current_stock }}</p>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('Inventory.adjustment_type') }}</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('Inventory.adjustment_type') }}</label>
             <select
               v-model="adjustmentType"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="add">{{ t('Inventory.add_stock') }}</option>
               <option value="subtract">Subtract Stock</option>
@@ -855,28 +851,28 @@ onUnmounted(() => {
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('Inventory.amount') }}</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('Inventory.amount') }}</label>
             <input
               v-model.number="stockAdjustment"
               type="number"
               min="1"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               :placeholder="t('Inventory.enter_amount')"
             >
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('Inventory.reason') }} ({{ t('Inventory.optional') }})</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('Inventory.reason') }} ({{ t('Inventory.optional') }})</label>
             <input
               v-model="adjustmentReason"
               type="text"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               :placeholder="t('Inventory.reason_for_adjustment')"
             >
           </div>
 
-          <div v-if="stockAdjustment > 0" class="bg-blue-50 p-3 rounded-lg">
-            <p class="text-sm text-blue-700">
+          <div v-if="stockAdjustment > 0" class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p class="text-sm text-blue-700 dark:text-blue-300">
               {{ t('Inventory.new_stock_will_be') }}: 
               <span class="font-medium">
                 {{ adjustmentType === 'add' 
@@ -890,14 +886,14 @@ onUnmounted(() => {
         <div class="flex space-x-3 mt-6">
           <button
             @click="closeStockModal"
-            class="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+            class="flex-1 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
           >
             {{ t('Inventory.cancel') }}
           </button>
           <button
             @click="showAdjustmentConfirmation"
             :disabled="loading || stockAdjustment <= 0"
-            class="flex-1 py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex-1 py-2 px-4 bg-indigo-600 dark:bg-indigo-500 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
           >
             {{ loading ? t('Inventory.updating') : t('Inventory.apply_adjustment') }}
           </button>
@@ -914,13 +910,13 @@ onUnmounted(() => {
     
     <!-- Confirmation Dialog for Stock Adjustment -->
     <ConfirmationDialog
-      :is-open="showAdjustmentConfirm"
+      :is-visible="showAdjustmentConfirm"
       :title="'Confirm Stock Adjustment'"
       :message="`Are you sure you want to ${adjustmentData?.type === 'add' ? 'add' : 'subtract'} ${adjustmentData?.amount || 0} units to ${adjustmentData?.product?.name || 'this product'}?`"
       :type="'warning'"
       :confirm-text="'Apply Adjustment'"
       :cancel-text="'Cancel'"
-      :is-loading="isAdjustingStock"
+      :loading="isAdjustingStock"
       @confirm="confirmAdjustment"
       @cancel="cancelAdjustment"
     />
@@ -928,7 +924,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Custom styles for filter buttons */
+/* Custom filter button styles (optional) */
 .filter-button {
   @apply px-4 py-2 rounded-lg transition-colors duration-200;
 }
@@ -937,44 +933,8 @@ onUnmounted(() => {
   @apply shadow-sm;
 }
 
-/* Dark theme adjustments */
-.dark .filter-button {
-  @apply bg-gray-700 text-gray-200 border-gray-600;
-}
-
-.dark .filter-button:hover {
-  @apply bg-gray-600;
-}
-
-/* Search input dark theme */
-.dark input[type="text"] {
-  @apply bg-gray-800 border-gray-600 text-gray-200;
-}
-
-.dark input[type="text"]:focus {
-  @apply ring-indigo-500 border-indigo-500;
-}
-
-/* Select dropdown dark theme */
-.dark select {
-  @apply bg-gray-800 border-gray-600 text-gray-200;
-}
-
-.dark select:focus {
-  @apply ring-indigo-500 border-indigo-500;
-}
-
-/* Filter panel dark theme */
-.dark .bg-gray-50 {
-  @apply bg-gray-800;
-}
-
-.dark .text-gray-700 {
-  @apply text-gray-300;
-}
-
-/* Results counter dark theme */
-.dark .text-gray-600 {
-  @apply text-gray-400;
+/* Smooth transitions */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 </style> 

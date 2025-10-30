@@ -55,7 +55,8 @@ declare global {
         getByID: (id: number) => Promise<any>,
         create: (data: any) => Promise<any>,
         update: (id: number, data: any) => Promise<any>,
-        delete: (id: number) => Promise<any>
+        delete: (id: number) => Promise<any>,
+        toggleStatus: (id: number) => Promise<any>
       },
 
       sales: {
@@ -105,6 +106,14 @@ declare global {
         getByKey: (key: string) => Promise<any>;
         setByKey: (key: string, value: string) => Promise<any>;
         deleteByKey: (key: string) => Promise<boolean>;
+      };
+
+      license: {
+        getFingerprint: () => Promise<{ success: boolean; fingerprint?: string; message?: string }>;
+        validate: (licenseKey: string) => Promise<{ success: boolean; valid: boolean; message?: string; data?: any }>;
+        activate: (data: { licenseKey: string; customerEmail: string; customerName: string }) => Promise<{ success: boolean; message: string; data?: any }>;
+        check: () => Promise<{ success: boolean; activated: boolean; valid?: boolean; message?: string; data?: any }>;
+        deactivate: () => Promise<{ success: boolean; message: string }>;
       };
       
       closePopup: () => void;

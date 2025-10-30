@@ -49,10 +49,25 @@ try {
 const dbPath = path.join(dataDir, 'pos.db');
 console.log('Database path:', dbPath);
 
-// Create database connection with error handling
+// Create database connection with error handling and performance optimizations
 let db;
 try {
-    db = new Database(dbPath);
+    db = new Database(dbPath, {
+        // Performance optimizations
+        verbose: process.env.NODE_ENV === 'development' ? console.log : null,
+        // Connection optimizations
+        timeout: 5000,
+		// Enable WAL mode for faster writes and fewer locks
+		pragma: {
+			journal_mode: 'WAL',
+			synchronous: 'NORMAL', // recommended with WAL
+			cache_size: -64000, // 64MB cache
+			temp_store: 'MEMORY',
+			mmap_size: 268435456, // 256MB
+			wal_autocheckpoint: 1000, // checkpoint roughly every ~1k pages
+			journal_size_limit: 67108864 // 64MB max journal size
+		}
+    });
     console.log('Connected to SQLite database successfully');
 } catch (error) {
     console.error('Error connecting to database:', error);
@@ -82,7 +97,73 @@ try {
 // Enable foreign keys
 db.pragma('foreign_keys = ON');
 
-// Create tables if they don't exist
+// Run SQL file migrations before any legacy schema creation
+const runMigrations = () => {
+    try {
+        // Ensure migrations table exists
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS schema_migrations (
+                version TEXT PRIMARY KEY,
+                name TEXT,
+                applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        const migrationsDir = path.join(__dirname, '..', 'migrations');
+        if (!fs.existsSync(migrationsDir)) {
+            return; // No migrations directory yet
+        }
+
+        // Get applied versions into a Set for quick lookup
+        const getApplied = db.prepare('SELECT version FROM schema_migrations');
+        const appliedRows = getApplied.all();
+        const applied = new Set(appliedRows.map(r => r.version));
+
+        // Collect .sql files, sorted lexicographically
+        const files = fs.readdirSync(migrationsDir)
+            .filter(f => f.toLowerCase().endsWith('.sql'))
+            .sort();
+
+        for (const fileName of files) {
+            // Expect prefix like 0001_description.sql; use the leading segment as version
+            const version = fileName.split('_')[0] || fileName;
+            if (applied.has(version)) {
+                continue;
+            }
+
+            const fullPath = path.join(migrationsDir, fileName);
+            const sql = fs.readFileSync(fullPath, 'utf8');
+            if (!sql.trim()) {
+                // Record empty migration as applied to allow baselines
+                const insert = db.prepare('INSERT INTO schema_migrations (version, name) VALUES (?, ?)');
+                insert.run(version, fileName);
+                console.log(`Recorded empty migration ${fileName}`);
+                continue;
+            }
+
+            console.log(`Applying migration: ${fileName}`);
+            try {
+                db.exec('BEGIN');
+                db.exec(sql);
+                const insert = db.prepare('INSERT INTO schema_migrations (version, name) VALUES (?, ?)');
+                insert.run(version, fileName);
+                db.exec('COMMIT');
+                console.log(`Applied migration: ${fileName}`);
+            } catch (err) {
+                try { db.exec('ROLLBACK'); } catch {}
+                console.error(`Failed migration ${fileName}:`, err);
+                throw err;
+            }
+        }
+    } catch (e) {
+        console.error('Migration runner error:', e);
+        throw e;
+    }
+};
+
+runMigrations();
+
+// Create tables if they don't exist (legacy bootstrap - safe to keep; idempotent)
 try {
     // Users table
     db.exec(`CREATE TABLE IF NOT EXISTS users (
@@ -411,6 +492,31 @@ try {
         )
     `);
 
+    // Licenses table - Track license activations
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS licenses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            license_key TEXT NOT NULL,
+            license_id TEXT NOT NULL,
+            customer_email TEXT NOT NULL,
+            customer_name TEXT,
+            device_count INTEGER DEFAULT 1,
+            package_type TEXT DEFAULT 'professional',
+            device_fingerprint TEXT NOT NULL,
+            activated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            expiry_date DATETIME,
+            is_active INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    
+    // Indexes for licenses
+    db.exec('CREATE INDEX IF NOT EXISTS idx_licenses_key ON licenses(license_key)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_licenses_id ON licenses(license_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_licenses_device ON licenses(device_fingerprint)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_licenses_email ON licenses(customer_email)');
+
     // Create indexes
     db.exec('CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_products_supplier ON products(supplier_id)');
@@ -488,6 +594,39 @@ try {
     db.exec(`CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku)`);
     
     db.exec(`CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id)`);
+    
+    // Create default admin user if no users exist
+    try {
+        const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
+        if (userCount.count === 0) {
+            console.log('No users found, creating default admin user...');
+            const bcrypt = require('bcryptjs');
+            const salt = bcrypt.genSaltSync(10);
+            const hashedPassword = bcrypt.hashSync('admin123', salt);
+            
+            const stmt = db.prepare(`
+                INSERT INTO users (
+                    name, email, password, mobile_phone, role
+                ) VALUES (?, ?, ?, ?, ?)
+            `);
+            
+            const result = stmt.run(
+                'Administrator',
+                'admin@pos.com',
+                hashedPassword,
+                '+1234567890',
+                'admin'
+            );
+            
+            console.log('Default admin user created successfully!');
+            console.log('Email: admin@pos.com');
+            console.log('Password: admin123');
+        } else {
+            console.log(`Found ${userCount.count} existing users in database`);
+        }
+    } catch (error) {
+        console.error('Error creating default admin user:', error);
+    }
     
 } catch (error) {
     console.error('Database initialization error:', error);

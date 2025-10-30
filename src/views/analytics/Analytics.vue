@@ -242,6 +242,7 @@ import KPICards from '@/components/analytics/KPICards.vue'
 import RealTimeMetrics from '@/components/analytics/RealTimeMetrics.vue'
 import SimpleChart from '@/components/analytics/SimpleChart.vue'
 import AnalyticsSummary from '@/components/analytics/AnalyticsSummary.vue'
+import { formatCurrency } from '@/utils/currency'
 
 // Composables
 const { t } = useI18n()
@@ -331,12 +332,7 @@ const analyticsData = computed(() => ({
 }))
 
 // Methods
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(value || 0)
-}
+// Using centralized formatCurrency from currency.ts
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', { 

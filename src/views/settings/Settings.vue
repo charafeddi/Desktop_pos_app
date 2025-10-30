@@ -121,6 +121,60 @@
             </div>
           </div>
         </div>
+
+        <!-- Currency Settings -->
+        <div class="shadow rounded-lg">
+          <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium mb-4">
+              {{ t('settings.currency') }}
+            </h3>
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+              <div>
+                <label class="block text-sm font-medium ">{{ t('settings.currencyCode') }}</label>
+                <select
+                  v-model="currency.code"
+                  @change="updateCurrencyFromCode"
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                  <option value="USD">USD - US Dollar</option>
+                  <option value="EUR">EUR - Euro</option>
+                  <option value="GBP">GBP - British Pound</option>
+                  <option value="MAD">MAD - Moroccan Dirham</option>
+                  <option value="AED">AED - UAE Dirham</option>
+                  <option value="SAR">SAR - Saudi Riyal</option>
+                  <option value="CAD">CAD - Canadian Dollar</option>
+                  <option value="AUD">AUD - Australian Dollar</option>
+                  <option value="JPY">JPY - Japanese Yen</option>
+                  <option value="CNY">CNY - Chinese Yuan</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium ">{{ t('settings.currencySymbol') }}</label>
+                <input
+                  v-model="currency.symbol"
+                  type="text"
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="$"
+                >
+              </div>
+              <div>
+                <label class="block text-sm font-medium ">{{ t('settings.currencyName') }}</label>
+                <input
+                  v-model="currency.name"
+                  type="text"
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="US Dollar"
+                >
+              </div>
+            </div>
+            <div class="mt-4 p-4 bg-gray-50 rounded-md">
+              <p class="text-sm text-gray-600">
+                <strong>Preview:</strong> {{ formatCurrency(1234.56) }}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <!-- manage product types/units -->
          <div class="shadow rounded-lg">
           <div class="px-4 py-5 sm:p-6">
@@ -331,25 +385,25 @@
 
     <!-- Confirmation Dialogs -->
     <ConfirmationDialog
-      :isOpen="showResetConfirm"
+      :is-visible="showResetConfirm"
       title="Reset Settings"
       message="Are you sure you want to reset all settings to defaults? This action cannot be undone."
       type="warning"
       confirmText="Reset"
       cancelText="Cancel"
-      :isLoading="isResetting"
+      :loading="isResetting"
       @confirm="resetToDefaults"
       @cancel="cancelReset"
     />
 
     <ConfirmationDialog
-      :isOpen="showRestoreConfirm"
+      :is-visible="showRestoreConfirm"
       title="Restore Database"
       message="⚠️ WARNING: This will completely replace your current database! This action cannot be undone. Are you sure you want to continue?"
       type="danger"
       confirmText="Restore"
       cancelText="Cancel"
-      :isLoading="isRestoring"
+      :loading="isRestoring"
       @confirm="restoreDatabase"
       @cancel="cancelRestore"
     />
@@ -365,6 +419,8 @@ import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 import { useToast } from '@/utils/toastManager'
 import { useErrorHandler } from '@/utils/errorHandler'
+import { electronAPI } from '@/utils/electronAPI'
+import { formatCurrency } from '@/utils/currency'
 
 const { t, locale } = useI18n();
 const { success: showSuccess, error: showError, warning: showWarning, info: showInfo } = useToast()
@@ -400,6 +456,8 @@ const taxRates = ref(settingsStore.getTaxRates)
 const printerSettings = ref(settingsStore.getPrinterSettings)
 const backupSettings = ref(settingsStore.getBackupSettings)
 const backupFolder = ref(settingsStore.getBackupFolder)
+// Initialize currency with default values if null
+const currency = ref(settingsStore.getCurrency || { code: 'USD', symbol: '$', name: 'US Dollar' })
 
 // Additional Variables
 const printers = ref([])
@@ -500,6 +558,16 @@ async function saveSettings() {
     await settingsStore.saveCompanyInfo(companyInfo.value)
     await settingsStore.saveTaxRates(taxRates.value)
     await settingsStore.savePrinterSettings(printerSettings.value)
+    
+    // Ensure currency object has all required fields before saving
+    if (currency.value && currency.value.code && currency.value.symbol && currency.value.name) {
+      console.log('Saving currency with data:', currency.value)
+      await settingsStore.saveCurrency(currency.value)
+    } else {
+      console.error('Currency object incomplete:', currency.value)
+      throw new Error('Currency settings are incomplete')
+    }
+    
     settingsStore.updateBackupSettings(backupSettings.value)
     settingsStore.setBackupFolder(backupFolder.value)
     
@@ -543,6 +611,7 @@ async function resetToDefaults() {
     printerSettings.value = settingsStore.getPrinterSettings
     backupSettings.value = settingsStore.getBackupSettings
     backupFolder.value = settingsStore.getBackupFolder
+    currency.value = settingsStore.getCurrency || { code: 'USD', symbol: '$', name: 'US Dollar' }
     
     showSuccess('Settings Reset', 'Settings have been reset to defaults successfully!')
     
@@ -589,7 +658,7 @@ async function testPrinter() {
     showInfo('Testing Printer', 'Sending test print to ' + printerSettings.value.printerName)
     
     // Implement printer test logic
-    const result = await window.electronAPI.print.testPrint(printerSettings.value.printerName)
+    const result = await electronAPI.print.testPrint(printerSettings.value.printerName)
     
     showSuccess('Printer Test', 'Test print sent successfully!')
     
@@ -615,7 +684,7 @@ async function refreshPrinters() {
     
     showInfo('Refreshing Printers', 'Loading available printers...')
     
-    const list = await window.electronAPI.printers.getAll()
+    const list = await electronAPI.printers.getAll()
     printers.value = Array.isArray(list) ? list : []
     
     // If current selection no longer exists, clear it
@@ -658,6 +727,7 @@ onMounted(async () => {
     printerSettings.value = settingsStore.getPrinterSettings
     backupSettings.value = settingsStore.getBackupSettings
     backupFolder.value = settingsStore.getBackupFolder
+    currency.value = settingsStore.getCurrency || { code: 'USD', symbol: '$', name: 'US Dollar' }
     
     // Refresh printers list
     await refreshPrinters()
@@ -693,7 +763,7 @@ async function chooseBackupFolder() {
     
     showInfo('Choosing Folder', 'Please select a backup folder...')
     
-    const folder = await window.electronAPI.backup.chooseFolder()
+    const folder = await electronAPI.backup.chooseFolder()
     if (folder) {
       backupFolder.value = folder
       showSuccess('Folder Selected', 'Backup folder selected successfully!')
@@ -721,7 +791,7 @@ async function backupNow() {
     
     showInfo('Creating Backup', 'Creating database backup...')
     
-    const result = await window.electronAPI.backup.exportJSON(backupFolder.value)
+    const result = await electronAPI.backup.exportJSON(backupFolder.value)
     
     showSuccess('Backup Created', `Backup created successfully! File: ${result.filePath}, Tables: ${result.tables}`)
     
@@ -755,7 +825,7 @@ async function enableDailyBackup() {
     
     showInfo('Enabling Daily Backup', 'Setting up daily backup schedule...')
     
-    const result = await window.electronAPI.backup.scheduleDaily(backupFolder.value)
+    const result = await electronAPI.backup.scheduleDaily(backupFolder.value)
     nextBackup.value = result.nextRun
     
     showSuccess('Daily Backup Enabled', `Daily backups enabled! Next backup: ${formatDateTime(result.nextRun)}`)
@@ -790,7 +860,7 @@ async function enableWeeklyBackup() {
     
     showInfo('Enabling Weekly Backup', 'Setting up weekly backup schedule...')
     
-    const result = await window.electronAPI.backup.scheduleWeekly(backupFolder.value)
+    const result = await electronAPI.backup.scheduleWeekly(backupFolder.value)
     nextBackup.value = result.nextRun
     
     showSuccess('Weekly Backup Enabled', `Weekly backups enabled! Next backup: ${formatDateTime(result.nextRun)}`)
@@ -819,7 +889,7 @@ async function cancelSchedule() {
     
     showInfo('Cancelling Schedule', 'Cancelling backup schedule...')
     
-    await window.electronAPI.backup.cancelSchedule()
+    await electronAPI.backup.cancelSchedule()
     nextBackup.value = ''
     
     showSuccess('Schedule Cancelled', 'Backup schedule cancelled successfully!')
@@ -846,16 +916,24 @@ async function chooseRestoreFile() {
     isChoosingFile.value = true
     resetErrorState()
     
+    console.log('Starting chooseRestoreFile...')
     showInfo('Choosing File', 'Please select a backup file to restore...')
     
-    const filePath = await window.electronAPI.backup.chooseRestoreFile()
+    const filePath = await electronAPI.backup.chooseRestoreFile()
+    console.log('File path returned from electronAPI:', filePath)
+    
     if (filePath) {
       selectedRestoreFilePath.value = filePath
       selectedRestoreFile.value = filePath.split('/').pop() || filePath.split('\\').pop()
+      console.log('Selected file path:', selectedRestoreFilePath.value)
+      console.log('Selected file name:', selectedRestoreFile.value)
       showSuccess('File Selected', 'Backup file selected successfully!')
       showMessage('Backup file selected', 'success')
+    } else {
+      console.log('No file selected or operation cancelled')
     }
   } catch (error) {
+    console.error('Error in chooseRestoreFile:', error)
     handleBusinessLogicError(error, 'Choose Restore File')
     showError('File Selection Failed', 'Failed to select backup file. Please try again.')
     hasError.value = true
@@ -871,15 +949,33 @@ async function restoreDatabase() {
     isRestoring.value = true
     resetErrorState()
     
+    console.log('Starting restore process...')
+    console.log('Selected restore file:', selectedRestoreFile.value)
+    console.log('Selected restore file path:', selectedRestoreFilePath.value)
+    
     if (!selectedRestoreFile.value) {
       handleValidationError(new Error('No backup file selected'), 'Restore Database')
       showError('Restore Failed', 'Please select a backup file first')
       return
     }
     
+    if (!selectedRestoreFilePath.value) {
+      handleValidationError(new Error('No backup file path selected'), 'Restore Database')
+      showError('Restore Failed', 'Please select a backup file first')
+      return
+    }
+    
+    console.log('Calling electronAPI.backup.restoreFromJSON with path:', selectedRestoreFilePath.value)
+    
     showWarning('Restore Database', 'This will completely replace your current database! This action cannot be undone.')
     
-    const result = await window.electronAPI.backup.restoreFromJSON(selectedRestoreFilePath.value)
+    const result = await electronAPI.backup.restoreFromJSON(selectedRestoreFilePath.value)
+    
+    console.log('Restore result:', result)
+    
+    if (!result) {
+      throw new Error('No result returned from restore operation')
+    }
     
     showSuccess('Database Restored', `Database restored successfully! ${result.message}`)
     
@@ -890,6 +986,7 @@ async function restoreDatabase() {
     
     showMessage(`Database restored successfully! ${result.message}`, 'success')
     selectedRestoreFile.value = ''
+    selectedRestoreFilePath.value = ''
     
     // Refresh the app to reflect the restored data
     setTimeout(() => {
@@ -897,6 +994,7 @@ async function restoreDatabase() {
     }, 2000)
     
   } catch (error) {
+    console.error('Restore error:', error)
     handleDatabaseError(error, 'Restore Database')
     showError('Restore Failed', 'Failed to restore database. Please try again.')
     hasError.value = true
@@ -918,5 +1016,32 @@ async function restoreDatabase() {
 
   function formatDateTime(dateTimeString) {
     return new Date(dateTimeString).toLocaleString()
+  }
+
+  // Currency mapping for auto-update
+  const currencyMap = {
+    'USD': { symbol: '$', name: 'US Dollar' },
+    'EUR': { symbol: '€', name: 'Euro' },
+    'GBP': { symbol: '£', name: 'British Pound' },
+    'MAD': { symbol: 'د.م.', name: 'Moroccan Dirham' },
+    'AED': { symbol: 'د.إ', name: 'UAE Dirham' },
+    'SAR': { symbol: 'ر.س', name: 'Saudi Riyal' },
+    'CAD': { symbol: '$', name: 'Canadian Dollar' },
+    'AUD': { symbol: '$', name: 'Australian Dollar' },
+    'JPY': { symbol: '¥', name: 'Japanese Yen' },
+    'CNY': { symbol: '¥', name: 'Chinese Yuan' }
+  }
+
+  function updateCurrencyFromCode() {
+    if (!currency.value || !currency.value.code) {
+      console.error('Currency is not initialized')
+      return
+    }
+    
+    const currencyInfo = currencyMap[currency.value.code]
+    if (currencyInfo) {
+      currency.value.symbol = currencyInfo.symbol
+      currency.value.name = currencyInfo.name
+    }
   }
   </script>

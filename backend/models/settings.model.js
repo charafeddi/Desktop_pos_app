@@ -276,6 +276,62 @@ class SettingsModel {
             throw error;
         }
     }
+
+    /**
+     * Get currency settings
+     * @returns {object} - Currency settings object
+     */
+    static getCurrency() {
+        try {
+            const currencyStr = this.getValue('currency');
+            if (currencyStr) {
+                return JSON.parse(currencyStr);
+            }
+            
+            // Return default currency if not found
+            return {
+                code: 'USD',
+                symbol: '$',
+                name: 'US Dollar'
+            };
+        } catch (error) {
+            console.error('Error getting currency:', error);
+            return {
+                code: 'USD',
+                symbol: '$',
+                name: 'US Dollar'
+            };
+        }
+    }
+
+    /**
+     * Save currency settings
+     * @param {object} currency - Currency settings object
+     * @returns {object} - The saved currency settings
+     */
+    static saveCurrency(currency) {
+        try {
+            console.log('saveCurrency called with:', currency);
+            const currencyStr = JSON.stringify(currency);
+            console.log('Serialized currency string:', currencyStr);
+            
+            const result = this.setValue('currency', currencyStr);
+            console.log('setValue returned:', result);
+            
+            // Return the original currency object to match expected format
+            const savedResult = {
+                code: currency.code,
+                symbol: currency.symbol,
+                name: currency.name
+            };
+            
+            console.log('Returning saved currency:', savedResult);
+            return savedResult;
+        } catch (error) {
+            console.error('Error saving currency:', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = SettingsModel;

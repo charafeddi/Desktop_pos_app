@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { electronAPI } from '@/utils/electronAPI'
 
 /**
  * KPI (Key Performance Indicators) Data Interface
@@ -370,7 +371,7 @@ export const useAnalyticsStore = defineStore('analytics', {
      */
     async fetchSalesData() {
       try {
-        const sales = await window.electronAPI.sales.getAll()
+        const sales = await electronAPI.sales.getAll()
         console.log('Fetched sales data:', sales)
         return sales || []
       } catch (error) {
@@ -388,7 +389,7 @@ export const useAnalyticsStore = defineStore('analytics', {
       try {
         // Use getAll to get all products for inventory calculation
         console.log('=== FETCHING PRODUCTS DATA ===')
-        const products = await window.electronAPI.products.getAll()
+        const products = await electronAPI.products.getAll()
         console.log('Raw products data from backend:', products)
         console.log('Number of products:', products?.length || 0)
         if (products && products.length > 0) {
@@ -410,7 +411,7 @@ export const useAnalyticsStore = defineStore('analytics', {
     async fetchReturnsData() {
       try {
         console.log('=== FETCHING RETURNS DATA ===')
-        const returns = await window.electronAPI.returns.getAll()
+        const returns = await electronAPI.returns.getAll()
         console.log('Raw returns data from backend:', returns)
         console.log('Number of returns:', returns?.length || 0)
         console.log('================================')
@@ -483,7 +484,7 @@ export const useAnalyticsStore = defineStore('analytics', {
      */
     async fetchCustomersData() {
       try {
-        const customers = await window.electronAPI.customers.getAll()
+        const customers = await electronAPI.customers.getAll()
         return customers || []
       } catch (error) {
         console.error('Error fetching customers data:', error)

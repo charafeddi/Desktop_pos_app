@@ -203,11 +203,21 @@ contextBridge.exposeInMainWorld(
       saveTaxRates: (taxRates: any) => ipcRenderer.invoke('settings:save-tax-rates', taxRates),
       getPrinterSettings: () => ipcRenderer.invoke('settings:get-printer-settings'),
       savePrinterSettings: (printerSettings: any) => ipcRenderer.invoke('settings:save-printer-settings', printerSettings),
+      getCurrency: () => ipcRenderer.invoke('settings:get-currency'),
+      saveCurrency: (currency: any) => ipcRenderer.invoke('settings:save-currency', currency),
       getAll: () => ipcRenderer.invoke('settings:get-all'),
       setMultiple: (settings: any) => ipcRenderer.invoke('settings:set-multiple', settings),
       getByKey: (key: string) => ipcRenderer.invoke('settings:get-by-key', key),
       setByKey: (key: string, value: string) => ipcRenderer.invoke('settings:set-by-key', key, value),
       deleteByKey: (key: string) => ipcRenderer.invoke('settings:delete-by-key', key)
+    },
+
+    license: {
+      getFingerprint: () => ipcRenderer.invoke('license:get-fingerprint'),
+      validate: (licenseKey: string) => ipcRenderer.invoke('license:validate', licenseKey),
+      activate: (data: { licenseKey: string; customerEmail: string; customerName: string }) => ipcRenderer.invoke('license:activate', data),
+      check: () => ipcRenderer.invoke('license:check'),
+      deactivate: () => ipcRenderer.invoke('license:deactivate')
     },
 
     // Refresh event listeners

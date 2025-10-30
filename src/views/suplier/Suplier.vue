@@ -236,7 +236,7 @@
                                     <button @click="editSupplier(supplier)" class="text-blue-400 hover:text-blue-300 mr-3">
                                         <span class="material-icons-outlined">edit</span>
                                     </button>
-                                    <button @click="deleteSupplier(supplier.id)" class="text-red-400 hover:text-red-300">
+                                    <button @click="showDeleteConfirmation(supplier)" class="text-red-400 hover:text-red-300">
                                         <span class="material-icons-outlined">delete</span>
                                     </button>
                                 </td>
@@ -346,6 +346,19 @@
                 </form>
             </div>
         </div>
+        
+        <!-- Confirmation Dialog for Delete -->
+        <ConfirmationDialog
+            :is-visible="showDeleteConfirm"
+            :title="'Delete Supplier'"
+            :message="`Are you sure you want to delete ${supplierToDelete?.name || 'this supplier'}? This action cannot be undone.`"
+            :type="'error'"
+            :confirm-text="'Delete'"
+            :cancel-text="'Cancel'"
+            :loading="isDeleting"
+            @confirm="confirmDelete"
+            @cancel="cancelDelete"
+        />
     </div>
 </template>
 
@@ -355,6 +368,8 @@ import { useSupplierStore } from '../../stores/supplier.store'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '@/utils/toastManager'
 import { useErrorHandler } from '@/utils/errorHandler'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+import { formatCurrency } from '@/utils/currency'
 const supplierStore = useSupplierStore()
 const { t } = useI18n()
 const { success: showSuccess, error: showError, warning: showWarning, info: showInfo } = useToast()
@@ -365,6 +380,11 @@ const showAddForm = ref(false)
 const showEditForm = ref(false)
 const selectedSupplier = ref(null)
 const loading = ref(false)
+
+// Delete confirmation
+const showDeleteConfirm = ref(false)
+const supplierToDelete = ref(null)
+const isDeleting = ref(false)
 
 // Advanced filter variables
 const countryFilter = ref('')
@@ -555,10 +575,7 @@ const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString()
 }
 
-const formatCurrency = (value) => {
-    const amount = Number(value || 0)
-    return amount.toLocaleString(undefined, { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
-}
+// Using centralized formatCurrency from currency.ts
 
 // Clear all filters method
 const clearAllFilters = () => {
@@ -643,15 +660,60 @@ const handleSubmit = async () => {
 }
 
 const deleteSupplier = async (id) => {
-    if (confirm('Are you sure you want to delete this supplier?')) {
-        try {
-            await supplierStore.delete(id)
-            await supplierStore.fetchSuppliers()
-        } catch (error) {
-            console.error('Error deleting supplier:', error)
-            alert('Error deleting supplier. Please try again.')
+    try {
+        isDeleting.value = true
+        
+        // Find the supplier to get its name for the notification
+        const supplier = suppliers.value.find(s => s.id === id)
+        const supplierName = supplier?.name || 'Supplier'
+        
+        showInfo('Deleting Supplier', `Removing ${supplierName}...`)
+        
+        // Call the API to delete the supplier
+        await supplierStore.delete(id)
+        
+        // Refresh suppliers from the store
+        await supplierStore.fetchSuppliers()
+        
+        showSuccess('Supplier Deleted', `${supplierName} has been deleted successfully`)
+        
+        // Add notification
+        if (window.addNotification) {
+            window.addNotification('success', 'Supplier Deleted', `${supplierName} has been removed`)
         }
+        
+    } catch (error) {
+        handleDatabaseError(error, 'Supplier Deletion')
+        showError('Delete Failed', 'Failed to delete supplier. Please try again.')
+        
+        // Add notification
+        if (window.addNotification) {
+            window.addNotification('error', 'Delete Failed', 'Could not delete supplier')
+        }
+    } finally {
+        isDeleting.value = false
     }
+}
+
+// Show delete confirmation
+const showDeleteConfirmation = (supplier) => {
+    supplierToDelete.value = supplier
+    showDeleteConfirm.value = true
+}
+
+// Confirm delete
+const confirmDelete = async () => {
+    if (supplierToDelete.value?.id) {
+        await deleteSupplier(supplierToDelete.value.id)
+    }
+    showDeleteConfirm.value = false
+    supplierToDelete.value = null
+}
+
+// Cancel delete
+const cancelDelete = () => {
+    showDeleteConfirm.value = false
+    supplierToDelete.value = null
 }
 
 // Load data on mount

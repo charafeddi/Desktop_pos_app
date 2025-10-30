@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from 'vue';
+import { electronAPI } from '@/utils/electronAPI'
 
 // Define the Category interface
 interface Category {
@@ -34,7 +35,7 @@ export const useCategoryStore = defineStore('category', {
       this.error = null;
       try {
         console.log('Creating category with data:', categoryData);
-        const newCategory = await window.electronAPI.categories.create(categoryData);
+        const newCategory = await electronAPI.categories.create(categoryData);
         console.log('Category created successfully:', newCategory);
         this.categories.push(newCategory);
         return newCategory;
@@ -51,7 +52,7 @@ export const useCategoryStore = defineStore('category', {
       this.error = null;
       try {
         const { id, ...data } = updatedCategory;
-        const result = await window.electronAPI.categories.update(parseInt(id), data);
+        const result = await electronAPI.categories.update(parseInt(id), data);
         const index = this.categories.findIndex(cat => cat.id === id);
         if (index !== -1) {
           this.categories[index] = result;
@@ -68,7 +69,7 @@ export const useCategoryStore = defineStore('category', {
       this.loading = true;
       this.error = null;
       try {
-        await window.electronAPI.categories.delete(parseInt(categoryId));
+        await electronAPI.categories.delete(parseInt(categoryId));
         this.categories = this.categories.filter(cat => cat.id !== categoryId);
       } catch (error: any) {
         this.error = error?.message || 'Failed to delete category';
@@ -81,7 +82,7 @@ export const useCategoryStore = defineStore('category', {
       this.loading = true;
       this.error = null;
       try {
-        const category = await window.electronAPI.categories.getByID(parseInt(categoryId));
+        const category = await electronAPI.categories.getByID(parseInt(categoryId));
         this.category = category;
         return category;
       } catch (error: any) {
@@ -96,7 +97,7 @@ export const useCategoryStore = defineStore('category', {
       this.error = null;
       try {
         console.log('Fetching categories...');
-        const categories = await window.electronAPI.categories.getAll();
+        const categories = await electronAPI.categories.getAll();
         console.log('Categories fetched:', categories);
         this.categories = categories;
       } catch (error: any) {

@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { electronAPI } from '@/utils/electronAPI'
 import { ref, computed } from 'vue'
 
 interface Todo {
@@ -52,7 +53,7 @@ export const useTodoStore = defineStore('todo', {
             this.loading = true
             try {
                 console.log("fetching todos");
-                const fetchedTodos = await window.electronAPI.todos.getTodos()
+                const fetchedTodos = await electronAPI.todos.getTodos()
                 this.todos = fetchedTodos;
             } catch (err) {
                 if (err instanceof Error) {

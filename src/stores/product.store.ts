@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { electronAPI } from '@/utils/electronAPI'
 
 interface Product {
     id: number,
@@ -121,7 +122,7 @@ export const useProductStore = defineStore('product', {
             this.error = null;
             try {
               console.log('Fetching products');
-              const products = await window.electronAPI.products.getAll();
+              const products = await electronAPI.products.getAll();
               console.log('products fetched: ', products);
               this.products = products;
               this.lastFetchTime = now;
@@ -140,7 +141,7 @@ export const useProductStore = defineStore('product', {
             this.error = null;
             try {
                 console.log('Fetching popular products');
-                const popularProducts = await window.electronAPI.products.getPopularProduct(limit, period);
+                const popularProducts = await electronAPI.products.getPopularProduct(limit, period);
                 console.log('Popular products fetched: ', popularProducts);
                 this.popularProducts = popularProducts;
             } catch (error) {
@@ -156,7 +157,7 @@ export const useProductStore = defineStore('product', {
             this.error = null;
             try {
                 console.log('fetching products about to finish');
-                const productsAboutToFinish = await window.electronAPI.products.getProductsLowStock();
+                const productsAboutToFinish = await electronAPI.products.getProductsLowStock();
                 this.productsAboutToFinish = productsAboutToFinish;
                 return productsAboutToFinish;
             } catch (error) {
@@ -172,7 +173,7 @@ export const useProductStore = defineStore('product', {
             this.error = null;
             try {
                 console.log('Updating product:', id, productData);
-                const updatedProduct = await window.electronAPI.products.update(id, productData);
+                const updatedProduct = await electronAPI.products.update(id, productData);
                 console.log('Product updated:', updatedProduct);
                 
                 // Update the product in the local state

@@ -390,6 +390,7 @@
 <script lang="ts">
 import { useAuthStore } from '@/stores/auth.store'
 import { computed, ref, reactive, onMounted } from 'vue'
+import { formatCurrency } from '@/utils/currency'
 
 export default {
   name: 'Profile',
@@ -451,12 +452,7 @@ export default {
       return `${Math.floor(diffInSeconds / 86400)} days ago`
     }
 
-    const formatCurrency = (amount) => {
-      return amount ? amount.toLocaleString('en-US', { 
-        minimumFractionDigits: 2, 
-        maximumFractionDigits: 2 
-      }) : '0.00'
-    }
+    // Using centralized formatCurrency from currency.ts
 
     const getActivityIcon = (type) => {
       const icons = {

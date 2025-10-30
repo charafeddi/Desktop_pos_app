@@ -514,6 +514,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 import { useToast } from '@/utils/toastManager'
 import { useErrorHandler } from '@/utils/errorHandler'
+import { formatCurrency } from '@/utils/currency'
 
 // Composables
 const { t } = useI18n()
@@ -799,10 +800,7 @@ const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString()
 }
 
-const formatCurrency = (value) => {
-    const amount = Number(value || 0)
-    return amount.toLocaleString(undefined, { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
-}
+// Using centralized formatCurrency from currency.ts
 
 const closeForm = () => {
     showAddForm.value = false

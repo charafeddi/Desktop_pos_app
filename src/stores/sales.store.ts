@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { electronAPI } from '@/utils/electronAPI'
 
 interface SaleItem {
     id?: number
@@ -91,7 +92,7 @@ export const useSalesStore = defineStore('sales', {
             this.error = null
             try {
                 console.log('Fetching sales...')
-                const sales = await window.electronAPI.sales.getAll()
+                const sales = await electronAPI.sales.getAll()
                 console.log('Sales fetched:', sales)
                 this.sales = sales
                 this.lastFetchTime = now

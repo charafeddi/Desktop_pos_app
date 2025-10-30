@@ -4,6 +4,19 @@ const express = require('express');
 const fs = require('fs');
 const db = require('../backend/config/database');
 
+// Performance optimizations
+app.commandLine.appendSwitch('--disable-gpu-sandbox');
+app.commandLine.appendSwitch('--disable-software-rasterizer');
+app.commandLine.appendSwitch('--disable-background-timer-throttling');
+app.commandLine.appendSwitch('--disable-backgrounding-occluded-windows');
+app.commandLine.appendSwitch('--disable-renderer-backgrounding');
+app.commandLine.appendSwitch('--disable-features', 'TranslateUI');
+app.commandLine.appendSwitch('--disable-ipc-flooding-protection');
+
+// Memory optimizations
+app.commandLine.appendSwitch('--max-old-space-size', '4096');
+app.commandLine.appendSwitch('--no-sandbox');
+
 // Handle SSL certificate errors in development
 app.on('ready', () => {
   if (process.env.NODE_ENV === 'development') {
@@ -47,6 +60,7 @@ const setupSaleItemHandlers = require('../backend/ipc/saleItem.handlers');
 const setupSupplierHandlers = require('../backend/ipc/supplier.handlers');
 // Import todo handlers
 const setupTodoHandlers = require('../backend/ipc/todo.handlers');
+const setupLicenseHandlers = require('../backend/ipc/license.handlers');
 const setupUserProfileHandlers = require('../backend/ipc/userProfile.handlers');
 // Import cloud sync handlers
 const CloudSyncHandlers = require('../backend/ipc/cloudSync.handlers');
@@ -62,13 +76,29 @@ function createWindow() {
     height: 800,
     title: 'POS System - Point of Sale',
     icon: path.join(__dirname, '../public/assets/img/logo.png'), // Custom app icon
+    show: false, // Don't show until ready
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'dist/preload.js'),
       webSecurity: false, // Disable web security to allow local file loading
       allowRunningInsecureContent: true,
+      // Performance optimizations
+      enableRemoteModule: false,
+      backgroundThrottling: false,
+      offscreen: false,
+      // Memory optimizations
+      v8CacheOptions: 'code',
+      // Disable unnecessary features
+      experimentalFeatures: false,
+      enableBlinkFeatures: '',
+      disableBlinkFeatures: 'Auxclick',
     },
+  });
+
+  // Show window when ready to prevent visual flash
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
   });
 
 // Bulk operations handlers
@@ -415,6 +445,7 @@ mainWindow.webContents.on('context-menu', (event, params) => {
   new CloudSyncHandlers();
   setupAnalyticsHandlers();
   setupSettingsHandlers();
+  setupLicenseHandlers(ipcMain);
 
   // File save handler
   ipcMain.handle('save-file', async (event, data, filename, type) => {

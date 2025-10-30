@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { electronAPI } from '@/utils/electronAPI'
 
 interface CompanyInfo {
   name: string
@@ -28,12 +29,19 @@ interface BackupSettings {
   backupLocation: 'local' | 'cloud'
 }
 
+interface Currency {
+  code: string
+  symbol: string
+  name: string
+}
+
 interface SettingsState {
   companyInfo: CompanyInfo
   taxRates: TaxRate[]
   printerSettings: PrinterSettings
   backupSettings: BackupSettings
   backupFolder: string
+  currency: Currency
   loading: boolean
   error: string | null
 }
@@ -64,6 +72,11 @@ export const useSettingsStore = defineStore('settings', {
       backupLocation: 'local'
     },
     backupFolder: '',
+    currency: {
+      code: 'USD',
+      symbol: '$',
+      name: 'US Dollar'
+    },
     loading: false,
     error: null
   }),
@@ -74,6 +87,7 @@ export const useSettingsStore = defineStore('settings', {
     getPrinterSettings: (state) => state.printerSettings,
     getBackupSettings: (state) => state.backupSettings,
     getBackupFolder: (state) => state.backupFolder,
+    getCurrency: (state) => state.currency,
     getDefaultTaxRate: (state) => state.taxRates.find(rate => rate.isDefault),
     isLoading: (state) => state.loading,
     getError: (state) => state.error
@@ -89,21 +103,43 @@ export const useSettingsStore = defineStore('settings', {
         console.log('Loading settings from database...')
         
         // Load company info
-        const companyInfo = await window.electronAPI.settings.getCompanyInfo()
+        const companyInfo = await electronAPI.settings.getCompanyInfo()
         if (companyInfo) {
           this.companyInfo = companyInfo
         }
         
         // Load tax rates
-        const taxRates = await window.electronAPI.settings.getTaxRates()
+        const taxRates = await electronAPI.settings.getTaxRates()
         if (taxRates && taxRates.rates) {
           this.taxRates = taxRates.rates
         }
         
         // Load printer settings
-        const printerSettings = await window.electronAPI.settings.getPrinterSettings()
+        const printerSettings = await electronAPI.settings.getPrinterSettings()
         if (printerSettings) {
           this.printerSettings = printerSettings
+        }
+        
+        // Load currency settings
+        const currency = await electronAPI.settings.getCurrency()
+        if (currency && currency.code && currency.symbol && currency.name) {
+          this.currency = currency
+          console.log('Currency loaded from database:', this.currency)
+        } else {
+          // If currency doesn't exist in DB, use defaults and save them
+          console.log('Currency not found in DB, initializing with defaults')
+          this.currency = {
+            code: 'USD',
+            symbol: '$',
+            name: 'US Dollar'
+          }
+          // Save default currency to database
+          try {
+            await electronAPI.settings.saveCurrency(this.currency)
+            console.log('Default currency saved to database')
+          } catch (error) {
+            console.error('Failed to save default currency:', error)
+          }
         }
         
         // Load backup settings from localStorage (not in database yet)
@@ -143,7 +179,7 @@ export const useSettingsStore = defineStore('settings', {
         // Serialize the company info to ensure it can be cloned through IPC
         const serializedCompanyInfo = JSON.parse(JSON.stringify(updatedCompanyInfo))
         
-        const savedCompanyInfo = await window.electronAPI.settings.saveCompanyInfo(serializedCompanyInfo)
+        const savedCompanyInfo = await electronAPI.settings.saveCompanyInfo(serializedCompanyInfo)
         
         this.companyInfo = savedCompanyInfo
         console.log('Company info saved successfully:', savedCompanyInfo)
@@ -170,7 +206,7 @@ export const useSettingsStore = defineStore('settings', {
         const serializedTaxRates = JSON.parse(JSON.stringify(taxRates))
         const taxRatesData = { rates: serializedTaxRates }
         
-        const savedTaxRates = await window.electronAPI.settings.saveTaxRates(taxRatesData)
+        const savedTaxRates = await electronAPI.settings.saveTaxRates(taxRatesData)
         
         this.taxRates = savedTaxRates.rates || taxRates
         console.log('Tax rates saved successfully:', savedTaxRates)
@@ -197,7 +233,7 @@ export const useSettingsStore = defineStore('settings', {
         // Serialize the printer settings to ensure they can be cloned through IPC
         const serializedPrinterSettings = JSON.parse(JSON.stringify(updatedPrinterSettings))
         
-        const savedPrinterSettings = await window.electronAPI.settings.savePrinterSettings(serializedPrinterSettings)
+        const savedPrinterSettings = await electronAPI.settings.savePrinterSettings(serializedPrinterSettings)
         
         this.printerSettings = savedPrinterSettings
         console.log('Printer settings saved successfully:', savedPrinterSettings)
@@ -263,6 +299,61 @@ export const useSettingsStore = defineStore('settings', {
       }
     },
 
+    // Save currency settings to database
+    async saveCurrency(currencyData: Currency) {
+      this.loading = true
+      this.error = null
+      
+      try {
+        console.log('Saving currency settings to database:', currencyData)
+        
+        // Validate currency data
+        if (!currencyData || !currencyData.code || !currencyData.symbol || !currencyData.name) {
+          throw new Error('Invalid currency data: missing required fields')
+        }
+        
+        const serializedCurrency = JSON.parse(JSON.stringify(currencyData))
+        
+        console.log('Calling electronAPI.settings.saveCurrency with:', serializedCurrency)
+        
+        const savedCurrency = await electronAPI.settings.saveCurrency(serializedCurrency)
+        console.log('electronAPI returned:', savedCurrency)
+        
+        // Handle the case where safeElectronCall returns null due to an error
+        if (savedCurrency === null) {
+          console.error('IPC call returned null - checking if currency was actually saved')
+          // Try to read the currency back to see if it was actually saved
+          const verifyCurrency = await electronAPI.settings.getCurrency()
+          console.log('Verified currency from database:', verifyCurrency)
+          
+          if (verifyCurrency && verifyCurrency.code && verifyCurrency.symbol && verifyCurrency.name) {
+            this.currency = verifyCurrency
+            console.log('Currency was saved successfully (verified by reading)')
+            return true
+          } else {
+            throw new Error('Currency save operation failed - no data saved to database')
+          }
+        }
+        
+        if (savedCurrency && savedCurrency.code && savedCurrency.symbol && savedCurrency.name) {
+          this.currency = savedCurrency
+          console.log('Currency settings saved successfully:', savedCurrency)
+        } else {
+          console.error('savedCurrency is missing required fields:', savedCurrency)
+          throw new Error('Invalid data returned from save operation')
+        }
+        
+        return true
+      } catch (err) {
+        console.error('Error saving currency:', err)
+        const errorMessage = err instanceof Error ? err.message : String(err)
+        this.error = 'Failed to save currency settings: ' + errorMessage
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
     // Set backup folder (still using localStorage for now)
     setBackupFolder(folder: string) {
       this.backupFolder = folder
@@ -311,6 +402,14 @@ export const useSettingsStore = defineStore('settings', {
           printCopies: 1
         }
         await this.savePrinterSettings(defaultPrinterSettings)
+        
+        // Reset currency settings
+        const defaultCurrency = {
+          code: 'USD',
+          symbol: '$',
+          name: 'US Dollar'
+        }
+        await this.saveCurrency(defaultCurrency)
         
         // Reset backup settings (localStorage)
         this.backupSettings = {

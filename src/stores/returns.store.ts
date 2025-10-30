@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { electronAPI } from '@/utils/electronAPI'
 
 /**
  * Return Item Interface
@@ -145,7 +146,7 @@ export const useReturnsStore = defineStore('returns', {
       this.error = null
       
       try {
-        const returns = await window.electronAPI.returns.getAll()
+                const returns = await electronAPI.returns.getAll()
         this.returns = returns || []
       } catch (error) {
         console.error('Error fetching returns:', error)

@@ -157,6 +157,15 @@ const routes: RouteRecordRaw[] = [
       title: 'Notifications',
       requiresAuth: true
     }
+  },
+  {
+    path: '/license',
+    name: 'License',
+    component: () => import('@/views/license/LicenseActivation.vue'),
+    meta: {
+      title: 'License Activation',
+      requiresAuth: false // Allow access without auth for activation
+    }
   }
 
 ]

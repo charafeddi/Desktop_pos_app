@@ -435,6 +435,7 @@
   import RealTimeMetrics from '@/components/analytics/RealTimeMetrics.vue'
   import AdvancedCharts from '@/components/analytics/AdvancedCharts.vue'
   import AnalyticsSummary from '@/components/analytics/AnalyticsSummary.vue'
+  import { formatCurrency } from '@/utils/currency'
   const {t} = useI18n()
   
   const analyticsStore = useAnalyticsStore()
@@ -482,12 +483,7 @@
     lastSaleTime: new Date(Date.now() - Math.random() * 3600000)
   }))
   
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(value || 0)
-  }
+  // Using centralized formatCurrency from currency.ts
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', { 

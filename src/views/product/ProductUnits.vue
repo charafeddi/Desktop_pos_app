@@ -131,7 +131,7 @@
                                     <button @click="editProductUnit(productUnit)" class="text-blue-400 hover:text-blue-300 mr-3">
                                         <span class="material-icons-outlined">edit</span>
                                     </button>
-                                    <button @click="deleteProductUnit(productUnit.id)" class="text-red-400 hover:text-red-300">
+                                    <button @click="showDeleteConfirmation(productUnit)" class="text-red-400 hover:text-red-300">
                                         <span class="material-icons-outlined">delete</span>
                                     </button>
                                 </td>
@@ -213,12 +213,26 @@
                 </form>
             </div>
         </div>
+        
+        <!-- Confirmation Dialog for Delete -->
+        <ConfirmationDialog
+            :is-visible="showDeleteConfirm"
+            :title="'Delete Product Unit'"
+            :message="`Are you sure you want to delete ${productUnitToDelete?.name || 'this product unit'}? This action cannot be undone.`"
+            :type="'error'"
+            :confirm-text="'Delete'"
+            :cancel-text="'Cancel'"
+            :loading="isDeleting"
+            @confirm="confirmDelete"
+            @cancel="cancelDelete"
+        />
     </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useProductUnitStore } from '../../stores/productUnit.store';
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue';
 
 const productUnitStore = useProductUnitStore();
 
@@ -228,6 +242,11 @@ const showAddForm = ref(false);
 const showEditForm = ref(false);
 const selectedProductUnit = ref(null);
 const loading = ref(false);
+
+// Delete confirmation
+const showDeleteConfirm = ref(false);
+const productUnitToDelete = ref(null);
+const isDeleting = ref(false);
 
 const formData = ref({
     name: '',
@@ -305,15 +324,45 @@ const handleSubmit = async () => {
 };
 
 const deleteProductUnit = async (id) => {
-    if (confirm('Are you sure you want to delete this product unit?')) {
-        try {
-            await productUnitStore.delete(id);
-            await productUnitStore.fetchProductUnits();
-        } catch (error) {
-            console.error('Error deleting product unit:', error);
-            alert('Error deleting product unit. Please try again.');
-        }
+    try {
+        isDeleting.value = true;
+        
+        // Find the product unit to get its name for the notification
+        const productUnit = productUnits.value.find(pu => pu.id === id);
+        const productUnitName = productUnit?.name || 'Product Unit';
+        
+        await productUnitStore.delete(id);
+        await productUnitStore.fetchProductUnits();
+        
+        console.log(`Product unit ${productUnitName} deleted successfully`);
+        
+    } catch (error) {
+        console.error('Error deleting product unit:', error);
+        alert('Error deleting product unit. Please try again.');
+    } finally {
+        isDeleting.value = false;
     }
+};
+
+// Show delete confirmation
+const showDeleteConfirmation = (productUnit) => {
+    productUnitToDelete.value = productUnit;
+    showDeleteConfirm.value = true;
+};
+
+// Confirm delete
+const confirmDelete = async () => {
+    if (productUnitToDelete.value?.id) {
+        await deleteProductUnit(productUnitToDelete.value.id);
+    }
+    showDeleteConfirm.value = false;
+    productUnitToDelete.value = null;
+};
+
+// Cancel delete
+const cancelDelete = () => {
+    showDeleteConfirm.value = false;
+    productUnitToDelete.value = null;
 };
 
 // Load data on mount

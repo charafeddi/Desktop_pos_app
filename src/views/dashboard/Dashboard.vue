@@ -253,6 +253,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 import { useToast } from '@/utils/toastManager'
 import { useErrorHandler } from '@/utils/errorHandler'
+import { formatCurrency } from '@/utils/currency'
 
 // Composables
 const { t } = useI18n()
@@ -340,12 +341,7 @@ const handleRetry = async () => {
 }
 
 // Methods
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(value || 0)
-}
+// Using centralized formatCurrency from currency.ts
 
 // Format time ago
 const formatTimeAgo = (dateString) => {

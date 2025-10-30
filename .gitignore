@@ -31,3 +31,26 @@ packaged-app/
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files
+.env
+.env.*
+
+# Additional build outputs
+out/
+.next/
+coverage/
+
+# Electron / Packaging outputs
+desktop-app/
+win-unpacked/
+*.exe
+*.dmg
+*.AppImage
+*.zip
+
+# SQLite databases and journals
+backend/data/
+*.db
+*.db-shm
+*.db-wal

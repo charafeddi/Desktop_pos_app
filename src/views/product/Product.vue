@@ -335,8 +335,8 @@
                                     <div class="text-sm text-gray-400">{{ t('product.min_stock') }}: {{ product.min_stock_level }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-300">{{ t('product.price') }}: ${{ product.selling_price }}</div>
-                                    <div class="text-sm text-gray-400">{{ t('product.cost') }}: ${{ product.purchase_price }}</div>
+                                    <div class="text-sm text-gray-300">{{ t('product.price') }}: {{ formatCurrency(product.selling_price) }}</div>
+                                    <div class="text-sm text-gray-400">{{ t('product.cost') }}: {{ formatCurrency(product.purchase_price) }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span :class="getStatusClass(product.status)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
@@ -349,7 +349,7 @@
                                             edit
                                         </span>
                                     </button>
-                                    <button @click="deleteProduct(product.id)" class="text-red-400 hover:text-red-300">
+                                    <button @click="showDeleteConfirmation(product)" class="text-red-400 hover:text-red-300">
                                         <span class="material-icons-outlined">
                                             delete
                                         </span>
@@ -415,13 +415,13 @@
         
         <!-- Confirmation Dialog for Delete -->
         <ConfirmationDialog
-            :is-open="showDeleteConfirm"
+            :is-visible="showDeleteConfirm"
             :title="'Delete Product'"
             :message="`Are you sure you want to delete ${productToDelete?.name || 'this product'}? This action cannot be undone.`"
             :type="'error'"
             :confirm-text="'Delete'"
             :cancel-text="'Cancel'"
-            :is-loading="isDeleting"
+            :loading="isDeleting"
             @confirm="confirmDelete"
             @cancel="cancelDelete"
         />
@@ -440,6 +440,7 @@ import { useProductStore } from '../../stores/product.store'
 import { exportProducts } from '@/utils/exportUtils'
 import { useToast } from '@/utils/toastManager'
 import { useErrorHandler } from '@/utils/errorHandler'
+import { formatCurrency } from '@/utils/currency'
 
 // Composables
 const { t } = useI18n()
@@ -701,7 +702,7 @@ const activeFiltersCount = computed(() => {
 // Calculate total inventory value (stock * price)
 const totalInventoryValue = computed(() => {
     if (!Array.isArray(products.value) || products.value.length === 0) {
-        return '$0.00'
+        return formatCurrency(0)
     }
     
     const total = products.value.reduce((sum, product) => {
@@ -710,11 +711,7 @@ const totalInventoryValue = computed(() => {
         return sum + (stock * price)
     }, 0)
     
-    return total.toLocaleString('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: 2
-    })
+    return formatCurrency(total)
 })
 
 // Reactive Variables
@@ -740,13 +737,13 @@ const endIndex = computed(() => Math.min(startIndex.value + itemsPerPage, totalI
 const getStatusClass = (status) => {
     switch (status) {
         case 'active':
-            return 'bg-green-100 text-green-800'
+            return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
         case 'inactive':
-            return 'bg-red-100 text-red-800'
+            return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
         case 'out_of_stock':
-            return 'bg-yellow-100 text-yellow-800'
+            return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400'
         default:
-            return 'bg-gray-100 text-gray-800'
+            return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
     }
 }
 
@@ -960,8 +957,8 @@ const deleteProduct = async (productId) => {
         // Call the API to delete the product
         await window.electronAPI?.products.delete(productId)
         
-        // Remove from local state
-        products.value = products.value.filter(p => p.id !== productId)
+        // Refresh products from the store instead of modifying computed property
+        await ProductStore.getAllProducts?.(true)
         
         showSuccess('Product Deleted', `${productName} has been deleted successfully`)
         
@@ -989,6 +986,13 @@ const showDeleteConfirmation = (product) => {
     showDeleteConfirm.value = true
 }
 
+// Close form method
+const closeForm = () => {
+    showAddForm.value = false
+    showEditForm.value = false
+    selectedProduct.value = null
+}
+
 // Export products
 const exportProductsData = async (format) => {
     try {
@@ -1014,7 +1018,6 @@ const exportProductsData = async (format) => {
             handleBusinessLogicError(new Error('Export operation failed'), 'Product Export')
             showError('Export Failed', 'Failed to export products data')
         }
-        
     } catch (error) {
         handleNetworkError(error, 'Product Export')
         showError('Export Error', 'An error occurred while exporting data. Please try again.')
@@ -1026,7 +1029,7 @@ const exportProductsData = async (format) => {
     } finally {
         isExporting.value = false
         showExportDropdown.value = false
-    }
+    } 
 }
 
 </script>
@@ -1040,31 +1043,6 @@ const exportProductsData = async (format) => {
 }
 
 .btn-secondary {
-    @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
-}
-
-/* Update status classes for dark theme */
-:deep(.bg-green-100) {
-    @apply bg-green-900/30;
-}
-
-:deep(.text-green-800) {
-    @apply text-green-400;
-}
-
-:deep(.bg-gray-100) {
-    @apply bg-gray-800/30;
-}
-
-:deep(.text-gray-800) {
-    @apply text-gray-400;
-}
-
-:deep(.bg-red-100) {
-    @apply bg-red-900/30;
-}
-
-:deep(.text-red-800) {
-    @apply text-red-400;
+    @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600;
 }
 </style>

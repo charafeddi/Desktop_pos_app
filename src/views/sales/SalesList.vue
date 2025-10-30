@@ -11,6 +11,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 import { useToast } from '@/utils/toastManager'
 import { useErrorHandler } from '@/utils/errorHandler'
+import { formatCurrency } from '@/utils/currency'
 
 const { t } = useI18n()
 const { success: showSuccess, error: showError, warning: showWarning, info: showInfo } = useToast()
@@ -358,13 +359,7 @@ function getCustomerName(customerId) {
   return customer ? customer.name : 'Unknown Customer'
 }
 
-// Format currency
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(value)
-}
+// Using centralized formatCurrency from currency.ts
 
 // Format date
 const formatDate = (dateString) => {
@@ -381,31 +376,31 @@ const formatDate = (dateString) => {
 function getPaymentMethodColor(method) {
   switch (method.toLowerCase()) {
     case 'cash':
-      return 'bg-green-100 text-green-800'
+      return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
     case 'card':
-      return 'bg-blue-100 text-blue-800'
+      return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400'
     case 'mobile':
-      return 'bg-purple-100 text-purple-800'
+      return 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400'
     default:
-      return 'bg-gray-100 text-gray-800'
+      return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
   }
 }
 
 // Get sale status color
 function getSaleStatusColor(status, saleId) {
   if (isSaleReturned(saleId)) {
-    return 'bg-orange-100 text-orange-800'
+    return 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400'
   }
   
   switch (status?.toLowerCase()) {
     case 'completed':
-      return 'bg-green-100 text-green-800'
+      return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
     case 'pending':
-      return 'bg-yellow-100 text-yellow-800'
+      return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400'
     case 'cancelled':
-      return 'bg-red-100 text-red-800'
+      return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
     default:
-      return 'bg-gray-100 text-gray-800'
+      return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
   }
 }
 
@@ -693,12 +688,12 @@ async function exportSalesData(format) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <!-- Header -->
-    <div class="shadow-sm border-b">
+    <div class="shadow-sm border-b border-gray-200 dark:border-gray-700">
       <div class="px-6 py-4">
         <div class="flex items-center justify-between">
-          <h1 class="text-2xl font-bold text-gray-900">{{ t('sales.sales_history') }}</h1>
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('sales.sales_history') }}</h1>
           <div class="flex items-center space-x-4">
             <router-link 
               to="/pos"
@@ -719,33 +714,33 @@ async function exportSalesData(format) {
               </button>
               
               <!-- Export Dropdown -->
-              <div
-                v-if="showExportDropdown"
-                class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200"
-              >
-                <div class="py-1">
-                  <button
-                    @click="exportSalesData('csv'); showExportDropdown = false"
-                    class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    {{ t('sales.export_as_csv') }}
-                  </button>
-                  <button
-                    @click="exportSalesData('pdf'); showExportDropdown = false"
-                    class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                    </svg>
-                    {{ t('sales.export_as_pdf') }}
-                  </button>
-                </div>
+            <div
+              v-if="showExportDropdown"
+              class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700"
+            >
+              <div class="py-1">
+                <button
+                  @click="exportSalesData('csv'); showExportDropdown = false"
+                  class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                  {{ t('sales.export_as_csv') }}
+                </button>
+                <button
+                  @click="exportSalesData('pdf'); showExportDropdown = false"
+                  class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                  </svg>
+                  {{ t('sales.export_as_pdf') }}
+                </button>
               </div>
             </div>
-            <div class="text-sm text-gray-600">
+            </div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">
               {{ t('sales.total_sales') }}: {{ sales.length }}
             </div>
           </div>
@@ -754,25 +749,25 @@ async function exportSalesData(format) {
     </div>
 
     <!-- Search and Filter Section -->
-    <div class="p-4 border-b bg-white">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
       <div class="flex flex-col gap-4">
         <!-- Main Search Bar -->
         <div class="flex flex-col lg:flex-row gap-4">
           <!-- Search Input -->
           <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-500 mb-2">Search Sales</label>
+            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Search Sales</label>
             <div class="relative">
               <input
                 v-model="searchQuery"
                 @keydown="handleSearchKeydown"
                 type="text"
                 placeholder="Search by sale number, customer, payment method, status, or amount..."
-                class="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-4 py-3 text-lg border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
               <button 
                 v-if="searchQuery"
                 @click="searchQuery = ''"
-                class="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                class="absolute right-3 top-3 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
               >
                 <span class="material-icons-outlined text-sm">clear</span>
               </button>
@@ -806,8 +801,8 @@ async function exportSalesData(format) {
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <!-- Customer Filter -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
-              <select v-model="customerFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer</label>
+              <select v-model="customerFilter" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">All Customers</option>
                 <option v-for="customer in uniqueCustomers" :key="customer.id" :value="customer.id">{{ customer.name }}</option>
               </select>
@@ -815,8 +810,8 @@ async function exportSalesData(format) {
             
             <!-- Payment Method Filter -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-              <select v-model="paymentMethodFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Method</label>
+              <select v-model="paymentMethodFilter" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">All Payment Methods</option>
                 <option value="cash">Cash</option>
                 <option value="card">Card</option>
@@ -828,8 +823,8 @@ async function exportSalesData(format) {
             
             <!-- Status Filter -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select v-model="statusFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+              <select v-model="statusFilter" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">All Statuses</option>
                 <option value="completed">Completed</option>
                 <option value="returned">Returned</option>
@@ -840,8 +835,8 @@ async function exportSalesData(format) {
             
             <!-- Amount Range Filter -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Amount Range</label>
-              <select v-model="amountRangeFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount Range</label>
+              <select v-model="amountRangeFilter" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">All Amounts</option>
                 <option value="low">Under $50</option>
                 <option value="medium">$50 - $200</option>
@@ -852,8 +847,8 @@ async function exportSalesData(format) {
             
             <!-- Date Range Filter -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
-              <select v-model="dateRangeFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date Range</label>
+              <select v-model="dateRangeFilter" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">All Dates</option>
                 <option value="today">Today</option>
                 <option value="week">This Week</option>
@@ -890,7 +885,7 @@ async function exportSalesData(format) {
             
             <!-- Results Count -->
             <div class="flex items-end">
-              <div class="text-sm text-gray-600">
+              <div class="text-sm text-gray-600 dark:text-gray-400">
                 {{ filteredSales.length }} of {{ sales.length }} sales
               </div>
             </div>
@@ -906,13 +901,13 @@ async function exportSalesData(format) {
       </div>
 
       <div v-else-if="filteredSales.length === 0" class="text-center py-12">
-        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
         </svg>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
           {{ activeFiltersCount > 0 ? 'No sales match your search criteria' : t('sales.no_sales_found') }}
         </h3>
-        <p class="text-gray-500">
+        <p class="text-gray-500 dark:text-gray-400">
           {{ activeFiltersCount > 0 ? 'Try adjusting your filters or search terms' : t('sales.start_making_sales_to_see_them_here') }}
         </p>
       </div>
@@ -920,58 +915,58 @@ async function exportSalesData(format) {
       <div v-else class="rounded-lg shadow overflow-hidden relative">
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 relative">
-            <thead class="bg-gray-50">
+            <thead class="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   {{ t('sales.sale_number') }}
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   {{ t('sales.customer') }}
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   {{ t('sales.date') }}
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   {{ t('sales.items') }}
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   {{ t('sales.total') }}
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   {{ t('sales.payment') }}
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   {{ t('sales.status') }}
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   {{ t('sales.actions') }}
                 </th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
-              <tr v-for="sale in filteredSales" :key="sale.id" class="hover:bg-gray-50">
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+              <tr v-for="sale in filteredSales" :key="sale.id" class="hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900">
+                  <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {{ sale.sale_number || sale.invoice_number || `#${sale.id}` }}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">
+                  <div class="text-sm text-gray-900 dark:text-gray-100">
                     {{ getCustomerName(sale.customer_id) }}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">
+                  <div class="text-sm text-gray-900 dark:text-gray-100">
                     {{ formatDate(sale.created_at) }}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">
+                  <div class="text-sm text-gray-900 dark:text-gray-100">
                     {{ sale.item_count || 'N/A' }} items
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900">
+                  <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {{ formatCurrency(sale.final_amount || sale.total_amount) }}
                   </div>
                 </td>
@@ -989,7 +984,7 @@ async function exportSalesData(format) {
                   <div class="relative z-50">
                     <button
                       @click="toggleDropdown(sale.id)"
-                      class="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full p-1"
+                      class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full p-1"
                     >
                       <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
@@ -999,12 +994,12 @@ async function exportSalesData(format) {
                     <!-- Dropdown Menu -->
                     <div
                       v-if="activeDropdown === sale.id"
-                      class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+                      class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700"
                     >
                       <div class="py-1">
                         <button
                           @click="viewSaleDetails(sale.id)"
-                          class="flex items-center w-full px-4 py-2 text-sm text-gray-700 bg-gray-100"
+                          class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
                         >
                           <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -1014,7 +1009,7 @@ async function exportSalesData(format) {
                         </button>
                         <button
                           @click="printReceipt(sale)"
-                          class="flex items-center w-full px-4 py-2 text-sm text-gray-700 bg-gray-100"
+                          class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
                         >
                           <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
@@ -1023,7 +1018,7 @@ async function exportSalesData(format) {
                         </button>
                         <button
                           @click="previewReceipt(sale)"
-                          class="flex items-center w-full px-4 py-2 text-sm text-gray-700 bg-gray-100"
+                          class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
                         >
                           <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -1034,7 +1029,7 @@ async function exportSalesData(format) {
                         <button
                           v-if="!isSaleReturned(sale.id)"
                           @click="refundSale(sale)"
-                          class="flex items-center w-full px-4 py-2 text-sm text-gray-700 bg-gray-100"
+                          class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
                         >
                           <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
@@ -1043,17 +1038,17 @@ async function exportSalesData(format) {
                         </button>
                         <div
                           v-else
-                          class="flex items-center w-full px-4 py-2 text-sm text-gray-400 cursor-not-allowed"
+                          class="flex items-center w-full px-4 py-2 text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed"
                         >
                           <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
                           </svg>
                           {{ t('sales.already_returned') }}
                         </div>
-                        <hr class="my-1">
+                        <hr class="my-1 border-gray-200 dark:border-gray-700">
                         <button
                           @click="showDeleteConfirmation(sale)"
-                          class="flex items-center w-full px-4 py-2 text-sm text-red-600 bg-red-50"
+                          class="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30"
                         >
                           <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -1073,15 +1068,15 @@ async function exportSalesData(format) {
 
     <!-- Sale Details Modal -->
     <div v-if="showSaleDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="showSaleDetailsModal = false">
-      <div class="bg-white rounded-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto" @click.stop>
+      <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl" @click.stop>
       
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-xl font-semibold text-gray-900">
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
             Sale Details - {{ selectedSale?.sale_number || selectedSale?.invoice_number || `#${selectedSale?.id}` }}
           </h3>
           <button
             @click="showSaleDetailsModal = false"
-            class="text-gray-400 hover:text-gray-600"
+            class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -1094,78 +1089,78 @@ async function exportSalesData(format) {
         <div v-if="selectedSale" class="space-y-6">
           <!-- Sale Information -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-gray-50 p-4 rounded-lg">
-              <h4 class="font-medium text-gray-900 mb-3">Sale Information</h4>
+            <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-3">Sale Information</h4>
               <div class="space-y-2 text-sm">
                 <div class="flex justify-between">
-                  <span class="text-gray-600">Sale Number:</span>
-                  <span class="font-medium text-gray-900">{{ selectedSale.sale_number || selectedSale.invoice_number || `#${selectedSale.id}` }}</span>
+                  <span class="text-gray-600 dark:text-gray-400">Sale Number:</span>
+                  <span class="font-medium text-gray-900 dark:text-gray-100">{{ selectedSale.sale_number || selectedSale.invoice_number || `#${selectedSale.id}` }}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-gray-600">Date:</span>
-                  <span class="font-medium text-gray-900">{{ formatDate(selectedSale.created_at) }}</span>
+                  <span class="text-gray-600 dark:text-gray-400">Date:</span>
+                  <span class="font-medium text-gray-900 dark:text-gray-100">{{ formatDate(selectedSale.created_at) }}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-gray-600">Customer:</span>
-                  <span class="font-medium text-gray-900">{{ getCustomerName(selectedSale.customer_id) }}</span>
+                  <span class="text-gray-600 dark:text-gray-400">Customer:</span>
+                  <span class="font-medium text-gray-900 dark:text-gray-100">{{ getCustomerName(selectedSale.customer_id) }}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-gray-600">Payment Method:</span>
-                  <span class="font-medium text-gray-900">{{ selectedSale.payment_method }}</span>
+                  <span class="text-gray-600 dark:text-gray-400">Payment Method:</span>
+                  <span class="font-medium text-gray-900 dark:text-gray-100">{{ selectedSale.payment_method }}</span>
                 </div>
               </div>
             </div>
 
-            <div class="bg-gray-50 p-4 rounded-lg">
-              <h4 class="font-medium text-gray-900 mb-3">{{ t('sales.financial_summary') }} </h4>
+            <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-3">{{ t('sales.financial_summary') }} </h4>
               <div class="space-y-2 text-sm">
                 <div class="flex justify-between">
-                  <span class="text-gray-600">{{ t('sales.subtotal') }}:</span>
-                  <span class="font-medium text-gray-900">{{ formatCurrency(selectedSale.total_amount) }}</span>
+                  <span class="text-gray-600 dark:text-gray-400">{{ t('sales.subtotal') }}:</span>
+                  <span class="font-medium text-gray-900 dark:text-gray-100">{{ formatCurrency(selectedSale.total_amount) }}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-gray-600">{{ t('sales.tax') }}:</span>
-                  <span class="font-medium text-gray-900">{{ formatCurrency(selectedSale.tax_amount || 0) }}</span>
+                  <span class="text-gray-600 dark:text-gray-400">{{ t('sales.tax') }}:</span>
+                  <span class="font-medium text-gray-900 dark:text-gray-100">{{ formatCurrency(selectedSale.tax_amount || 0) }}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-gray-600">{{ t('sales.discount') }}:</span>
-                  <span class="font-medium text-gray-900">{{ formatCurrency(selectedSale.discount_amount || 0) }}</span>
+                  <span class="text-gray-600 dark:text-gray-400">{{ t('sales.discount') }}:</span>
+                  <span class="font-medium text-gray-900 dark:text-gray-100">{{ formatCurrency(selectedSale.discount_amount || 0) }}</span>
                 </div>
-                <div class="flex justify-between border-t pt-2">
-                  <span class="text-gray-900 font-medium">{{ t('sales.total') }}:</span>
-                  <span class="font-bold text-lg text-gray-900">{{ formatCurrency(selectedSale.final_amount || selectedSale.total_amount) }}</span>
+                <div class="flex justify-between border-t border-gray-300 dark:border-gray-600 pt-2">
+                  <span class="text-gray-900 dark:text-gray-100 font-medium">{{ t('sales.total') }}:</span>
+                  <span class="font-bold text-lg text-gray-900 dark:text-gray-100">{{ formatCurrency(selectedSale.final_amount || selectedSale.total_amount) }}</span>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Sale Items -->
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <h4 class="font-medium text-gray-900 mb-3">{{ t('sales.sale_items') }}</h4>
+          <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-3">{{ t('sales.sale_items') }}</h4>
             <div v-if="selectedSale.items && selectedSale.items.length > 0" class="overflow-x-auto">
               <table class="min-w-full">
                 <thead>
-                  <tr class="border-b">
-                    <th class="text-left py-2 text-sm font-medium text-gray-600">Product</th>
-                    <th class="text-left py-2 text-sm font-medium text-gray-600">Quantity</th>
-                    <th class="text-left py-2 text-sm font-medium text-gray-600">Unit Price</th>
-                    <th class="text-left py-2 text-sm font-medium text-gray-600">Tax Rate</th>
-                    <th class="text-left py-2 text-sm font-medium text-gray-600">Total</th>
+                  <tr class="border-b border-gray-300 dark:border-gray-600">
+                    <th class="text-left py-2 text-sm font-medium text-gray-600 dark:text-gray-400">Product</th>
+                    <th class="text-left py-2 text-sm font-medium text-gray-600 dark:text-gray-400">Quantity</th>
+                    <th class="text-left py-2 text-sm font-medium text-gray-600 dark:text-gray-400">Unit Price</th>
+                    <th class="text-left py-2 text-sm font-medium text-gray-600 dark:text-gray-400">Tax Rate</th>
+                    <th class="text-left py-2 text-sm font-medium text-gray-600 dark:text-gray-400">Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="item in selectedSale.items" :key="item.id" class="border-b">
-                    <td class="py-2 text-sm text-gray-900">{{ item.product_name || `Product #${item.product_id}` }}</td>
-                    <td class="py-2 text-sm text-gray-900">{{ item.quantity }}</td>
-                    <td class="py-2 text-sm text-gray-900">{{ formatCurrency(item.unit_price) }}</td>
-                    <td class="py-2 text-sm text-gray-900">{{ item.tax_rate || 0 }}%</td>
-                    <td class="py-2 text-sm font-medium text-gray-900">{{ formatCurrency(item.total_amount) }}</td>
+                  <tr v-for="item in selectedSale.items" :key="item.id" class="border-b border-gray-200 dark:border-gray-700">
+                    <td class="py-2 text-sm text-gray-900 dark:text-gray-100">{{ item.product_name || `Product #${item.product_id}` }}</td>
+                    <td class="py-2 text-sm text-gray-900 dark:text-gray-100">{{ item.quantity }}</td>
+                    <td class="py-2 text-sm text-gray-900 dark:text-gray-100">{{ formatCurrency(item.unit_price) }}</td>
+                    <td class="py-2 text-sm text-gray-900 dark:text-gray-100">{{ item.tax_rate || 0 }}%</td>
+                    <td class="py-2 text-sm font-medium text-gray-900 dark:text-gray-100">{{ formatCurrency(item.total_amount) }}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            <div v-else class="text-center py-8 text-gray-500">
-              <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400">
+              <svg class="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
               </svg>
               <p>No items found for this sale</p>
@@ -1175,7 +1170,7 @@ async function exportSalesData(format) {
         </div>
         <div v-else class="text-center py-12">
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p class="text-gray-500">Loading sale details...</p>
+          <p class="text-gray-500 dark:text-gray-400">Loading sale details...</p>
         </div>
       </div>
     </div>
@@ -1225,52 +1220,6 @@ async function exportSalesData(format) {
 }
 
 .btn-secondary {
-  @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
-}
-
-/* Dark theme support */
-:deep(.bg-gray-100) {
-  @apply bg-gray-800/30;
-}
-
-:deep(.text-gray-700) {
-  @apply text-gray-300;
-}
-
-:deep(.text-gray-600) {
-  @apply text-gray-400;
-}
-
-:deep(.border-gray-200) {
-  @apply border-gray-600;
-}
-
-:deep(.border-gray-300) {
-  @apply border-gray-500;
-}
-
-/* Dark theme adjustments */
-:deep(.bg-blue-100) {
-  @apply bg-blue-900/30;
-}
-
-:deep(.text-blue-600) {
-  @apply text-blue-400;
-}
-
-:deep(.bg-green-100) {
-  @apply bg-green-900/30;
-}
-
-:deep(.text-green-600) {
-  @apply text-green-400;
-}
-
-:deep(.bg-red-100) {
-  @apply bg-red-900/30;
-}
-
-:deep(.text-red-600) {
-  @apply text-red-400;
+  @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600;
 }
 </style>

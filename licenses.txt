@@ -1,0 +1,26 @@
+[
+  {
+    "generated": "2025-10-29T21:04:43.381Z",
+    "licenseKey": "YZDHY-MJMMM-EWM2Z-INZG2-OTE5M",
+    "customerEmail": "charaf@gmail.com",
+    "deviceCount": 1,
+    "packageType": "basic",
+    "expiryDate": null
+  },
+  {
+    "generated": "2025-10-29T21:30:19.522Z",
+    "licenseKey": "MDIyO-DE1Zj-hiNzk-yZTgy-MGNkZ-Dg0YT-VmNGZ-iZDM4-NTY6Z-jJiYm-FmZDY-zNmVl-ZTEyM-GQ4NT-VhZjU-3MWVm-YmY0M-2E2N2-YzNDl-kYjBi-ZTU0M-zkwYT-M4M2E-yZGVj-OTgwY-jVmNG-IyOWU-0Y2Ri-NDliM-jg3ZG-QwNGM-1OTBj-MjBlM-mIxNz-g2OWU-xZjll-MThlO-GFkMG-QwZDZ-iOWMy-ZDYxN-jAzNT-gzZWY-zZWQ0-YjVhZ-TdhND-hkNzZ-mYjMz-OTAxM-jM0OW-FhOWI-yZWU4-MzE4O-DVkOD-NjN2E-4OWYz-YWRmN-jEzMD-FiOWU-wMjM2-MmUwM-DI3Nm-M5MTl-lOGM0-NjlkM-mU1Mm-Q1NWJ-hZTM2-NDg1O-TIxYm-Y3OWY-4NDE4-OWE4M-zRkOG-E1ZjJ-jMzM1-YzUxO-TQ0YW-UwODg-2MWZj-M2UzM-jVlNm-Y4OTg-5Mzg5-ZWEwZ-jM4OW-JiNmV-iZmJj-MDU2Y-jM5Zj-FmN2N-jYTBm-Njc3O-TIyMj-Q6NjR-CQUMz-Qzc=",
+    "customerEmail": "charaf@gmail.com",
+    "deviceCount": 3,
+    "packageType": "enterprise",
+    "expiryDate": null
+  },
+  {
+    "generated": "2025-10-29T21:42:18.810Z",
+    "licenseKey": "MmE5N-GQ2ZG-U0ZTh-iYzg1-NTQ1N-TMzZW-VlNGV-mM2Fi-ZTY6M-DdhZj-U4NGN-kNTM3-YjdhM-DVjYz-dkZmZ-kNWIx-Y2VmM-zViMz-lmNTQ-zZjQz-ODAwO-DNlZT-ZlNzV-jOWMx-ZjQxM-Tc5ND-gxNjl-hMjA2-YTk5N-zI0NG-NiNWI-2NzY1-NGRkZ-WZlZD-cxZDh-jMmEy-YjZlM-TY3N2-IwMzE-0OWY3-ODMyM-zYxMD-MxZGF-iYzlk-ZGY5M-WVjYj-kzYmJ-iNjU2-Zjk5Z-WI3Mz-EwODI-3MzA4-MzRjZ-jBlOG-FiMWY-3NDM5-MGExM-jAzZm-JkOGE-5Njlm-ZTQ0O-WRiZD-FkYTV-lYWIz-YzcwZ-WQ3NT-hlNWM-0ZmY1-ODE2Z-WY3M2-VmNTc-5M2Y0-NmIyN-jYwOW-VmYjB-mNmJi-Y2JjM-zI3OW-JlYmI-yNWVk-YWY1M-DZiMT-E2Zjc-1NmMz-NTA4M-TcwND-gyZWI-yOWUx-NDU0N-jEzMT-dmODZ-kOTkw-Njg5O-GM2Yj-Y6RkM-yMkZF-MUQ=",
+    "customerEmail": "charaf@gmail.com",
+    "deviceCount": 1,
+    "packageType": "enterprise",
+    "expiryDate": null
+  }
+]
