@@ -9,8 +9,11 @@ class Sale {
         } = saleData;
 
         try {
-            // Generate invoice number
-            const invoiceNumber = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            // Generate sale number and invoice number
+            const timestamp = Date.now();
+            const random = Math.floor(Math.random() * 1000);
+            const saleNumber = `SALE-${timestamp}-${random}`;
+            const invoiceNumber = `INV-${timestamp}-${random}`;
             
             // Get current local time
             const currentTime = new Date().toISOString();
@@ -18,26 +21,26 @@ class Sale {
             // Insert sale record
             const saleStmt = db.prepare(`
                 INSERT INTO sales (
-                    invoice_number, customer_id, user_id, total_amount, 
+                    sale_number, invoice_number, customer_id, user_id, total_amount, 
                     discount_amount, tax_amount, final_amount, payment_method,
                     payment_status, sale_status, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', 'completed', ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', 'completed', ?)
             `);
             
             const saleResult = saleStmt.run(
-                invoiceNumber, customer_id, user_id, total_amount,
+                saleNumber, invoiceNumber, customer_id, user_id, total_amount,
                 discount_amount, tax_amount, final_amount, payment_method, currentTime
             );
             
             const saleId = saleResult.lastInsertRowid;
-            console.log('Created sale with ID:', saleId);
 
             // Insert sale items and update stock
             if (items && items.length > 0) {
                 const itemStmt = db.prepare(`
                     INSERT INTO sale_items (
-                        sale_id, product_id, quantity, unit_price, total_amount, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?)
+                        sale_id, product_id, quantity, unit_price, tax_rate,
+                        discount_amount, tax_amount, total_amount, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `);
 
                 // Prepare stock update statement
@@ -48,12 +51,15 @@ class Sale {
                 `);
 
                 for (const item of items) {
-                    // Insert sale item
+                    // Insert sale item with all required fields
                     itemStmt.run(
                         saleId,
                         item.product_id,
                         item.quantity,
                         item.unit_price,
+                        item.tax_rate || 0,  // Default to 0 if not provided
+                        item.discount_amount || 0,  // Default to 0 if not provided
+                        item.tax_amount || 0,  // Default to 0 if not provided
                         item.total_price || item.total_amount,
                         currentTime
                     );
@@ -73,9 +79,8 @@ class Sale {
                 }
             }
 
-            return saleId;
+            return { id: saleId, sale_number: saleNumber, invoice_number: invoiceNumber };
         } catch (error) {
-            console.error('Error creating sale:', error);
             throw error;
         }
     }
@@ -310,31 +315,54 @@ class Sale {
     }
 
     static async delete(id) {
-        try {
-            // Get sale items first to restore stock
-            const itemsStmt = db.prepare('SELECT * FROM sale_items WHERE sale_id = ?');
-            const items = itemsStmt.all(id);
+        // Run the entire delete as a transaction so it's atomic
+        const deleteTransaction = db.transaction((saleId) => {
+            // 1. Get sale items to restore stock later
+            const items = db.prepare('SELECT * FROM sale_items WHERE sale_id = ?').all(saleId);
 
-            // Restore stock for each item
+            // 2. Delete return_items that belong to returns of this sale
+            //    (FK: return_items.return_id → returns.id  AND  return_items.sale_item_id → sale_items.id)
+            db.prepare(`
+                DELETE FROM return_items
+                WHERE return_id IN (SELECT id FROM returns WHERE sale_id = ?)
+            `).run(saleId);
+
+            // 3. Delete returns for this sale
+            //    (FK: returns.sale_id → sales.id)
+            db.prepare('DELETE FROM returns WHERE sale_id = ?').run(saleId);
+
+            // 4. Restore stock — only for items that were NOT already returned
+            //    to avoid double-restoring stock that was already put back by a return.
             if (items.length > 0) {
-                const stockStmt = db.prepare('UPDATE products SET current_stock = current_stock + ? WHERE id = ?');
+                const returnedQtyStmt = db.prepare(`
+                    SELECT COALESCE(SUM(ri.quantity), 0) AS returned_qty
+                    FROM return_items ri
+                    JOIN returns r ON ri.return_id = r.id
+                    WHERE r.sale_id = ? AND ri.product_id = ?
+                `);
+                const stockStmt = db.prepare(
+                    'UPDATE products SET current_stock = current_stock + ? WHERE id = ?'
+                );
                 for (const item of items) {
-                    stockStmt.run(item.quantity, item.product_id);
+                    // return_items were just deleted, so returned_qty will always be 0 here;
+                    // this guard is kept for clarity and future safety.
+                    const { returned_qty } = returnedQtyStmt.get(saleId, item.product_id);
+                    const toRestore = item.quantity - returned_qty;
+                    if (toRestore > 0) {
+                        stockStmt.run(toRestore, item.product_id);
+                    }
                 }
             }
 
-            // Delete sale items
-            const deleteItemsStmt = db.prepare('DELETE FROM sale_items WHERE sale_id = ?');
-            deleteItemsStmt.run(id);
+            // 5. Delete sale items
+            db.prepare('DELETE FROM sale_items WHERE sale_id = ?').run(saleId);
 
-            // Delete sale
-            const deleteSaleStmt = db.prepare('DELETE FROM sales WHERE id = ?');
-            const result = deleteSaleStmt.run(id);
-            
+            // 6. Delete the sale itself
+            const result = db.prepare('DELETE FROM sales WHERE id = ?').run(saleId);
             return result.changes > 0;
-        } catch (error) {
-            throw error;
-        }
+        });
+
+        return deleteTransaction(id);
     }
 }
 

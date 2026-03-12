@@ -720,9 +720,7 @@ const cancelDelete = () => {
 onMounted(async () => {
     try {
         loading.value = true
-        showInfo('Loading Suppliers', 'Fetching supplier data...')
         await supplierStore.fetchSuppliers()
-        showSuccess('Suppliers Loaded', 'Supplier data loaded successfully')
     } catch (error) {
         handleNetworkError(error, 'Supplier Data Loading')
         showError('Loading Failed', 'Failed to load supplier data. Please refresh the page.')

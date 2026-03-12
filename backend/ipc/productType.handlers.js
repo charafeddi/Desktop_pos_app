@@ -1,5 +1,6 @@
 const { ipcMain } = require('electron');
 const ProductType = require('../models/productType.model');
+const { ipcError } = require('../utils/ipcError');
 
 function setupProductTypeHandlers() {
 // Get all product types
@@ -8,7 +9,7 @@ ipcMain.handle('get-product-types', async (event) => {
         const productTypes = await ProductType.getAll();
         return productTypes;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -22,7 +23,7 @@ ipcMain.handle('get-product-type-by-id', async (event, id) => {
             return productType;
         }
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -32,7 +33,7 @@ ipcMain.handle('create-product-type', async (event, productTypeData) => {
         const productTypeId = await ProductType.create(productTypeData);
         return { id: productTypeId, ...productTypeData };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -42,7 +43,7 @@ ipcMain.handle('update-product-type', async (event, id, productTypeData) => {
         await ProductType.update(id, productTypeData);
         return { message: 'Product type updated successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -52,7 +53,7 @@ ipcMain.handle('delete-product-type', async (event, id) => {
         await ProductType.delete(id);
         return { message: 'Product type deleted successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 }); 
 

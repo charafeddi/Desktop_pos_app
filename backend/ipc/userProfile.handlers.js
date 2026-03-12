@@ -1,6 +1,7 @@
 const { ipcMain } = require('electron');
 const UserModel = require('../models/user.model');
 const SaleModel = require('../models/sale.model');
+const bcrypt = require('bcryptjs');
 
 // Get user statistics
 ipcMain.handle('get-user-stats', async (event, userId) => {
@@ -142,16 +143,15 @@ ipcMain.handle('change-user-password', async (event, userId, passwordData) => {
       throw new Error('User not found');
     }
 
-    // For now, we'll use a simple password check
-    // In a real app, you'd use proper password hashing
-    if (user.password !== passwordData.currentPassword) {
+    // Fetch full user record (findById omits password for safety)
+    const fullUser = await UserModel.findByEmail(user.email);
+    const isPasswordValid = await bcrypt.compare(passwordData.currentPassword, fullUser.password);
+    if (!isPasswordValid) {
       throw new Error('Current password is incorrect');
     }
 
-    // Update password
-    const updatedUser = await UserModel.update(userId, {
-      password: passwordData.newPassword
-    });
+    // Update password (UserModel.updatePassword hashes the new password internally)
+    const updatedUser = await UserModel.updatePassword(userId, passwordData.newPassword);
 
     if (!updatedUser) {
       throw new Error('Failed to change password');

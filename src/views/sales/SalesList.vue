@@ -291,13 +291,9 @@ const handleSearchKeydown = (event) => {
 onMounted(async () => {
   try {
     isLoading.value = true
-    showInfo('Loading Sales', 'Fetching sales data...')
-    
     await salesStore.fetchSales()
     await customerStore.fetchCustomers()
     await loadReturnedSales()
-    
-    showSuccess('Sales Loaded', 'Sales data loaded successfully')
     
   } catch (error) {
     handleNetworkError(error, 'Sales Data Loading')
@@ -315,14 +311,10 @@ onUnmounted(() => {
 const loadReturnedSales = async () => {
   try {
     isLoadingReturns.value = true
-    showInfo('Loading Returns', 'Fetching return data...')
-    
     await returnsStore.fetchReturns()
     const returns = returnsStore.getReturns
     const returnedSaleIds = new Set(returns.map(returnItem => returnItem.sale_id))
     returnedSales.value = returnedSaleIds
-    
-    showSuccess('Returns Loaded', `Found ${returns.length} returns`)
     
   } catch (error) {
     handleNetworkError(error, 'Returns Loading')
@@ -778,7 +770,7 @@ async function exportSalesData(format) {
           <div class="flex gap-2 items-end">
             <button 
               @click="showAdvancedFilters = !showAdvancedFilters"
-              class="btn btn-secondary rounded-lg px-4 py-3 hover:bg-gray-500 flex items-center"
+              class="rounded-lg px-4 py-3 flex items-center bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
               <span class="material-icons-outlined">tune</span>
               Filters
@@ -788,7 +780,7 @@ async function exportSalesData(format) {
             </button>
             <button 
               @click="clearAllFilters"
-              class="btn btn-secondary rounded-lg px-4 py-3 hover:bg-gray-500 flex items-center"
+              class="rounded-lg px-4 py-3 flex items-center bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
               <span class="material-icons-outlined">clear_all</span>
               Clear
@@ -864,7 +856,7 @@ async function exportSalesData(format) {
             <div class="flex-1">
               <label class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
               <div class="flex gap-2">
-                <select v-model="sortBy" class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select v-model="sortBy" class="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="date">Date</option>
                   <option value="customer">Customer</option>
                   <option value="amount">Amount</option>
@@ -873,7 +865,7 @@ async function exportSalesData(format) {
                 </select>
                 <button 
                   @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
-                  class="btn btn-secondary rounded-lg px-4 py-2 hover:bg-gray-500 flex items-center"
+                  class="rounded-lg px-4 py-2 flex items-center bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
                   <span class="material-icons-outlined">
                     {{ sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
@@ -914,7 +906,7 @@ async function exportSalesData(format) {
 
       <div v-else class="rounded-lg shadow overflow-hidden relative">
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 relative">
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 relative">
             <thead class="bg-gray-50 dark:bg-gray-800">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -1197,13 +1189,13 @@ async function exportSalesData(format) {
     
     <!-- Confirmation Dialog for Delete -->
     <ConfirmationDialog
-      :is-open="showDeleteConfirm"
+      :is-visible="showDeleteConfirm"
       :title="'Delete Sale'"
       :message="`Are you sure you want to delete ${saleToDelete?.sale_number || `Sale #${saleToDelete?.id || 'this sale'}`}? This action cannot be undone.`"
       :type="'error'"
       :confirm-text="'Delete'"
       :cancel-text="'Cancel'"
-      :is-loading="isDeletingSale"
+      :loading="isDeletingSale"
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />
@@ -1211,15 +1203,4 @@ async function exportSalesData(format) {
 </template>
 
 <style scoped>
-.btn {
-  @apply transition-colors duration-200;
-}
-
-.btn-primary {
-  @apply bg-blue-600 text-white hover:bg-blue-700;
-}
-
-.btn-secondary {
-  @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600;
-}
 </style>

@@ -5,8 +5,17 @@
 
 const crypto = require('crypto');
 
-// Your secret keys (CHANGE THESE - keep private!)
-const LICENSE_SECRET = process.env.LICENSE_SECRET || 'YOUR-SECRET-KEY-CHANGE-THIS-12345';
+// License secret must be set via environment variable — no fallback allowed
+const LICENSE_SECRET = process.env.LICENSE_SECRET;
+if (!LICENSE_SECRET) {
+  throw new Error('LICENSE_SECRET environment variable must be set. Check your backend/.env file.');
+}
+
+// A stable, app-specific KDF salt stored in env.
+// SCRYPT_SALT defaults to a known value for backward-compatibility with
+// licenses already issued. Change SCRYPT_SALT only when rotating all licenses.
+const SCRYPT_SALT = process.env.SCRYPT_SALT || 'pos-app-license-v1';
+
 const ALGORITHM = 'aes-256-cbc';
 
 /**
@@ -16,7 +25,11 @@ const ALGORITHM = 'aes-256-cbc';
 class LicenseGenerator {
   constructor(secret = LICENSE_SECRET) {
     this.secret = secret;
-    this.key = crypto.scryptSync(secret, 'salt', 32);
+    // Derive a 64-byte master key; first 32 bytes = encryption key,
+    // last 32 bytes = checksum key so the two operations use distinct keys (LOW-03).
+    const masterKey = crypto.scryptSync(secret, SCRYPT_SALT, 64);
+    this.encryptionKey = masterKey.slice(0, 32);
+    this.checksumKey  = masterKey.slice(32, 64);
   }
 
   /**
@@ -51,7 +64,7 @@ class LicenseGenerator {
 
     // Encrypt the license data
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv(ALGORITHM, this.key, iv);
+    const cipher = crypto.createCipheriv(ALGORITHM, this.encryptionKey, iv);
     
     let encrypted = cipher.update(JSON.stringify(licenseData), 'utf8', 'hex');
     encrypted += cipher.final('hex');
@@ -59,10 +72,10 @@ class LicenseGenerator {
     // Combine IV and encrypted data
     const combined = iv.toString('hex') + ':' + encrypted;
 
-    // Create checksum
+    // Create HMAC checksum using a separate derived key (not the encryption key)
     const checksum = crypto
-      .createHash('sha256')
-      .update(combined + this.secret)
+      .createHmac('sha256', this.checksumKey)
+      .update(combined)
       .digest('hex')
       .substring(0, 8)
       .toUpperCase();
@@ -128,12 +141,11 @@ class LicenseGenerator {
 
       const [ivHex, encrypted, checksum] = parts;
 
-      // Verify checksum
-      // Note: checksum was created with (ivHex + ':' + encrypted) + secret
+      // Verify HMAC checksum using the dedicated checksum key
       const combined = ivHex + ':' + encrypted;
       const expectedChecksum = crypto
-        .createHash('sha256')
-        .update(combined + this.secret)
+        .createHmac('sha256', this.checksumKey)
+        .update(combined)
         .digest('hex')
         .substring(0, 8)
         .toUpperCase();
@@ -144,7 +156,7 @@ class LicenseGenerator {
 
       // Decrypt
       const iv = Buffer.from(ivHex, 'hex');
-      const decipher = crypto.createDecipheriv(ALGORITHM, this.key, iv);
+      const decipher = crypto.createDecipheriv(ALGORITHM, this.encryptionKey, iv);
       
       let decrypted = decipher.update(encrypted, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
@@ -168,32 +180,55 @@ class LicenseGenerator {
   }
 
   /**
-   * Get device fingerprint (unique hardware ID)
+   * Get device fingerprint (unique hardware ID).
+   * Combines hostname, platform, CPU model, total memory, and the first
+   * non-internal MAC address so the fingerprint is harder to spoof than
+   * hostname alone.
    */
   static getDeviceFingerprint() {
     const os = require('os');
+
     let userDataPath = '';
-    
     try {
-      // Try to get Electron app path, but handle case where electron is not available
       const electron = require('electron');
       if (electron && electron.app) {
         userDataPath = electron.app.getPath('userData');
       }
     } catch (e) {
-      // Not in Electron context, use alternative method
       userDataPath = process.env.APPDATA || process.env.HOME || process.env.USERPROFILE || '';
     }
 
-    // Collect system info
-    const machineId = os.hostname();
-    const platform = os.platform();
-    const arch = os.arch();
-    const cpus = os.cpus().length;
-    
-    // Create fingerprint hash
-    const fingerprint = `${machineId}-${platform}-${arch}-${cpus}-${userDataPath}`;
-    
+    // CPU model string (consistent across reboots, unlike uptime/load)
+    const cpuModel = os.cpus()[0]?.model || 'unknown-cpu';
+    const cpuCount = os.cpus().length;
+
+    // First non-internal MAC address (stable hardware identifier)
+    let macAddress = 'no-mac';
+    const interfaces = os.networkInterfaces();
+    outer: for (const iface of Object.values(interfaces)) {
+      if (!iface) continue;
+      for (const entry of iface) {
+        if (!entry.internal && entry.mac && entry.mac !== '00:00:00:00:00:00') {
+          macAddress = entry.mac;
+          break outer;
+        }
+      }
+    }
+
+    // Total memory in GB (rounded) — stable across reboots
+    const totalMemGB = Math.round(os.totalmem() / (1024 ** 3));
+
+    const fingerprint = [
+      os.hostname(),
+      os.platform(),
+      os.arch(),
+      cpuModel,
+      cpuCount,
+      totalMemGB,
+      macAddress,
+      userDataPath,
+    ].join('|');
+
     return crypto
       .createHash('sha256')
       .update(fingerprint)

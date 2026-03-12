@@ -1,4 +1,5 @@
 const Database = require('better-sqlite3');
+const config = require('./env');
 const path = require('path');
 const fs = require('fs');
 
@@ -8,13 +9,12 @@ const isPackaged = process.env.NODE_ENV === 'production' ||
                    (process.argv && process.argv[0] && process.argv[0].includes('POS System.exe')) ||
                    (process.execPath && process.execPath.includes('POS System.exe'));
 
-console.log('Environment check:', {
-    NODE_ENV: process.env.NODE_ENV,
-    resourcesPath: process.resourcesPath,
-    argv0: process.argv[0],
-    execPath: process.execPath,
-    isPackaged: isPackaged
-});
+if (process.env.NODE_ENV === 'development') {
+    console.log('Environment check:', {
+        NODE_ENV: process.env.NODE_ENV,
+        isPackaged: isPackaged
+    });
+}
 
 // Create data directory if it doesn't exist
 let dataDir;
@@ -45,8 +45,11 @@ try {
     console.log('Using fallback data directory:', dataDir);
 }
 
-// Database file path
-const dbPath = path.join(dataDir, 'pos.db');
+// Database file path (overridable for tests/CI)
+let dbPath = path.join(dataDir, 'pos.db');
+if (config.DB_PATH) {
+    dbPath = config.DB_PATH;
+}
 console.log('Database path:', dbPath);
 
 // Create database connection with error handling and performance optimizations
@@ -54,7 +57,7 @@ let db;
 try {
     db = new Database(dbPath, {
         // Performance optimizations
-        verbose: process.env.NODE_ENV === 'development' ? console.log : null,
+        verbose: (config.NODE_ENV === 'development' && (config.LOG_LEVEL === 'debug')) ? console.log : null,
         // Connection optimizations
         timeout: 5000,
 		// Enable WAL mode for faster writes and fewer locks
@@ -68,6 +71,7 @@ try {
 			journal_size_limit: 67108864 // 64MB max journal size
 		}
     });
+    // eslint-disable-next-line no-console
     console.log('Connected to SQLite database successfully');
 } catch (error) {
     console.error('Error connecting to database:', error);
@@ -96,6 +100,31 @@ try {
 
 // Enable foreign keys
 db.pragma('foreign_keys = ON');
+// Optimize query planner and internal stats at startup
+try {
+    db.pragma('optimize');
+    // eslint-disable-next-line no-console
+    console.log('SQLite PRAGMA optimize executed at startup');
+} catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('SQLite optimize failed:', e?.message || e);
+}
+
+// Setup database backups (daily + pre-migration)
+try {
+    const { setupDatabaseBackups, createBackupNow } = require('../services/backup.service');
+    const backupsDir = path.join(dataDir, 'backups');
+    const backupApi = setupDatabaseBackups(db, dbPath, backupsDir, config.BACKUP_RETENTION_DAYS || 7);
+    // Pre-migration backup
+    try {
+        const file = backupApi.createBackupNow();
+        console.log('Created pre-migration backup:', file);
+    } catch (e) {
+        console.error('Pre-migration backup failed:', e);
+    }
+} catch (e) {
+    console.error('Backup setup failed:', e);
+}
 
 // Run SQL file migrations before any legacy schema creation
 const runMigrations = () => {
@@ -124,6 +153,16 @@ const runMigrations = () => {
             .filter(f => f.toLowerCase().endsWith('.sql'))
             .sort();
 
+        if (config.MIGRATIONS_DRY_RUN) {
+            console.log('[MIGRATIONS] Dry-run mode enabled. Planned migrations:');
+            for (const fileName of files) {
+                const version = fileName.split('_')[0] || fileName;
+                const status = applied.has(version) ? 'already applied' : 'PENDING';
+                console.log(` - ${fileName} [${status}]`);
+            }
+            return; // Do not execute any migrations in dry-run
+        }
+
         for (const fileName of files) {
             // Expect prefix like 0001_description.sql; use the leading segment as version
             const version = fileName.split('_')[0] || fileName;
@@ -143,12 +182,29 @@ const runMigrations = () => {
 
             console.log(`Applying migration: ${fileName}`);
             try {
-                db.exec('BEGIN');
-                db.exec(sql);
-                const insert = db.prepare('INSERT INTO schema_migrations (version, name) VALUES (?, ?)');
-                insert.run(version, fileName);
-                db.exec('COMMIT');
-                console.log(`Applied migration: ${fileName}`);
+                // Special handling for migrations that need to modify tables with foreign keys
+                const needsFKDisable = fileName.includes('fix_sale_number') || 
+                                      sql.includes('DROP TABLE') || 
+                                      sql.includes('ALTER TABLE') && sql.includes('RENAME TO');
+                
+                if (needsFKDisable) {
+                    // Disable foreign keys, run migration without transaction, then re-enable
+                    console.log(`Migration ${fileName} requires foreign key handling`);
+                    db.pragma('foreign_keys = OFF');
+                    db.exec(sql);
+                    const insert = db.prepare('INSERT INTO schema_migrations (version, name) VALUES (?, ?)');
+                    insert.run(version, fileName);
+                    db.pragma('foreign_keys = ON');
+                    console.log(`Applied migration: ${fileName} (with FK handling)`);
+                } else {
+                    // Normal migration with transaction
+                    db.exec('BEGIN');
+                    db.exec(sql);
+                    const insert = db.prepare('INSERT INTO schema_migrations (version, name) VALUES (?, ?)');
+                    insert.run(version, fileName);
+                    db.exec('COMMIT');
+                    console.log(`Applied migration: ${fileName}`);
+                }
             } catch (err) {
                 try { db.exec('ROLLBACK'); } catch {}
                 console.error(`Failed migration ${fileName}:`, err);
@@ -601,7 +657,7 @@ try {
         if (userCount.count === 0) {
             console.log('No users found, creating default admin user...');
             const bcrypt = require('bcryptjs');
-            const salt = bcrypt.genSaltSync(10);
+            const salt = bcrypt.genSaltSync(config.BCRYPT_ROUNDS || 10);
             const hashedPassword = bcrypt.hashSync('admin123', salt);
             
             const stmt = db.prepare(`
@@ -618,9 +674,7 @@ try {
                 'admin'
             );
             
-            console.log('Default admin user created successfully!');
-            console.log('Email: admin@pos.com');
-            console.log('Password: admin123');
+            console.log('Default admin user created. Update the credentials immediately after first login.');
         } else {
             console.log(`Found ${userCount.count} existing users in database`);
         }

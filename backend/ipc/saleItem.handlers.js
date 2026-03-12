@@ -1,5 +1,6 @@
 const { ipcMain } = require('electron');
 const SaleItem = require('../models/saleItem.model');
+const { ipcError } = require('../utils/ipcError');
 
 function setupSaleItemHandlers() {
 // Get all sale items
@@ -8,7 +9,7 @@ ipcMain.handle('get-all-sale-items', async (event) => {
         const saleItems = await SaleItem.getAll();
         return saleItems;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -22,7 +23,7 @@ ipcMain.handle('get-sale-item-by-id', async (event, id) => {
             return saleItem;
         }
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -32,7 +33,7 @@ ipcMain.handle('create-sale-item', async (event, saleItemData) => {
         const saleItemId = await SaleItem.create(saleItemData);
         return { id: saleItemId, ...saleItemData };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -42,7 +43,7 @@ ipcMain.handle('update-sale-item', async (event, id, saleItemData) => {
         await SaleItem.update(id, saleItemData);
         return { message: 'Sale item updated successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -52,7 +53,7 @@ ipcMain.handle('delete-sale-item', async (event, id) => {
         await SaleItem.delete(id);
         return { message: 'Sale item deleted successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 }); 
 

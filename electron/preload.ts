@@ -220,20 +220,64 @@ contextBridge.exposeInMainWorld(
       deactivate: () => ipcRenderer.invoke('license:deactivate')
     },
 
-    // Refresh event listeners
-    onRefreshStart: (callback: () => void) => ipcRenderer.on('app-refresh-start', callback),
-    onRefreshComplete: (callback: () => void) => ipcRenderer.on('app-refresh-complete', callback),
-    onRefreshError: (callback: (error: string) => void) => ipcRenderer.on('app-refresh-error', (_event, error) => callback(error)),
-    
+    // Refresh event listeners — each returns a dispose() function to remove the listener
+    onRefreshStart: (callback: () => void) => {
+      const handler = (_e: IpcRendererEvent) => callback();
+      ipcRenderer.on('app-refresh-start', handler);
+      return () => ipcRenderer.removeListener('app-refresh-start', handler);
+    },
+    onRefreshComplete: (callback: () => void) => {
+      const handler = (_e: IpcRendererEvent) => callback();
+      ipcRenderer.on('app-refresh-complete', handler);
+      return () => ipcRenderer.removeListener('app-refresh-complete', handler);
+    },
+    onRefreshError: (callback: (error: string) => void) => {
+      const handler = (_e: IpcRendererEvent, error: string) => callback(error);
+      ipcRenderer.on('app-refresh-error', handler);
+      return () => ipcRenderer.removeListener('app-refresh-error', handler);
+    },
+
     // Individual refresh event listeners
-    onRefreshProducts: (callback: () => void) => ipcRenderer.on('refresh-products', callback),
-    onRefreshSales: (callback: () => void) => ipcRenderer.on('refresh-sales', callback),
-    onRefreshCustomers: (callback: () => void) => ipcRenderer.on('refresh-customers', callback),
-    onRefreshCategories: (callback: () => void) => ipcRenderer.on('refresh-categories', callback),
-    onRefreshSuppliers: (callback: () => void) => ipcRenderer.on('refresh-suppliers', callback),
-    onRefreshAnalytics: (callback: () => void) => ipcRenderer.on('refresh-analytics', callback),
-    onRefreshTodos: (callback: () => void) => ipcRenderer.on('refresh-todos', callback),
-    onRefreshSettings: (callback: () => void) => ipcRenderer.on('refresh-settings', callback),
+    onRefreshProducts: (callback: () => void) => {
+      const handler = (_e: IpcRendererEvent) => callback();
+      ipcRenderer.on('refresh-products', handler);
+      return () => ipcRenderer.removeListener('refresh-products', handler);
+    },
+    onRefreshSales: (callback: () => void) => {
+      const handler = (_e: IpcRendererEvent) => callback();
+      ipcRenderer.on('refresh-sales', handler);
+      return () => ipcRenderer.removeListener('refresh-sales', handler);
+    },
+    onRefreshCustomers: (callback: () => void) => {
+      const handler = (_e: IpcRendererEvent) => callback();
+      ipcRenderer.on('refresh-customers', handler);
+      return () => ipcRenderer.removeListener('refresh-customers', handler);
+    },
+    onRefreshCategories: (callback: () => void) => {
+      const handler = (_e: IpcRendererEvent) => callback();
+      ipcRenderer.on('refresh-categories', handler);
+      return () => ipcRenderer.removeListener('refresh-categories', handler);
+    },
+    onRefreshSuppliers: (callback: () => void) => {
+      const handler = (_e: IpcRendererEvent) => callback();
+      ipcRenderer.on('refresh-suppliers', handler);
+      return () => ipcRenderer.removeListener('refresh-suppliers', handler);
+    },
+    onRefreshAnalytics: (callback: () => void) => {
+      const handler = (_e: IpcRendererEvent) => callback();
+      ipcRenderer.on('refresh-analytics', handler);
+      return () => ipcRenderer.removeListener('refresh-analytics', handler);
+    },
+    onRefreshTodos: (callback: () => void) => {
+      const handler = (_e: IpcRendererEvent) => callback();
+      ipcRenderer.on('refresh-todos', handler);
+      return () => ipcRenderer.removeListener('refresh-todos', handler);
+    },
+    onRefreshSettings: (callback: () => void) => {
+      const handler = (_e: IpcRendererEvent) => callback();
+      ipcRenderer.on('refresh-settings', handler);
+      return () => ipcRenderer.removeListener('refresh-settings', handler);
+    },
 
   // Remove refresh event listeners
   removeRefreshListeners: () => {

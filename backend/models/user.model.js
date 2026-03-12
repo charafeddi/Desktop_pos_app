@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const bcrypt = require('bcryptjs');
+const config = require('../config/env');
 
 class User {
     static async create(userData) {
@@ -9,7 +10,7 @@ class User {
         } = userData;
 
         // Hash password
-        const salt = await bcrypt.genSalt(10);
+        const salt = await bcrypt.genSalt(config.BCRYPT_ROUNDS || 10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
         try {
@@ -75,7 +76,7 @@ class User {
     }
     static async updatePassword(id, newPassword) {
         // Hash new password
-        const salt = await bcrypt.genSalt(10);
+        const salt = await bcrypt.genSalt(config.BCRYPT_ROUNDS || 10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
         try {

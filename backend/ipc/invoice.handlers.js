@@ -1,5 +1,6 @@
 const { ipcMain } = require('electron');
 const Invoice = require('../models/invoice.model');
+const { ipcError } = require('../utils/ipcError');
 
 function setupInvoiceHandlers() {
 // Get all invoices
@@ -8,7 +9,7 @@ ipcMain.on('get-invoices', async (event) => {
         const invoices = await Invoice.getAll();
         return invoices;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -22,7 +23,7 @@ ipcMain.on('get-invoice-by-id', async (event, id) => {
             return invoice;
         }
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -32,7 +33,7 @@ ipcMain.on('create-invoice', async (event, invoiceData) => {
         const invoiceId = await Invoice.create(invoiceData);
         return { id: invoiceId, ...invoiceData };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -42,7 +43,7 @@ ipcMain.on('update-invoice', async (event, id, invoiceData) => {
         await Invoice.update(id, invoiceData);
         return { message: 'Invoice updated successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -52,7 +53,7 @@ ipcMain.on('delete-invoice', async (event, id) => {
         await Invoice.delete(id);
         return { message: 'Invoice deleted successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -62,7 +63,7 @@ ipcMain.on('generate-invoice-pdf', async (event, id) => {
         const pdfPath = await Invoice.generatePDF(id);
         return { path: pdfPath };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 }); 
 

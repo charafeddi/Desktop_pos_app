@@ -297,16 +297,21 @@ const cartAfterDiscount = computed(() => {
 })
   
 const cartTax = computed(() => {
+  // Proportionally reduce each item's taxable base by the cart-level discount ratio
+  // e.g. a 10% cart discount should also reduce the taxable amount by 10%
+  const discountRatio = cartSubtotal.value > 0
+    ? cartAfterDiscount.value / cartSubtotal.value
+    : 1
+
   return cart.value.reduce((total, item) => {
     const price = item.customPrice || item.selling_price
-    const discount = item.discount || 0
-    const discountedPrice = price * (1 - discount / 100)
-    const itemSubtotal = discountedPrice * item.quantity
-    
-    // Use item-specific tax rate if available, otherwise use default
+    const itemDiscount = item.discount || 0
+    const discountedPrice = price * (1 - itemDiscount / 100)
+    // Apply the cart-level discount ratio so tax is on the truly discounted amount
+    const taxableAmount = discountedPrice * item.quantity * discountRatio
+
     const taxRate = item.taxRate || (settingsStore.getDefaultTaxRate?.rate || 0)
-    
-    return total + (itemSubtotal * taxRate / 100)
+    return total + (taxableAmount * taxRate / 100)
   }, 0)
 })
   
@@ -436,16 +441,18 @@ const handleSearchKeydown = (event) => {
 
 // Methods
 function addToCart(product, quantity = 1) {
-  if (product.current_stock < quantity) {
-    alert(`Only ${product.current_stock} items available in stock`)
-    return
+  // Warning for out of stock items, but still allow adding
+  if (product.current_stock === 0) {
+    showWarning('Out of Stock', `${product.name} is currently out of stock. Adding to cart for backorder.`)
+  } else if (product.current_stock < quantity) {
+    showWarning('Low Stock', `Only ${product.current_stock} items available in stock. Adding ${quantity} for backorder.`)
   }
     
     const existingItem = cart.value.find(item => item.id === product.id)
     if (existingItem) {
-      if (existingItem.quantity + quantity > product.current_stock) {
-        alert(`Only ${product.current_stock} items available in stock`)
-        return
+      // Warning if exceeding stock, but still allow
+      if (product.current_stock > 0 && existingItem.quantity + quantity > product.current_stock) {
+        showWarning('Exceeding Stock', `Total quantity (${existingItem.quantity + quantity}) exceeds available stock (${product.current_stock}). Adding for backorder.`)
       }
       existingItem.quantity += quantity
     } else {
@@ -478,14 +485,14 @@ function addToCart(product, quantity = 1) {
       const taxRate = selectedTaxRate.value
       
       if (product.current_stock < quantity) {
-        alert(`Only ${product.current_stock} items available in stock`)
+        showError('Insufficient Stock', `Only ${product.current_stock} items available in stock`)
         return
       }
       
       const existingItem = cart.value.find(item => item.id === product.id)
       if (existingItem) {
         if (existingItem.quantity + quantity > product.current_stock) {
-          alert(`Only ${product.current_stock} items available in stock`)
+          showError('Insufficient Stock', `Only ${product.current_stock} items available in stock`)
           return
         }
         existingItem.quantity += quantity
@@ -522,7 +529,7 @@ function addToCart(product, quantity = 1) {
       if (newQuantity <= 0) {
         removeFromCart(productId)
       } else if (newQuantity > item.current_stock) {
-        alert(`Only ${item.current_stock} items available in stock`)
+        showError('Insufficient Stock', `Only ${item.current_stock} items available in stock`)
       } else {
         item.quantity = newQuantity
       }
@@ -694,7 +701,7 @@ function addToCart(product, quantity = 1) {
   
   function openPaymentModal() {
     if (cart.value.length === 0) {
-      alert('Cart is empty')
+      showWarning('Empty Cart', 'Please add items to the cart before checkout')
       return
     }
     showPaymentModal.value = true
@@ -764,7 +771,11 @@ function addToCart(product, quantity = 1) {
         (customers.value || []).find(c => c.id === selectedCustomerId.value) : null
       
       // Store sale data for receipt before clearing cart
+      // newSale now includes id, sale_number, and invoice_number from the backend
       const receiptSaleData = {
+        id: newSale.id,
+        sale_number: newSale.sale_number,
+        invoice_number: newSale.invoice_number,
         customer_id: selectedCustomerId.value,
         total_amount: cartSubtotal.value,
         discount_amount: overallDiscountAmount.value,
@@ -861,9 +872,9 @@ function addToCart(product, quantity = 1) {
     <!-- Header -->
     <div class="shadow-sm border-b">
       <div class="px-6 py-4">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h1 class="text-2xl font-bold text-gray-400">Point of Sale</h1>
-          <div class="flex items-center space-x-4">
+          <div class="flex items-center flex-wrap gap-2 sm:gap-4">
             <div class="text-sm text-gray-600">
               {{ new Date().toLocaleDateString() }} - {{ new Date().toLocaleTimeString() }}
             </div>
@@ -875,9 +886,9 @@ function addToCart(product, quantity = 1) {
       </div>
     </div>
 
-    <div class="flex h-[calc(100vh-80px)]">
+    <div class="flex h-[calc(100vh-80px)] flex-col xl:flex-row">
       <!-- Products Section -->
-      <div class="flex-1 flex flex-col">
+      <div class="flex-1 flex flex-col min-h-0">
         <!-- Search and Filter Section -->
         <div class="p-4 border-b">
           <div class="flex flex-col gap-4">
@@ -1040,8 +1051,8 @@ function addToCart(product, quantity = 1) {
         </div>
 
         <!-- Products Grid -->
-        <div class="flex-1 p-4 overflow-auto">
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div class="flex-1 p-4 overflow-auto min-h-0">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             <div
               v-for="product in filteredProducts"
               :key="product.id"
@@ -1083,7 +1094,7 @@ function addToCart(product, quantity = 1) {
       </div>
 
       <!-- Cart Section -->
-      <div class="w-96 border-l border-gray-200 flex flex-col">
+      <div class="w-full xl:w-96 border-t xl:border-t-0 xl:border-l border-gray-200 flex flex-col max-h-[45vh] xl:max-h-none">
         <!-- Cart Header -->
         <div class="p-4 border-b border-gray-200">
           <div class="flex items-center justify-between">

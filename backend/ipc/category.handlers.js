@@ -1,5 +1,6 @@
 const { ipcMain } = require('electron');
 const Category = require('../models/category.model');
+const { ipcError } = require('../utils/ipcError');
 
 function setupCategoryHandlers() {
 // Get all categories
@@ -8,7 +9,7 @@ ipcMain.handle('get-categories', async (event) => {
         const categories = await Category.getAll();
         return categories;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -22,7 +23,7 @@ ipcMain.handle('get-category-by-id', async (event, id) => {
             return category;
         }
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -33,7 +34,7 @@ ipcMain.handle('create-category', async (event, categoryData) => {
         const newCategory = await Category.findById(categoryId);
         return newCategory;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -43,7 +44,7 @@ ipcMain.handle('update-category', async (event, id, categoryData) => {
         await Category.update(id, categoryData);
         return { message: 'Category updated successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -53,7 +54,7 @@ ipcMain.handle('delete-category', async (event, id) => {
         await Category.delete(id);
         return { message: 'Category deleted successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 

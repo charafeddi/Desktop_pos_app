@@ -1,6 +1,6 @@
 <template>
 <div class="page-content">
-  <div class="page-info flex justify-between items-center p-4 bg-transparent">
+  <div class="page-info flex flex-wrap justify-between items-center p-4 gap-2 bg-transparent">
     <nav aria-label="breadcrumb" class="breadcrumb-nav">
         <ol class="breadcrumb flex items-center list-none m-0 p-0 gap-2">
             <li class="breadcrumb-item flex items-center" style="color: var(--color-text-secondary)">
@@ -55,75 +55,75 @@
     <!-- Dashboard Content -->
     <div v-else>
       <!-- KPI Cards -->
-      <div class="row stats-row grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="w-full">
-            <div class="card card-transparent stats-card rounded-lg" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
-                <div class="card-body flex items-center justify-between p-6">
-                    <div class="stats-info flex-1">
-                        <h5 class="card-title text-2xl font-semibold mb-2" style="color: var(--color-text)">
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-4 mb-4 lg:mb-6">
+        <div class="min-w-0">
+            <div class="card card-transparent stats-card rounded-lg !mb-0" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
+                <div class="card-body flex items-center justify-between p-3 sm:p-4 lg:p-5">
+                    <div class="stats-info flex-1 min-w-0 mr-2">
+                        <h5 class="card-title text-sm sm:text-base lg:text-lg font-bold mb-1 truncate" style="color: var(--color-text)">
                           {{ formatCurrency(dashboardData.todayRevenue) }}
-                          <span :class="dashboardData.revenueChange >= 0 ? 'text-green-500' : 'text-red-500'" class="stats-change">
+                          <span :class="dashboardData.revenueChange >= 0 ? 'text-green-500' : 'text-red-500'" class="stats-change text-xs font-normal ml-1">
                             {{ dashboardData.revenueChange >= 0 ? '+' : '' }}{{ dashboardData.revenueChange.toFixed(1) }}%
                           </span>
                         </h5>
-                        <p class="stats-text" style="color: var(--color-text-secondary)">{{ t('dashboard.today_revenue') }}</p>
+                        <p class="stats-text text-xs sm:text-sm" style="color: var(--color-text-secondary)">{{ t('dashboard.today_revenue') }}</p>
                     </div>
-                    <div :class="dashboardData.revenueChange >= 0 ? 'change-success' : 'change-danger'" class="stats-icon flex items-center justify-center w-12 h-12 rounded-full">
-                        <span class="material-icons">{{ dashboardData.revenueChange >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                    <div :class="dashboardData.revenueChange >= 0 ? 'change-success' : 'change-danger'" class="stats-icon flex-shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full">
+                        <span class="material-icons text-sm sm:text-base">{{ dashboardData.revenueChange >= 0 ? 'trending_up' : 'trending_down' }}</span>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="w-full">
-            <div class="card card-transparent stats-card rounded-lg" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
-                <div class="card-body flex items-center justify-between p-6">
-                    <div class="stats-info flex-1">
-                        <h5 class="card-title text-2xl font-semibold mb-2" style="color: var(--color-text)">
+        <div class="min-w-0">
+            <div class="card card-transparent stats-card rounded-lg !mb-0" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
+                <div class="card-body flex items-center justify-between p-3 sm:p-4 lg:p-5">
+                    <div class="stats-info flex-1 min-w-0 mr-2">
+                        <h5 class="card-title text-sm sm:text-base lg:text-lg font-bold mb-1" style="color: var(--color-text)">
                           {{ dashboardData.totalCustomers }}
-                          <span :class="dashboardData.customerChange >= 0 ? 'text-green-500' : 'text-red-500'" class="stats-change">
+                          <span :class="dashboardData.customerChange >= 0 ? 'text-green-500' : 'text-red-500'" class="stats-change text-xs font-normal ml-1">
                             {{ dashboardData.customerChange >= 0 ? '+' : '' }}{{ dashboardData.customerChange.toFixed(1) }}%
                           </span>
                         </h5>
-                        <p class="stats-text" style="color: var(--color-text-secondary)">{{ t('dashboard.total_customers') }}</p>
+                        <p class="stats-text text-xs sm:text-sm" style="color: var(--color-text-secondary)">{{ t('dashboard.total_customers') }}</p>
                     </div>
-                    <div :class="dashboardData.customerChange >= 0 ? 'change-success' : 'change-danger'" class="stats-icon flex items-center justify-center w-12 h-12 rounded-full">
-                        <span class="material-icons">{{ dashboardData.customerChange >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                    <div :class="dashboardData.customerChange >= 0 ? 'change-success' : 'change-danger'" class="stats-icon flex-shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full">
+                        <span class="material-icons text-sm sm:text-base">{{ dashboardData.customerChange >= 0 ? 'trending_up' : 'trending_down' }}</span>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="w-full">
-            <div class="card card-transparent stats-card rounded-lg" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
-                <div class="card-body flex items-center justify-between p-6">
-                    <div class="stats-info flex-1">
-                        <h5 class="card-title text-2xl font-semibold mb-2" style="color: var(--color-text)">
+        <div class="min-w-0">
+            <div class="card card-transparent stats-card rounded-lg !mb-0" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
+                <div class="card-body flex items-center justify-between p-3 sm:p-4 lg:p-5">
+                    <div class="stats-info flex-1 min-w-0 mr-2">
+                        <h5 class="card-title text-sm sm:text-base lg:text-lg font-bold mb-1" style="color: var(--color-text)">
                           {{ dashboardData.totalSales }}
-                          <span :class="dashboardData.salesChange >= 0 ? 'text-green-500' : 'text-red-500'" class="stats-change">
+                          <span :class="dashboardData.salesChange >= 0 ? 'text-green-500' : 'text-red-500'" class="stats-change text-xs font-normal ml-1">
                             {{ dashboardData.salesChange >= 0 ? '+' : '' }}{{ dashboardData.salesChange.toFixed(1) }}%
                           </span>
                         </h5>
-                        <p class="stats-text" style="color: var(--color-text-secondary)">{{ t('dashboard.total_orders') }}</p>
+                        <p class="stats-text text-xs sm:text-sm" style="color: var(--color-text-secondary)">{{ t('dashboard.total_orders') }}</p>
                     </div>
-                    <div :class="dashboardData.salesChange >= 0 ? 'change-success' : 'change-danger'" class="stats-icon flex items-center justify-center w-12 h-12 rounded-full">
-                        <span class="material-icons">{{ dashboardData.salesChange >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                    <div :class="dashboardData.salesChange >= 0 ? 'change-success' : 'change-danger'" class="stats-icon flex-shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full">
+                        <span class="material-icons text-sm sm:text-base">{{ dashboardData.salesChange >= 0 ? 'trending_up' : 'trending_down' }}</span>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="w-full">
-            <div class="card card-transparent stats-card rounded-lg" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
-                <div class="card-body flex items-center justify-between p-6">
-                    <div class="stats-info flex-1">
-                        <h5 class="card-title text-2xl font-semibold mb-2" style="color: var(--color-text)">
+        <div class="min-w-0">
+            <div class="card card-transparent stats-card rounded-lg !mb-0" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
+                <div class="card-body flex items-center justify-between p-3 sm:p-4 lg:p-5">
+                    <div class="stats-info flex-1 min-w-0 mr-2">
+                        <h5 class="card-title text-sm sm:text-base lg:text-lg font-bold mb-1 truncate" style="color: var(--color-text)">
                           {{ formatCurrency(dashboardData.averageOrderValue) }}
-                          <span :class="dashboardData.aovChange >= 0 ? 'text-green-500' : 'text-red-500'" class="stats-change">
+                          <span :class="dashboardData.aovChange >= 0 ? 'text-green-500' : 'text-red-500'" class="stats-change text-xs font-normal ml-1">
                             {{ dashboardData.aovChange >= 0 ? '+' : '' }}{{ dashboardData.aovChange.toFixed(1) }}%
                           </span>
                         </h5>
-                        <p class="stats-text" style="color: var(--color-text-secondary)">{{ t('dashboard.average_order_value') }}</p>
+                        <p class="stats-text text-xs sm:text-sm" style="color: var(--color-text-secondary)">{{ t('dashboard.average_order_value') }}</p>
                     </div>
-                    <div :class="dashboardData.aovChange >= 0 ? 'change-success' : 'change-danger'" class="stats-icon flex items-center justify-center w-12 h-12 rounded-full">
-                        <span class="material-icons">{{ dashboardData.aovChange >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                    <div :class="dashboardData.aovChange >= 0 ? 'change-success' : 'change-danger'" class="stats-icon flex-shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full">
+                        <span class="material-icons text-sm sm:text-base">{{ dashboardData.aovChange >= 0 ? 'trending_up' : 'trending_down' }}</span>
                     </div>
                 </div>
             </div>
@@ -131,55 +131,55 @@
       </div>
 
       <!-- Secondary Metrics -->
-      <div class="row stats-row grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="w-full">
-            <div class="card card-transparent stats-card rounded-lg" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
-                <div class="card-body flex items-center justify-between p-6">
-                    <div class="stats-info flex-1">
-                        <h5 class="card-title text-2xl font-semibold mb-2" style="color: var(--color-text)">{{ dashboardData.totalProducts }}</h5>
-                        <p class="stats-text" style="color: var(--color-text-secondary)">{{ t('dashboard.total_products') }}</p>
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-4 mb-4 lg:mb-6">
+        <div class="min-w-0">
+            <div class="card card-transparent stats-card rounded-lg !mb-0" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
+                <div class="card-body flex items-center justify-between p-3 sm:p-4 lg:p-5">
+                    <div class="stats-info flex-1 min-w-0 mr-2">
+                        <h5 class="card-title text-sm sm:text-base lg:text-lg font-bold mb-1" style="color: var(--color-text)">{{ dashboardData.totalProducts }}</h5>
+                        <p class="stats-text text-xs sm:text-sm" style="color: var(--color-text-secondary)">{{ t('dashboard.total_products') }}</p>
                     </div>
-                    <div class="stats-icon change-info flex items-center justify-center w-12 h-12 rounded-full" style="background-color: var(--color-info)">
-                        <span class="material-icons">inventory</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="w-full">
-            <div class="card card-transparent stats-card rounded-lg" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
-                <div class="card-body flex items-center justify-between p-6">
-                    <div class="stats-info flex-1">
-                        <h5 class="card-title text-2xl font-semibold mb-2" style="color: var(--color-text)">{{ dashboardData.lowStockItems }}</h5>
-                        <p class="stats-text" style="color: var(--color-text-secondary)">{{ t('dashboard.low_stock_items') }}</p>
-                    </div>
-                    <div class="stats-icon change-warning flex items-center justify-center w-12 h-12 rounded-full" style="background-color: var(--color-warning)">
-                        <span class="material-icons">warning</span>
+                    <div class="stats-icon change-info flex-shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full" style="background-color: var(--color-info)">
+                        <span class="material-icons text-sm sm:text-base">inventory</span>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="w-full">
-            <div class="card card-transparent stats-card rounded-lg" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
-                <div class="card-body flex items-center justify-between p-6">
-                    <div class="stats-info flex-1">
-                        <h5 class="card-title text-2xl font-semibold mb-2" style="color: var(--color-text)">{{ dashboardData.outOfStockItems }}</h5>
-                        <p class="stats-text" style="color: var(--color-text-secondary)">{{ t('dashboard.out_of_stock_items') }}</p>
+        <div class="min-w-0">
+            <div class="card card-transparent stats-card rounded-lg !mb-0" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
+                <div class="card-body flex items-center justify-between p-3 sm:p-4 lg:p-5">
+                    <div class="stats-info flex-1 min-w-0 mr-2">
+                        <h5 class="card-title text-sm sm:text-base lg:text-lg font-bold mb-1" style="color: var(--color-text)">{{ dashboardData.lowStockItems }}</h5>
+                        <p class="stats-text text-xs sm:text-sm" style="color: var(--color-text-secondary)">{{ t('dashboard.low_stock_items') }}</p>
                     </div>
-                    <div class="stats-icon change-danger flex items-center justify-center w-12 h-12 rounded-full" style="background-color: var(--color-error)">
-                        <span class="material-icons">error</span>
+                    <div class="stats-icon change-warning flex-shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full" style="background-color: var(--color-warning)">
+                        <span class="material-icons text-sm sm:text-base">warning</span>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="w-full">
-            <div class="card card-transparent stats-card rounded-lg" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
-                <div class="card-body flex items-center justify-between p-6">
-                    <div class="stats-info flex-1">
-                        <h5 class="card-title text-2xl font-semibold mb-2" style="color: var(--color-text)">{{ formatCurrency(dashboardData.inventoryValue) }}</h5>
-                        <p class="stats-text" style="color: var(--color-text-secondary)">{{ t('dashboard.inventory_value') }}</p>
+        <div class="min-w-0">
+            <div class="card card-transparent stats-card rounded-lg !mb-0" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
+                <div class="card-body flex items-center justify-between p-3 sm:p-4 lg:p-5">
+                    <div class="stats-info flex-1 min-w-0 mr-2">
+                        <h5 class="card-title text-sm sm:text-base lg:text-lg font-bold mb-1" style="color: var(--color-text)">{{ dashboardData.outOfStockItems }}</h5>
+                        <p class="stats-text text-xs sm:text-sm" style="color: var(--color-text-secondary)">{{ t('dashboard.out_of_stock_items') }}</p>
                     </div>
-                    <div class="stats-icon change-success flex items-center justify-center w-12 h-12 rounded-full" style="background-color: var(--color-success)">
-                        <span class="material-icons">account_balance_wallet</span>
+                    <div class="stats-icon change-danger flex-shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full" style="background-color: var(--color-error)">
+                        <span class="material-icons text-sm sm:text-base">error</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="min-w-0">
+            <div class="card card-transparent stats-card rounded-lg !mb-0" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
+                <div class="card-body flex items-center justify-between p-3 sm:p-4 lg:p-5">
+                    <div class="stats-info flex-1 min-w-0 mr-2">
+                        <h5 class="card-title text-sm sm:text-base lg:text-lg font-bold mb-1 truncate" style="color: var(--color-text)">{{ formatCurrency(dashboardData.inventoryValue) }}</h5>
+                        <p class="stats-text text-xs sm:text-sm" style="color: var(--color-text-secondary)">{{ t('dashboard.inventory_value') }}</p>
+                    </div>
+                    <div class="stats-icon change-success flex-shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full" style="background-color: var(--color-success)">
+                        <span class="material-icons text-sm sm:text-base">account_balance_wallet</span>
                     </div>
                 </div>
             </div>
@@ -187,43 +187,42 @@
       </div>
 
       <!-- Charts and Components -->
-      <div class="row grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
+      <!-- sm: 1-col stack | md: sidebar left + chart right (2-col) | xl: 3-panel side-by-side -->
+      <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4 mb-4 lg:mb-6 items-start">
+        <div class="min-w-0">
           <PopularProducts />
         </div>
-        <div class="md:col-span-2 ml-4">
+        <div class="min-w-0 md:col-span-2 xl:col-span-2">
           <SalesChart />
         </div>
-        <div>
+        <div class="min-w-0">
           <ProductFinishedAboutTo />
         </div>
       </div>
 
       <!-- Recent Activity -->
-      <div class="row mt-8">
-        <div class="w-full">
-          <div class="card rounded-lg" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
-            <div class="card-body p-6">
-              <h5 class="card-title text-lg font-semibold mb-4" style="color: var(--color-text)">{{ t('dashboard.recent_activity') }}</h5>
-              <div v-if="recentActivity.length === 0" class="text-center py-8" style="color: var(--color-text-secondary)">
-                {{ t('dashboard.no_recent_activity') }}
-              </div>
-              <div v-else class="space-y-4">
-                <div v-for="activity in recentActivity" :key="activity.id" class="flex items-center justify-between p-4 rounded-lg" style="background-color: var(--color-background); border: 1px solid var(--color-border)">
-                  <div class="flex items-center space-x-3">
-                    <div :class="getActivityIconClass(activity.type)" class="flex items-center justify-center w-8 h-8 rounded-full">
-                      <span class="material-icons text-sm">{{ getActivityIcon(activity.type) }}</span>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium" style="color: var(--color-text)">{{ activity.description }}</p>
-                      <p class="text-xs" style="color: var(--color-text-secondary)">{{ formatTimeAgo(activity.created_at) }}</p>
-                    </div>
+      <div class="w-full">
+        <div class="card rounded-lg !mb-0" style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
+          <div class="card-body p-3 sm:p-4 lg:p-6">
+            <h5 class="card-title text-base lg:text-lg font-semibold mb-3 lg:mb-4" style="color: var(--color-text)">{{ t('dashboard.recent_activity') }}</h5>
+            <div v-if="recentActivity.length === 0" class="text-center py-8" style="color: var(--color-text-secondary)">
+              {{ t('dashboard.no_recent_activity') }}
+            </div>
+            <div v-else class="space-y-2 lg:space-y-3">
+              <div v-for="activity in recentActivity" :key="activity.id" class="flex items-center justify-between p-2 sm:p-3 rounded-lg gap-2" style="background-color: var(--color-background); border: 1px solid var(--color-border)">
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                  <div :class="getActivityIconClass(activity.type)" class="flex-shrink-0 flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full">
+                    <span class="material-icons text-xs sm:text-sm">{{ getActivityIcon(activity.type) }}</span>
                   </div>
-                  <div class="text-right">
-                    <p :class="activity.type === 'sale' ? 'text-green-400' : 'text-red-400'" class="text-sm font-medium">
-                      {{ activity.type === 'sale' ? '+' : '-' }}{{ formatCurrency(activity.amount) }}
-                    </p>
+                  <div class="min-w-0">
+                    <p class="text-xs sm:text-sm font-medium truncate" style="color: var(--color-text)">{{ activity.description }}</p>
+                    <p class="text-xs" style="color: var(--color-text-secondary)">{{ formatTimeAgo(activity.created_at) }}</p>
                   </div>
+                </div>
+                <div class="flex-shrink-0 text-right">
+                  <p :class="activity.type === 'sale' ? 'text-green-400' : 'text-red-400'" class="text-xs sm:text-sm font-medium whitespace-nowrap">
+                    {{ activity.type === 'sale' ? '+' : '-' }}{{ formatCurrency(activity.amount) }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -389,8 +388,6 @@ const loadDashboardData = async () => {
     isLoadingData.value = true
     resetErrorState()
     
-    showInfo('Loading Dashboard', 'Fetching your dashboard data...')
-    
     // Load all data in parallel with individual error handling
     const promises = [
       loadAnalyticsData(),
@@ -408,9 +405,6 @@ const loadDashboardData = async () => {
     // Generate recent activity
     generateRecentActivity()
     
-    showSuccess('Dashboard Loaded', 'Your dashboard data has been loaded successfully')
-    
-    // Add notification
     if (window.addNotification) {
       window.addNotification('success', 'Dashboard Updated', 'Latest data loaded')
     }
@@ -713,17 +707,9 @@ onMounted(() => {
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
-  .stats-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .row.grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .md\\:col-span-2 {
-    grid-column: span 1;
+@media (max-width: 640px) {
+  .stats-card .card-body {
+    padding: 0.625rem;
   }
 }
 </style>

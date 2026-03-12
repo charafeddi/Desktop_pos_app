@@ -47,9 +47,9 @@ try {
 
   app.mount('#app')
   console.log('✅ Vue app mounted successfully')
-  
-  // Clean up refresh handler when app is unmounted
-  app.config.globalProperties.$cleanup = cleanupRefreshHandler
+
+  // Remove all IPC refresh listeners when the window/tab closes
+  window.addEventListener('beforeunload', cleanupRefreshHandler)
 } catch (error) {
   console.error('❌ Vue app mounting error:', error)
   // Show error message in the app

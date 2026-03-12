@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { electronAPI } from '@/utils/electronAPI'
+import { useAuthStore } from '@/stores/auth.store'
 
 interface SaleItem {
     id?: number
@@ -111,12 +112,10 @@ export const useSalesStore = defineStore('sales', {
             this.loading = true
             this.error = null
             try {
-                console.log('Creating sale with data:', saleData)
-                
                 // Transform the sale data to match backend expectations
                 const transformedData = {
                     customer_id: saleData.customer_id || null,
-                    user_id: saleData.user_id || 1, // Default user ID, should be from auth
+                    user_id: saleData.user_id || useAuthStore().currentUser?.id || 1,
                     total_amount: saleData.total_amount,
                     discount_amount: saleData.discount_amount || 0,
                     tax_amount: saleData.tax_amount || 0,
@@ -133,10 +132,9 @@ export const useSalesStore = defineStore('sales', {
                 }
 
                 const newSale = await window.electronAPI.sales.create(transformedData)
-                console.log('Sale created successfully:', newSale)
                 
-                // Refresh sales list
-                await this.fetchSales()
+                // Force refresh so the newly created sale appears immediately
+                await this.fetchSales(true)
                 
                 return newSale
             } catch (error: any) {

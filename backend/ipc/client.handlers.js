@@ -1,5 +1,6 @@
 const { ipcMain } = require('electron');
 const Customer = require('../models/client.model');
+const { ipcError } = require('../utils/ipcError');
 
 function setupClientHandlers() {
 // Get all customers
@@ -8,7 +9,7 @@ ipcMain.handle('get-customers', async (event) => {
         const customers = await Customer.getAll();
         return customers;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -22,7 +23,7 @@ ipcMain.handle('get-customer-by-id', async (event, id) => {
             return customer;
         }
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -32,7 +33,7 @@ ipcMain.handle('create-customer', async (event, customerData) => {
         const customerId = await Customer.create(customerData);
         return { id: customerId, ...customerData };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -44,7 +45,7 @@ ipcMain.handle('update-customer', async (event, id, customerData) => {
         const updated = await Customer.findById(id);
         return updated;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -54,7 +55,7 @@ ipcMain.handle('delete-customer', async (event, id) => {
         await Customer.delete(id);
         return { message: 'Customer deleted successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -65,7 +66,7 @@ ipcMain.handle('toggle-customer-status', async (event, id) => {
         const updated = await Customer.findById(id);
         return updated;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 }); 
 

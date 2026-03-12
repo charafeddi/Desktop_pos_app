@@ -302,7 +302,7 @@
                             </tr>
                         </thead>
                         <tbody class="bg-gray-900 divide-y divide-gray-700">
-                            <tr v-for="product in filteredProducts" :key="product.id">
+                            <tr v-for="product in paginatedProducts" :key="product.id">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <input
                                         type="checkbox"
@@ -428,7 +428,7 @@
     </div>
 </template>
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import ProductFormWindow from './components/ProductFormWindow.vue'
 import BulkSelectionBar from '@/components/common/BulkSelectionBar.vue'
 import BulkEditModal from '@/components/common/BulkEditModal.vue'
@@ -460,16 +460,11 @@ const isDeleting = ref(false)
 onMounted(async () => {
     try {
         isLoading.value = true
-        showInfo('Loading Products', 'Fetching product data...')
-        
-        // Load data with error handling
         await Promise.all([
             ProductStore.getAllProducts?.(),
             ProductStore.getProductsAboutToFinish?.(),
             categoryStore.fetchCategories?.()
         ])
-        
-        showSuccess('Products Loaded', 'Product data loaded successfully')
         
         // Add keyboard shortcut event listeners
         window.addEventListener('add-product', handleAddProductShortcut)
@@ -715,7 +710,6 @@ const totalInventoryValue = computed(() => {
 })
 
 // Reactive Variables
-const showForm = ref(false)
 const editingProduct = ref(null)
 const searchQuery = ref('')
 const categoryFilter = ref('')
@@ -732,6 +726,24 @@ const totalItems = computed(() => Array.isArray(filteredProducts.value) ? filter
 const totalPages = computed(() => Math.max(1, Math.ceil((totalItems.value || 0) / itemsPerPage)))
 const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage)
 const endIndex = computed(() => Math.min(startIndex.value + itemsPerPage, totalItems.value))
+const paginatedProducts = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage
+    const end = start + itemsPerPage
+    return filteredProducts.value.slice(start, end)
+})
+
+// Reset to page 1 only when filter/sort criteria change, NOT when raw store data refreshes.
+// Watching filteredProducts directly would reset the page on every background data reload
+// because filteredProducts always returns a new array reference.
+watch([searchQuery, categoryFilter, statusFilter, stockFilter, priceRangeFilter, sortBy, sortOrder], () => {
+    currentPage.value = 1
+})
+
+watch(totalPages, (newTotalPages) => {
+    if (currentPage.value > newTotalPages) {
+        currentPage.value = newTotalPages
+    }
+})
 
 // Status helper functions
 const getStatusClass = (status) => {
@@ -879,10 +891,12 @@ const toggleSelectAll = () => {
 }
 
 const handleFormSubmit = async (formData) => {
+    // Track whether save actually succeeded so we only close the form on success
+    let savedSuccessfully = false
     try {
         isLoading.value = true
         
-        // Validate form data
+        // Validate form data — return early WITHOUT closing the form
         if (!formData.name || !formData.name.trim()) {
             handleValidationError(new Error('Product name is required'), 'Product Form')
             showError('Validation Error', 'Product name is required')
@@ -897,28 +911,23 @@ const handleFormSubmit = async (formData) => {
         
         if (showEditForm.value && selectedProduct.value?.id) {
             // Update existing product
-            showInfo('Updating Product', 'Saving product changes...')
             await window.electronAPI?.products.update(selectedProduct.value.id, formData)
             showSuccess('Product Updated', 'Product has been updated successfully')
-            
-            // Add notification
             if (window.addNotification) {
                 window.addNotification('success', 'Product Updated', `${formData.name} has been updated`)
             }
         } else {
             // Create new product
-            showInfo('Creating Product', 'Adding new product...')
             await window.electronAPI?.products.create(formData)
             showSuccess('Product Created', 'New product has been created successfully')
-            
-            // Add notification
             if (window.addNotification) {
                 window.addNotification('success', 'Product Created', `${formData.name} has been added`)
             }
         }
         
-        // Force refresh products from DB to ensure persistence
+        // Refresh product list from DB
         await ProductStore.forceRefreshProducts?.()
+        savedSuccessfully = true
         
     } catch (error) {
         if (error.message?.includes('UNIQUE constraint')) {
@@ -933,7 +942,8 @@ const handleFormSubmit = async (formData) => {
         }
     } finally {
         isLoading.value = false
-        closeForm()
+        // Only close the form when the save was actually successful
+        if (savedSuccessfully) closeForm()
     }
 }
 
@@ -968,12 +978,19 @@ const deleteProduct = async (productId) => {
         }
         
     } catch (error) {
-        handleDatabaseError(error, 'Product Deletion')
-        showError('Delete Failed', 'Failed to delete product. Please try again.')
+        const errorMessage = String(error?.message || '').toLowerCase()
+
+        if (errorMessage.includes('foreign key') || errorMessage.includes('constraint')) {
+            handleDatabaseError(error, 'Product Deletion')
+            showError('Cannot Delete Product', 'This product is linked to existing sales/records and cannot be deleted.')
+        } else {
+            handleDatabaseError(error, 'Product Deletion')
+            showError('Delete Failed', error?.message || 'Failed to delete product. Please try again.')
+        }
         
         // Add notification
         if (window.addNotification) {
-            window.addNotification('error', 'Delete Failed', 'Could not delete product')
+            window.addNotification('error', 'Delete Failed', error?.message || 'Could not delete product')
         }
     } finally {
         isDeleting.value = false

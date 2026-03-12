@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-gray-100 dark:bg-gray-900 py-6 px-4 sm:px-6 lg:px-8">
     <div class="max-w-7xl mx-auto">
       <!-- Header -->
       <div class="mb-8 flex justify-between items-center">
-        <h1 class="text-3xl font-bold text-gray-900">{{ t('Returns.title') }}</h1>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">{{ t('Returns.title') }}</h1>
         <div class="flex items-center gap-4">
           <div class="relative">
             <button
@@ -22,12 +22,12 @@
             <!-- Export Dropdown -->
             <div
               v-if="showExportDropdown"
-              class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+              class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700"
             >
               <div class="py-1">
                 <button
                   @click="exportReturnsData('csv'); showExportDropdown = false"
-                  class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
                   <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -36,7 +36,7 @@
                 </button>
                 <button
                   @click="exportReturnsData('pdf'); showExportDropdown = false"
-                  class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
                   <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
@@ -61,20 +61,20 @@
       </div>
 
       <!-- Error State -->
-      <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+      <div v-else-if="error" class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-8">
         <div class="flex">
           <div class="flex-shrink-0">
             <span class="text-red-400">⚠️</span>
           </div>
           <div class="ml-3">
-            <h3 class="text-sm font-medium text-red-800">{{ t('Returns.error_loading_returns') }}</h3>
-            <p class="mt-1 text-sm text-red-700">{{ error }}</p>
+            <h3 class="text-sm font-medium text-red-800 dark:text-red-200">{{ t('Returns.error_loading_returns') }}</h3>
+            <p class="mt-1 text-sm text-red-700 dark:text-red-300">{{ error }}</p>
           </div>
         </div>
       </div>
 
       <!-- Search and Filter Bar -->
-      <div class="bg-white rounded-lg shadow p-4 mb-6">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
         <div class="flex flex-col gap-4">
           <!-- Main Search Bar -->
           <div class="flex flex-col md:flex-row gap-4">
@@ -85,7 +85,7 @@
                   v-model="searchQuery"
                   @keydown="handleSearchKeydown"
                   placeholder="Search returns by ID, customer name, invoice number, reason, or amount..."
-                  class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400"
                 >
                 <span class="material-icons-outlined absolute left-3 top-3 text-gray-400">
                   search
@@ -209,7 +209,7 @@
 
 
       <!-- Returns List -->
-      <div class="bg-white shadow rounded-lg">
+              <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
           <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
             {{ t('Returns.returns_history') }}
@@ -220,62 +220,62 @@
           </div>
           
           <div v-else class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead>
                 <tr>
-                  <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     {{ t('Returns.return_id') }}
                   </th>
-                  <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     {{ t('Returns.customer') }}
                   </th>
-                  <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     {{ t('Returns.sale_invoice') }}
                   </th>
-                  <th class="px-6 py-3 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     {{ t('Returns.amount') }}
                   </th>
-                  <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     {{ t('Returns.reason') }}
                   </th>
-                  <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     {{ t('Returns.date') }}
                   </th>
-                  <th class="px-6 py-3 bg-gray-50 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     {{ t('Returns.actions') }}
                   </th>
                 </tr>
               </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
+              <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 <tr v-for="returnItem in filteredReturns" :key="returnItem.id">
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                     #{{ returnItem.id }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                     {{ returnItem.customer_name || 'N/A' }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                     {{ returnItem.sale_invoice_number || 'N/A' }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-right">
                     {{ formatCurrency(returnItem.final_amount) }}
                   </td>
-                  <td class="px-6 py-4 text-sm text-gray-500">
+                  <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-300">
                     {{ returnItem.reason || 'N/A' }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                     {{ formatDate(returnItem.created_at) }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                     <button
                       @click="viewReturn(returnItem.id)"
-                      class="text-indigo-600 hover:text-indigo-900 mr-3"
+                      class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
                     >
                       {{ t('Returns.view') }}
                     </button>
                     <button
                       @click="showDeleteConfirmation(returnItem.id)"
-                      class="text-red-600 hover:text-red-900"
+                      class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                     >
                       {{ t('Returns.delete') }}
                     </button>
@@ -312,7 +312,7 @@
                 <select 
                   v-model="newReturn.sale_id" 
                   @change="onSaleChange"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                   required
                 >
                   <option value="">{{ t('Returns.choose_sale') }}</option>
@@ -334,11 +334,11 @@
                   <div v-for="item in selectedSaleItems" :key="item.id" class="border rounded p-3">
                     <div class="flex items-center justify-between">
                       <div class="flex-1">
-                        <h4 class="font-medium">{{ item.product_name }}</h4>
-                        <p class="text-sm text-gray-500">
+                        <h4 class="font-medium text-gray-900 dark:text-gray-100">{{ item.product_name }}</h4>
+                        <p class="text-sm text-gray-500 dark:text-gray-300">
                           {{ t('Returns.available_quantity') }}: {{ item.quantity }}
                         </p>
-                        <p class="text-sm text-gray-500">
+                        <p class="text-sm text-gray-500 dark:text-gray-300">
                           {{ t('Returns.unit_price') }}: {{ formatCurrency(item.unit_price) }}
                         </p>
                       </div>
@@ -348,7 +348,7 @@
                           type="number"
                           min="0"
                           :max="item.quantity"
-                          class="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+                          class="w-20 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                           @change="updateReturnTotals"
                         />
                         <span class="text-sm text-gray-500">
@@ -368,14 +368,14 @@
                 <textarea
                   v-model="newReturn.reason"
                   rows="3"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                   :placeholder="t('Returns.reason_placeholder')"
                   required
                 ></textarea>
               </div>
 
               <!-- Return Totals -->
-              <div v-if="returnTotals.finalAmount > 0" class="bg-gray-50 p-4 rounded-md">
+              <div v-if="returnTotals.finalAmount > 0" class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-md">
                 <h4 class="font-medium text-gray-900 mb-2">{{ t('Returns.return_summary') }}</h4>
                 <div class="space-y-1 text-sm">
                   <div class="flex justify-between">
@@ -421,7 +421,7 @@
 
       <!-- Return Details Modal -->
       <div v-if="showDetailsModal && selectedReturn" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white dark:bg-gray-900">
           <div class="mt-3">
             <div class="flex justify-between items-center mb-4">
               <h3 class="text-lg font-medium text-gray-900">
@@ -440,26 +440,26 @@
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700">{{ t('Returns.customer') }}</label>
-                  <p class="text-sm text-gray-900">{{ selectedReturn.customer_name || 'N/A' }}</p>
+                <p class="text-sm text-gray-900 dark:text-gray-100">{{ selectedReturn.customer_name || 'N/A' }}</p>
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700">{{ t('Returns.sale_invoice') }}</label>
-                  <p class="text-sm text-gray-900">{{ selectedReturn.sale_invoice_number || 'N/A' }}</p>
+                  <p class="text-sm text-gray-900 dark:text-gray-100">{{ selectedReturn.sale_invoice_number || 'N/A' }}</p>
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700">{{ t('Returns.date') }}</label>
-                  <p class="text-sm text-gray-900">{{ formatDate(selectedReturn.created_at) }}</p>
+                  <p class="text-sm text-gray-900 dark:text-gray-100">{{ formatDate(selectedReturn.created_at) }}</p>
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700">{{ t('Returns.total_amount') }}</label>
-                  <p class="text-sm text-gray-900 font-medium">{{ formatCurrency(selectedReturn.final_amount) }}</p>
+                  <p class="text-sm text-gray-900 dark:text-gray-100 font-medium">{{ formatCurrency(selectedReturn.final_amount) }}</p>
                 </div>
               </div>
 
               <!-- Return Reason -->
               <div>
                 <label class="block text-sm font-medium text-gray-700">{{ t('Returns.reason') }}</label>
-                <p class="text-sm text-gray-900">{{ selectedReturn.reason || 'N/A' }}</p>
+                <p class="text-sm text-gray-900 dark:text-gray-100">{{ selectedReturn.reason || 'N/A' }}</p>
               </div>
 
               <!-- Return Items -->
@@ -469,11 +469,11 @@
                   <div v-for="item in returnItems" :key="item.id" class="border rounded p-3">
                     <div class="flex justify-between items-center">
                       <div>
-                        <h4 class="font-medium">{{ item.product_name }}</h4>
-                        <p class="text-sm text-gray-500">{{ t('Returns.quantity') }}: {{ item.quantity }}</p>
+                        <h4 class="font-medium text-gray-900 dark:text-gray-100">{{ item.product_name }}</h4>
+                        <p class="text-sm text-gray-500 dark:text-gray-300">{{ t('Returns.quantity') }}: {{ item.quantity }}</p>
                       </div>
                       <div class="text-right">
-                        <p class="text-sm text-gray-500">{{ t('Returns.unit_price') }}: {{ formatCurrency(item.unit_price) }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-300">{{ t('Returns.unit_price') }}: {{ formatCurrency(item.unit_price) }}</p>
                         <p class="font-medium">{{ formatCurrency(item.total_amount) }}</p>
                       </div>
                     </div>
@@ -970,15 +970,20 @@ const createReturn = async () => {
     
     const items = selectedSaleItems.value
       .filter(item => item.return_quantity > 0)
-      .map(item => ({
-        sale_item_id: item.id,
-        product_id: item.product_id,
-        quantity: item.return_quantity,
-        unit_price: item.unit_price,
-        discount_amount: 0,
-        tax_amount: 0,
-        total_amount: item.return_quantity * item.unit_price
-      }))
+      .map(item => {
+        const subtotal = item.return_quantity * item.unit_price
+        const taxRate = Number(item.tax_rate) || 0
+        const taxAmount = subtotal * taxRate / 100
+        return {
+          sale_item_id: item.id,
+          product_id: item.product_id,
+          quantity: item.return_quantity,
+          unit_price: item.unit_price,
+          discount_amount: 0,
+          tax_amount: taxAmount,
+          total_amount: subtotal + taxAmount
+        }
+      })
 
     if (items.length === 0) {
       handleValidationError(new Error('No items selected for return'), 'Return Creation')
@@ -1001,14 +1006,14 @@ const createReturn = async () => {
 
     showInfo('Creating Return', 'Processing return request...')
 
-    await returnsStore.createReturn(returnData)
+    const createdReturn = await returnsStore.createReturn(returnData)
     closeCreateReturnModal()
     
+    const returnRef = createdReturn?.id ? `#${createdReturn.id}` : ''
     showSuccess('Return Created', 'Return has been processed successfully')
     
-    // Add notification
     if (window.addNotification) {
-      window.addNotification('success', 'Return Created', `Return #${returnData.id || 'new'} processed successfully`)
+      window.addNotification('success', 'Return Created', `Return ${returnRef} processed successfully`)
     }
     
   } catch (error) {
@@ -1195,53 +1200,4 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.btn {
-  @apply transition-colors duration-200;
-}
-
-.btn-primary {
-  @apply bg-red-600 text-white hover:bg-red-700;
-}
-
-.btn-secondary {
-  @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
-}
-
-/* Dark theme support */
-:deep(.bg-gray-100) {
-  @apply bg-gray-800/30;
-}
-
-:deep(.text-gray-700) {
-  @apply text-gray-300;
-}
-
-:deep(.text-gray-600) {
-  @apply text-gray-400;
-}
-
-:deep(.border-gray-200) {
-  @apply border-gray-600;
-}
-
-:deep(.border-gray-300) {
-  @apply border-gray-500;
-}
-
-/* Dark theme adjustments */
-:deep(.bg-red-50) {
-  @apply bg-red-900/30;
-}
-
-:deep(.text-red-800) {
-  @apply text-red-200;
-}
-
-:deep(.text-red-700) {
-  @apply text-red-300;
-}
-
-:deep(.border-red-200) {
-  @apply border-red-600;
-}
 </style>

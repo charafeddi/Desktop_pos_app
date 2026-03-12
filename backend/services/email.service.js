@@ -131,9 +131,11 @@ class EmailService {
                 <p style="color: #666; margin: 5px 0 0 0; font-family: monospace; background: #e9ecef; padding: 8px; border-radius: 4px;">${tempPassword}</p>
               </div>
               
-              <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p style="color: #856404; margin: 0; font-size: 14px;">
-                  <strong>Important:</strong> Please change your password after your first login for security reasons.
+              <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="color: #721c24; margin: 0; font-size: 14px;">
+                  <strong>&#9888; Action Required:</strong> This is a one-time temporary password.
+                  You <strong>must</strong> change it immediately after your first login.
+                  Do not share this email with anyone.
                 </p>
               </div>
               

@@ -11,6 +11,7 @@ import { useSettingsStore } from '@/stores/settings.store'
 export class RefreshHandler {
   private static instance: RefreshHandler
   private isRefreshing = false
+  private disposers: Array<() => void> = []
 
   public static getInstance(): RefreshHandler {
     if (!RefreshHandler.instance) {
@@ -190,48 +191,60 @@ export class RefreshHandler {
   }
 }
 
-// Initialize refresh handler and set up event listeners
+// Initialize refresh handler and set up event listeners.
+// Each onRefreshXxx call now returns a dispose() — we collect them all
+// so cleanupRefreshHandler() can remove every listener individually.
 export function initializeRefreshHandler(): void {
   const refreshHandler = RefreshHandler.getInstance()
 
-  // Set up IPC event listeners
-  if (window.electronAPI) {
-    // Listen for refresh start event
+  if (!window.electronAPI) {
+    console.warn('ElectronAPI not available, refresh handler initialized without IPC listeners')
+    return
+  }
+
+  const disposers: Array<() => void> = []
+
+  disposers.push(
     window.electronAPI.onRefreshStart(() => {
       console.log('Refresh started from context menu')
     })
+  )
 
-    // Listen for refresh complete event
+  disposers.push(
     window.electronAPI.onRefreshComplete(() => {
       console.log('Refresh completed from context menu')
     })
+  )
 
-    // Listen for refresh error event
+  disposers.push(
     window.electronAPI.onRefreshError((error: string) => {
       console.error('Refresh error from context menu:', error)
-      refreshHandler.showNotification(`Refresh error: ${error}`, 'error')
+      refreshHandler['showNotification'](`Refresh error: ${error}`, 'error')
     })
+  )
 
-    // Listen for individual refresh events
-    window.electronAPI.onRefreshProducts(() => refreshHandler.refreshProducts())
-    window.electronAPI.onRefreshSales(() => refreshHandler.refreshSales())
-    window.electronAPI.onRefreshCustomers(() => refreshHandler.refreshCustomers())
-    window.electronAPI.onRefreshCategories(() => refreshHandler.refreshCategories())
-    window.electronAPI.onRefreshSuppliers(() => refreshHandler.refreshSuppliers())
-    window.electronAPI.onRefreshAnalytics(() => refreshHandler.refreshAnalytics())
-    window.electronAPI.onRefreshTodos(() => refreshHandler.refreshTodos())
-    window.electronAPI.onRefreshSettings(() => refreshHandler.refreshSettings())
+  disposers.push(window.electronAPI.onRefreshProducts(() => refreshHandler.refreshProducts()))
+  disposers.push(window.electronAPI.onRefreshSales(() => refreshHandler.refreshSales()))
+  disposers.push(window.electronAPI.onRefreshCustomers(() => refreshHandler.refreshCustomers()))
+  disposers.push(window.electronAPI.onRefreshCategories(() => refreshHandler.refreshCategories()))
+  disposers.push(window.electronAPI.onRefreshSuppliers(() => refreshHandler.refreshSuppliers()))
+  disposers.push(window.electronAPI.onRefreshAnalytics(() => refreshHandler.refreshAnalytics()))
+  disposers.push(window.electronAPI.onRefreshTodos(() => refreshHandler.refreshTodos()))
+  disposers.push(window.electronAPI.onRefreshSettings(() => refreshHandler.refreshSettings()))
 
-    console.log('Refresh handler initialized with IPC listeners')
-  } else {
-    console.warn('ElectronAPI not available, refresh handler initialized without IPC listeners')
-  }
+  // Store disposers on the singleton so cleanupRefreshHandler() can reach them
+  refreshHandler['disposers'] = disposers
+
+  console.log('Refresh handler initialized with IPC listeners')
 }
 
-// Clean up event listeners
+// Remove every registered IPC listener cleanly.
 export function cleanupRefreshHandler(): void {
-  if (window.electronAPI) {
-    window.electronAPI.removeRefreshListeners()
-    console.log('Refresh handler cleaned up')
-  }
+  const refreshHandler = RefreshHandler.getInstance()
+  const disposers: Array<() => void> = refreshHandler['disposers'] ?? []
+
+  disposers.forEach(dispose => dispose())
+  refreshHandler['disposers'] = []
+
+  console.log('Refresh handler cleaned up')
 }

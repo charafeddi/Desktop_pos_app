@@ -11,11 +11,9 @@ app.commandLine.appendSwitch('--disable-background-timer-throttling');
 app.commandLine.appendSwitch('--disable-backgrounding-occluded-windows');
 app.commandLine.appendSwitch('--disable-renderer-backgrounding');
 app.commandLine.appendSwitch('--disable-features', 'TranslateUI');
-app.commandLine.appendSwitch('--disable-ipc-flooding-protection');
 
 // Memory optimizations
 app.commandLine.appendSwitch('--max-old-space-size', '4096');
-app.commandLine.appendSwitch('--no-sandbox');
 
 // Handle SSL certificate errors in development
 app.on('ready', () => {
@@ -81,8 +79,8 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'dist/preload.js'),
-      webSecurity: false, // Disable web security to allow local file loading
-      allowRunningInsecureContent: true,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
       // Performance optimizations
       enableRemoteModule: false,
       backgroundThrottling: false,
@@ -104,7 +102,7 @@ function createWindow() {
 // Bulk operations handlers
 ipcMain.handle('bulk-update-products', async (event, productIds, updateData) => {
   try {
-    console.log('Bulk updating products:', productIds, updateData);
+    console.log(`Bulk updating ${productIds.length} products`);
     
     const db = new Database(path.join(__dirname, '../backend/data/pos.db'));
     let updatedCount = 0;
@@ -155,17 +153,23 @@ ipcMain.handle('bulk-update-products', async (event, productIds, updateData) => 
           updateValues.push(updateData.max_stock_level);
         }
         
-        // Handle price operations
+        // Handle price operations — only permit known column names to prevent SQL injection
+        const ALLOWED_PRICE_FIELDS = ['price', 'cost_price', 'sale_price', 'wholesale_price'];
         if (updateData.priceField && updateData.priceOperation && updateData.priceValue !== undefined) {
-          if (updateData.priceOperation === 'set') {
-            updateFields.push(`${updateData.priceField} = ?`);
-            updateValues.push(updateData.priceValue);
-          } else if (updateData.priceOperation === 'increase') {
-            updateFields.push(`${updateData.priceField} = ${updateData.priceField} * (1 + ?)`);
-            updateValues.push(updateData.priceValue / 100);
-          } else if (updateData.priceOperation === 'decrease') {
-            updateFields.push(`${updateData.priceField} = ${updateData.priceField} * (1 - ?)`);
-            updateValues.push(updateData.priceValue / 100);
+          const safeField = ALLOWED_PRICE_FIELDS.includes(updateData.priceField) ? updateData.priceField : null;
+          if (safeField) {
+            if (updateData.priceOperation === 'set') {
+              updateFields.push(`${safeField} = ?`);
+              updateValues.push(updateData.priceValue);
+            } else if (updateData.priceOperation === 'increase') {
+              updateFields.push(`${safeField} = ${safeField} * (1 + ?)`);
+              updateValues.push(updateData.priceValue / 100);
+            } else if (updateData.priceOperation === 'decrease') {
+              updateFields.push(`${safeField} = ${safeField} * (1 - ?)`);
+              updateValues.push(updateData.priceValue / 100);
+            }
+          } else {
+            console.warn(`Blocked SQL injection attempt via priceField: '${updateData.priceField}'`);
           }
         }
         
@@ -357,18 +361,18 @@ mainWindow.webContents.on('context-menu', (event, params) => {
     // Add separator
     menu.append(new MenuItem({ type: 'separator' }));
 
-    // Add "Inspect Element" option to the context menu
-    menu.append(
-      new MenuItem({
-        label: 'Inspect Element',
-        click: () => {
-          mainWindow.webContents.inspectElement(params.x, params.y);
-        },
-      })
-    );
+    // "Inspect Element" available in any non-production build
+    if (process.env.NODE_ENV !== 'production') {
+      menu.append(
+        new MenuItem({
+          label: 'Inspect Element',
+          click: () => {
+            mainWindow.webContents.inspectElement(params.x, params.y);
+          },
+        })
+      );
+    }
 
-    // Add other default context menu items if needed
-    // For example: Copy, Paste, etc.
     menu.append(new MenuItem({ role: 'copy' }));
     menu.append(new MenuItem({ role: 'paste' }));
 
@@ -376,22 +380,24 @@ mainWindow.webContents.on('context-menu', (event, params) => {
     menu.popup({ window: mainWindow, x: params.x, y: params.y });
   });
 
-  // Keyboard shortcut: Ctrl+Shift+I toggles DevTools
-  mainWindow.webContents.on('before-input-event', (event, input) => {
-    const isToggle =
-      input.type === 'keyDown' &&
-      input.key.toLowerCase() === 'i' &&
-      input.control &&
-      input.shift;
-    if (isToggle) {
-      if (mainWindow.webContents.isDevToolsOpened()) {
-        mainWindow.webContents.closeDevTools();
-      } else {
-        mainWindow.webContents.openDevTools();
+  // Keyboard shortcut: Ctrl+Shift+I toggles DevTools — available in any non-production build
+  if (process.env.NODE_ENV !== 'production') {
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      const isToggle =
+        input.type === 'keyDown' &&
+        input.key.toLowerCase() === 'i' &&
+        input.control &&
+        input.shift;
+      if (isToggle) {
+        if (mainWindow.webContents.isDevToolsOpened()) {
+          mainWindow.webContents.closeDevTools();
+        } else {
+          mainWindow.webContents.openDevTools();
+        }
+        event.preventDefault();
       }
-      event.preventDefault();
-    }
-  });
+    });
+  }
 
   // Load the appropriate URL based on environment
   const isDevelopment = process.env.NODE_ENV === 'development' && 
@@ -518,6 +524,21 @@ mainWindow.webContents.on('context-menu', (event, params) => {
   // Backup: export database tables to JSON file in the given folder
   const exportBackupJSON = async (folderPath) => {
     if (!folderPath) throw new Error('No folder path provided');
+
+    // Ensure the destination is an absolute path inside a user-accessible location
+    // to prevent path traversal to sensitive system directories
+    const resolvedFolder = path.resolve(folderPath);
+    const allowedRoots = [
+      app.getPath('home'),
+      app.getPath('documents'),
+      app.getPath('downloads'),
+      app.getPath('desktop'),
+      app.getPath('userData'),
+    ].map(p => path.resolve(p));
+    const isAllowed = allowedRoots.some(root => resolvedFolder.startsWith(root));
+    if (!isAllowed) {
+      throw new Error('Backup destination must be within your home, documents, downloads, desktop, or app-data folder.');
+    }
     const date = new Date();
     const dateStamp = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
     const filePath = path.join(folderPath, `pos-backup-${dateStamp}.json`);
@@ -563,6 +584,31 @@ mainWindow.webContents.on('context-menu', (event, params) => {
   let backupInterval = null;
   let scheduledFolder = null;
   let backupFrequency = 'weekly';
+
+  // Persist / restore backup schedule so it survives app restarts
+  const SettingsModel = require('../backend/models/settings.model');
+  function saveBackupSchedule() {
+    try {
+      SettingsModel.setValue('backup_schedule_folder', scheduledFolder || '');
+      SettingsModel.setValue('backup_schedule_frequency', backupFrequency || 'weekly');
+    } catch (e) {
+      console.error('Failed to persist backup schedule:', e.message);
+    }
+  }
+  function restoreBackupSchedule() {
+    try {
+      const folder = SettingsModel.getValue('backup_schedule_folder');
+      const frequency = SettingsModel.getValue('backup_schedule_frequency');
+      if (folder) {
+        scheduledFolder = folder;
+        backupFrequency = frequency || 'weekly';
+        console.log(`Restored backup schedule: ${backupFrequency} → ${scheduledFolder}`);
+        scheduleNextBackup();
+      }
+    } catch (e) {
+      console.error('Failed to restore backup schedule:', e.message);
+    }
+  }
 
   function calculateNextBackupTime(frequency) {
     const now = new Date();
@@ -610,24 +656,21 @@ mainWindow.webContents.on('context-menu', (event, params) => {
     if (!folderPath) throw new Error('No folder path provided');
     scheduledFolder = folderPath;
     backupFrequency = 'daily';
-    
-    // Clear any existing schedule
+    saveBackupSchedule();
+
     if (backupInterval) {
       clearInterval(backupInterval);
       backupInterval = null;
     }
-    
-    // Run immediately once
-    try { 
-      await exportBackupJSON(scheduledFolder); 
+
+    try {
+      await exportBackupJSON(scheduledFolder);
       console.log('Initial daily backup completed');
     } catch (error) {
       console.error('Initial backup failed:', error);
     }
-    
-    // Schedule next backup for midnight
-    scheduleNextBackup();
 
+    scheduleNextBackup();
     const nextRun = calculateNextBackupTime('daily');
     return { nextRun: nextRun.toISOString(), folderPath: scheduledFolder, frequency: 'daily' };
   });
@@ -636,23 +679,21 @@ mainWindow.webContents.on('context-menu', (event, params) => {
     if (!folderPath) throw new Error('No folder path provided');
     scheduledFolder = folderPath;
     backupFrequency = 'weekly';
-    
+    saveBackupSchedule();
+
     if (backupInterval) {
       clearInterval(backupInterval);
       backupInterval = null;
     }
-    
-    // Run immediately once
-    try { 
-      await exportBackupJSON(scheduledFolder); 
+
+    try {
+      await exportBackupJSON(scheduledFolder);
       console.log('Initial weekly backup completed');
     } catch (error) {
       console.error('Initial backup failed:', error);
     }
-    
-    // Schedule next backup for next Monday
-    scheduleNextBackup();
 
+    scheduleNextBackup();
     const nextRun = calculateNextBackupTime('weekly');
     return { nextRun: nextRun.toISOString(), folderPath: scheduledFolder, frequency: 'weekly' };
   });
@@ -664,8 +705,12 @@ mainWindow.webContents.on('context-menu', (event, params) => {
     }
     scheduledFolder = null;
     backupFrequency = 'weekly';
+    saveBackupSchedule();
     return { cancelled: true };
   });
+
+  // Re-arm any schedule that was active before the app was closed
+  restoreBackupSchedule();
 
   // Restore functionality
   ipcMain.handle('backup:choose-restore-file', async () => {
@@ -707,9 +752,19 @@ mainWindow.webContents.on('context-menu', (event, params) => {
         // DON'T clear existing data - we want to merge, not replace
         // This preserves current data and adds backup data
         
+        // Identifier must be alphanumeric + underscore only (prevents SQL injection)
+        const isSafeIdentifier = (name) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name);
+
         // Restore data to each table with smart merging
         for (const [tableName, rows] of Object.entries(backupData.tables)) {
-          if (existingTableNames.includes(tableName) && Array.isArray(rows)) {
+          // Validate table name against both the schema whitelist and a safe-identifier regex
+          if (!isSafeIdentifier(tableName) || !existingTableNames.includes(tableName)) {
+            if (!isSafeIdentifier(tableName)) {
+              console.warn(`Blocked unsafe table name in backup: '${tableName}'`);
+            }
+            continue;
+          }
+          if (Array.isArray(rows)) {
             if (rows.length > 0) {
               try {
                 // Get current table schema to check which columns exist
@@ -720,10 +775,10 @@ mainWindow.webContents.on('context-menu', (event, params) => {
                 const filteredRows = rows.map(row => {
                   const filteredRow = {};
                   for (const [key, value] of Object.entries(row)) {
-                    if (existingColumns.includes(key)) {
+                    if (isSafeIdentifier(key) && existingColumns.includes(key)) {
                       filteredRow[key] = value;
                     } else {
-                      console.warn(`Skipping column '${key}' in ${tableName} - not in current schema`);
+                      console.warn(`Skipping column '${key}' in ${tableName} - not in current schema or unsafe name`);
                     }
                   }
                   return filteredRow;

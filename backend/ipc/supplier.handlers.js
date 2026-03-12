@@ -1,5 +1,6 @@
 const { ipcMain } = require('electron');
 const Supplier = require('../models/supplier.model');
+const { ipcError } = require('../utils/ipcError');
 
 function setupSupplierHandlers() {
 // Get all suppliers
@@ -8,7 +9,7 @@ ipcMain.handle('get-suppliers', async (event) => {
         const suppliers = await Supplier.getAll();
         return suppliers;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -22,7 +23,7 @@ ipcMain.handle('get-supplier-by-id', async (event, id) => {
             return supplier;
         }
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -32,7 +33,7 @@ ipcMain.handle('create-supplier', async (event, supplierData) => {
         const supplierId = await Supplier.create(supplierData);
         return { id: supplierId, ...supplierData };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -44,7 +45,7 @@ ipcMain.handle('update-supplier', async (event, id, supplierData) => {
         const updated = await Supplier.findById(id);
         return updated;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -54,7 +55,7 @@ ipcMain.handle('delete-supplier', async (event, id) => {
         await Supplier.delete(id);
         return { message: 'Supplier deleted successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 }); 
 

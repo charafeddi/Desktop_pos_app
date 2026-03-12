@@ -1,5 +1,6 @@
 const { ipcMain } = require('electron');
 const Todo = require('../models/todo.model');
+const { ipcError } = require('../utils/ipcError');
 
 function setupTodoHandlers() {
 
@@ -28,7 +29,7 @@ ipcMain.handle('get-todos', async () => {
         const todos = await Todo.getAll();
         return todos;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -41,7 +42,7 @@ ipcMain.handle('get-todo-by-id', async (event, id) => {
         }
         return todo;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -51,7 +52,7 @@ ipcMain.handle('update-todo', async (event, id, todoData) => {
         await Todo.update(id, todoData);
         return { message: 'Todo updated successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -61,7 +62,7 @@ ipcMain.handle('delete-todo', async (event, id) => {
         await Todo.delete(id);
         return { message: 'Todo deleted successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 

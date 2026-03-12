@@ -1,15 +1,11 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-// Import the autoTable function directly
-import 'jspdf-autotable'
 import Papa from 'papaparse'
-
-// Extend jsPDF with autoTable
-jsPDF.API.autoTable = autoTable
 import { 
   generateSalesReportTemplate, 
   generateProductsReportTemplate, 
   generateCustomersReportTemplate, 
+  generateReturnsReportTemplate,
   generateAnalyticsReportTemplate 
 } from './reportTemplates.js'
 
@@ -51,31 +47,22 @@ export async function testPDFExport() {
  */
 async function saveFile(data, filename, type) {
   try {
-    console.log('saveFile called with:', { filename, type, dataLength: data.length })
-    
     if (window.electronAPI && window.electronAPI.files) {
-      console.log('Using Electron API for file save')
-      const result = await window.electronAPI.files.saveFile(data, filename, type)
-      console.log('Electron save result:', result)
-      return result
-    } else {
-      console.log('Using web fallback for file save')
-      // Fallback for web environment
-      const blob = new Blob([data], { type: type === 'csv' ? 'text/csv' : 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      console.log('Web fallback save completed')
-      return { success: true }
+      return await window.electronAPI.files.saveFile(data, filename, type)
     }
+    // Fallback for non-Electron / web environment
+    const blob = new Blob([data], { type: type === 'csv' ? 'text/csv' : 'application/pdf' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    return { success: true }
   } catch (error) {
     console.error('Error saving file:', error)
-    console.error('Error stack:', error.stack)
     return { success: false, error: error.message }
   }
 }
@@ -296,30 +283,15 @@ export async function exportSales(sales, customers, format, filters = {}) {
     return await exportToCSV(exportData, filename, columns)
   } else if (format === 'pdf') {
     try {
-    console.log('Creating PDF for sales export...')
-    // Use professional template for PDF
-    const doc = new jsPDF()
-    console.log('PDF document created:', doc)
-    
-    // Ensure autoTable is available on this instance
-    if (!doc.autoTable && jsPDF.API.autoTable) {
-      doc.autoTable = jsPDF.API.autoTable
-      console.log('Attached autoTable to doc instance in exportUtils')
-    }
-    
-    const templateDoc = generateSalesReportTemplate(doc, sales, customers, filters)
-      console.log('Template generated successfully')
-      
-      // Get PDF as binary data
+      const doc = new jsPDF()
+      const templateDoc = generateSalesReportTemplate(doc, sales, customers, filters)
       const pdfOutput = templateDoc.output('arraybuffer')
       const uint8Array = new Uint8Array(pdfOutput)
       const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('')
-      
-      // Save PDF using Electron's native dialog
       const result = await saveFile(binaryString, `${filename}.pdf`, 'pdf')
       return result.success
     } catch (error) {
-      console.error('Error in sales PDF export:', error)
+      console.error('Sales PDF export error:', error)
       return false
     }
   }
@@ -363,26 +335,15 @@ export async function exportProducts(products, format) {
     return await exportToCSV(exportData, filename, columns)
   } else if (format === 'pdf') {
     try {
-      console.log('Creating PDF for products export...')
-      // Use professional template for PDF
       const doc = new jsPDF()
-      console.log('PDF document created:', doc)
-      
-      // No need to attach autoTable - we'll call it directly in templates
-      
       const templateDoc = generateProductsReportTemplate(doc, products)
-      console.log('Template generated successfully')
-      
-      // Get PDF as binary data
       const pdfOutput = templateDoc.output('arraybuffer')
       const uint8Array = new Uint8Array(pdfOutput)
       const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('')
-      
-      // Save PDF using Electron's native dialog
       const result = await saveFile(binaryString, `${filename}.pdf`, 'pdf')
       return result.success
     } catch (error) {
-      console.error('Error in products PDF export:', error)
+      console.error('Products PDF export error:', error)
       return false
     }
   }
@@ -422,26 +383,15 @@ export async function exportCustomers(customers, format) {
     return await exportToCSV(exportData, filename, columns)
   } else if (format === 'pdf') {
     try {
-      console.log('Creating PDF for customers export...')
-      // Use professional template for PDF
       const doc = new jsPDF()
-      console.log('PDF document created:', doc)
-      
-      // No need to attach autoTable - we'll call it directly in templates
-      
       const templateDoc = generateCustomersReportTemplate(doc, customers)
-      console.log('Template generated successfully')
-      
-      // Get PDF as binary data
       const pdfOutput = templateDoc.output('arraybuffer')
       const uint8Array = new Uint8Array(pdfOutput)
       const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('')
-      
-      // Save PDF using Electron's native dialog
       const result = await saveFile(binaryString, `${filename}.pdf`, 'pdf')
       return result.success
     } catch (error) {
-      console.error('Error in customers PDF export:', error)
+      console.error('Customers PDF export error:', error)
       return false
     }
   }
@@ -453,30 +403,44 @@ export async function exportCustomers(customers, format) {
  * @param {string} format - 'csv' or 'pdf'
  */
 export async function exportReturns(returns, format) {
+  if (!returns || !Array.isArray(returns) || returns.length === 0) {
+    console.error('No returns data to export')
+    return false
+  }
+
   const columns = [
     { key: 'id', label: 'Return ID' },
     { key: 'return_number', label: 'Return Number' },
     { key: 'sale_id', label: 'Sale ID' },
     { key: 'customer_name', label: 'Customer' },
-    { key: 'total_amount', label: 'Return Amount' },
+    { key: 'final_amount', label: 'Refunded Amount' },
     { key: 'reason', label: 'Reason' },
-    { key: 'status', label: 'Status' },
     { key: 'created_at', label: 'Date' }
   ]
 
-  const exportData = returns.map(returnItem => ({
-    ...returnItem,
-    total_amount: formatCurrency(returnItem.total_amount),
-    created_at: formatDate(returnItem.created_at)
+  const exportData = returns.map(r => ({
+    ...r,
+    final_amount: formatCurrency(r.final_amount || r.total_amount),
+    created_at: formatDate(r.created_at)
   }))
 
   const filename = `returns_report_${new Date().toISOString().split('T')[0]}`
-  const title = 'Returns Report'
 
   if (format === 'csv') {
     return await exportToCSV(exportData, filename, columns)
   } else if (format === 'pdf') {
-    return await exportToPDF(exportData, filename, columns, title)
+    try {
+      const doc = new jsPDF()
+      const templateDoc = generateReturnsReportTemplate(doc, returns)
+      const pdfOutput = templateDoc.output('arraybuffer')
+      const uint8Array = new Uint8Array(pdfOutput)
+      const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('')
+      const result = await saveFile(binaryString, `${filename}.pdf`, 'pdf')
+      return result.success
+    } catch (error) {
+      console.error('Returns PDF export error:', error)
+      return false
+    }
   }
 }
 
@@ -497,27 +461,16 @@ export async function exportAnalytics(analytics, format) {
   
   if (format === 'pdf') {
     try {
-      console.log('Creating PDF for analytics export...')
-      // Use professional template for PDF
       const doc = new jsPDF()
-      console.log('PDF document created:', doc)
-      
-      // No need to attach autoTable - we'll call it directly in templates
-      
       const templateDoc = generateAnalyticsReportTemplate(doc, analytics)
-      console.log('Template generated successfully')
-      
-      // Get PDF as binary data
       const pdfOutput = templateDoc.output('arraybuffer')
       const uint8Array = new Uint8Array(pdfOutput)
       const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('')
-      
-      // Save PDF using Electron's native dialog
       const filename = `analytics_report_${new Date().toISOString().split('T')[0]}`
       const result = await saveFile(binaryString, `${filename}.pdf`, 'pdf')
       return result.success
     } catch (error) {
-      console.error('Error in analytics PDF export:', error)
+      console.error('Analytics PDF export error:', error)
       return false
     }
   }

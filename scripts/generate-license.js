@@ -6,6 +6,9 @@
  * Usage: node scripts/generate-license.js
  */
 
+// Load environment variables from backend/.env before requiring any modules that need them
+require('../backend/config/env');
+
 const LicenseGenerator = require('../backend/utils/licenseGenerator');
 const readline = require('readline');
 

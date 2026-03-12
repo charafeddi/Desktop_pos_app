@@ -1,5 +1,6 @@
 const { ipcMain } = require('electron');
 const ProductUnit = require('../models/productUnit.model');
+const { ipcError } = require('../utils/ipcError');
 
 function setupProductUnitHandlers() {
 // Get all product units
@@ -8,7 +9,7 @@ ipcMain.handle('get-product-units', async (event) => {
         const productUnits = await ProductUnit.getAll();
         return productUnits;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -22,7 +23,7 @@ ipcMain.handle('get-product-unit-by-id', async (event, id) => {
             return productUnit;
         }
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -32,7 +33,7 @@ ipcMain.handle('create-product-unit', async (event, productUnitData) => {
         const productUnitId = await ProductUnit.create(productUnitData);
         return { id: productUnitId, ...productUnitData };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -42,7 +43,7 @@ ipcMain.handle('update-product-unit', async (event, id, productUnitData) => {
         await ProductUnit.update(id, productUnitData);
         return { message: 'Product unit updated successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -52,7 +53,7 @@ ipcMain.handle('delete-product-unit', async (event, id) => {
         await ProductUnit.delete(id);
         return { message: 'Product unit deleted successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 }); 
 

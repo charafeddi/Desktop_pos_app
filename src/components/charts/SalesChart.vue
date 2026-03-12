@@ -1,32 +1,30 @@
 <template>
-    <div class="card">
-        <div class="card-body">
-            <div class="visitors-stats">
-                <div class="chart-header">
-                    <div class="visitors-stats-info">
-                        <p>{{ t('sales.total') }}</p>
-                        <h5>{{ formatCurrency(totalSales) }}</h5>
-                        <span>{{ formatDateRange(startDate, endDate) }}</span>
-                    </div>
-                    <div class="date-filters">
-                        <input 
-                            type="date" 
-                            v-model="startDate" 
-                            :max="endDate"
-                            class="date-input"
-                        />
-                        <span class="date-separator">to</span>
-                        <input 
-                            type="date" 
-                            v-model="endDate" 
-                            :min="startDate"
-                            class="date-input"
-                        />
-                    </div>
+    <div class="sales-chart-card">
+        <div class="chart-body">
+            <div class="chart-header">
+                <div class="visitors-stats-info">
+                    <p class="stats-label">{{ t('sales.total') }}</p>
+                    <h5 class="stats-value">{{ formatCurrency(totalSales) }}</h5>
+                    <span class="stats-range">{{ formatDateRange(startDate, endDate) }}</span>
                 </div>
-                <div class="chart-container">
-                    <canvas ref="chartCanvas"></canvas>
+                <div class="date-filters">
+                    <input 
+                        type="date" 
+                        v-model="startDate" 
+                        :max="endDate"
+                        class="date-input"
+                    />
+                    <span class="date-separator">to</span>
+                    <input 
+                        type="date" 
+                        v-model="endDate" 
+                        :min="startDate"
+                        class="date-input"
+                    />
                 </div>
+            </div>
+            <div class="chart-container">
+                <canvas ref="chartCanvas"></canvas>
             </div>
         </div>
     </div>
@@ -204,43 +202,58 @@ onMounted(() => {
 })
 </script>
 
-<style>
-.card {
+<style scoped>
+.sales-chart-card {
     background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: 10px;
     width: 100%;
+    min-width: 0;
 }
 
+.chart-body {
+    padding: 1rem;
+}
+
+/* Header: side-by-side on wider screens, stacked on narrow */
 .chart-header {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: auto;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
 }
 
 .visitors-stats-info {
     flex: 1;
+    min-width: 0;
 }
 
-.visitors-stats-info p {
+.stats-label {
     color: var(--color-text-secondary);
-    margin-bottom: 0.5rem;
+    margin: 0 0 0.25rem;
+    font-size: 0.8rem;
 }
 
-.visitors-stats-info h5 {
-    font-size: 14px;
-    margin-bottom: 0.5rem;
+.stats-value {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem;
     color: var(--color-text);
+    white-space: nowrap;
 }
 
-.visitors-stats-info span {
+.stats-range {
     color: var(--color-text-secondary);
-    font-size: 0.875rem;
+    font-size: 0.75rem;
 }
 
+/* Date filter row — wraps to next line on small cards */
 .date-filters {
     display: flex;
-    gap: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
     align-items: center;
 }
 
@@ -249,16 +262,35 @@ onMounted(() => {
     border: 1px solid var(--color-border);
     border-radius: 6px;
     color: var(--color-text);
-    padding: 0.5rem;
-    font-size: 0.875rem;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.8rem;
+    min-width: 0;
+    /* Prevent date inputs from growing beyond available space */
+    max-width: 140px;
+    width: 100%;
 }
 
 .date-separator {
     color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    flex-shrink: 0;
 }
 
 .chart-container {
-    height: 300px;
-    margin-top: 1rem;
+    /* Responsive height: shorter on small cards, taller on large ones */
+    height: 220px;
+    margin-top: 0.75rem;
+    position: relative;
+    min-width: 0;
+}
+
+/* Taller chart on wider layouts */
+@media (min-width: 640px) {
+    .chart-container {
+        height: 280px;
+    }
+    .chart-body {
+        padding: 1.25rem;
+    }
 }
 </style>

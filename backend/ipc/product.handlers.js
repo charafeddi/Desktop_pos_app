@@ -1,5 +1,6 @@
 const { ipcMain } = require('electron');
 const Product = require('../models/product.model');
+const { ipcError } = require('../utils/ipcError');
 
 function setupProductHandlers() {
 // Get all products
@@ -8,7 +9,7 @@ ipcMain.handle('get-products', async (event) => {
         const products = await Product.getAll();
         return products;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -22,7 +23,7 @@ ipcMain.handle('get-product-by-id', async (event, id) => {
             return product;
         }
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -69,7 +70,7 @@ ipcMain.handle('create-product', async (event, productData) => {
         const productId = await Product.create(productData);
         return { id: productId, ...productData };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -113,7 +114,7 @@ ipcMain.handle('update-product', async (event, id, productData) => {
         await Product.update(id, productData);
         return { message: 'Product updated successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -123,7 +124,7 @@ ipcMain.handle('delete-product', async (event, id) => {
         await Product.delete(id);
         return { message: 'Product deleted successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 // Get product low Stock
@@ -135,7 +136,7 @@ ipcMain.handle('get-product-low-stock', async (event) => {
         return lowStock;
     } catch (error) {
         console.error('IPC: Error getting low stock products:', error);
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -145,7 +146,7 @@ ipcMain.handle('get-popular-products', async (event, limit = 10, period = null) 
         const products = await Product.getPopularProducts(limit, period);
         return products;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -159,7 +160,7 @@ ipcMain.handle('get-product-stock', async (event, id) => {
             return productStock;
         }
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 

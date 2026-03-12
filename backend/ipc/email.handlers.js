@@ -55,7 +55,7 @@ class EmailHandlers {
     // Verify reset token
     ipcMain.handle('email:verify-reset-token', async (event, token) => {
       try {
-        console.log('Verifying reset token:', token);
+        console.log('Verifying reset token...');
 
         const tokenData = await passwordResetModel.findByToken(token);
         
@@ -99,11 +99,8 @@ class EmailHandlers {
           };
         }
 
-        // Update user password
-        const bcrypt = require('bcrypt');
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        
-        await userModel.updatePassword(tokenData.user_id, hashedPassword);
+        // updatePassword handles hashing internally — pass the raw password
+        await userModel.updatePassword(tokenData.user_id, newPassword);
 
         // Mark token as used
         await passwordResetModel.markAsUsed(token);

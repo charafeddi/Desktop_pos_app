@@ -3,6 +3,16 @@ const { exec } = require('child_process')
 const fs = require('fs')
 const path = require('path')
 
+// Validate printer name to prevent command injection.
+// Only allow characters that can appear in real printer names.
+function sanitizePrinterName(name) {
+  if (!name) return null;
+  if (!/^[\w\s\-\.()]+$/.test(name)) {
+    throw new Error(`Invalid printer name: contains disallowed characters`);
+  }
+  return name;
+}
+
 // Print utilities
 const PrintHandlers = {
   /**
@@ -10,6 +20,9 @@ const PrintHandlers = {
    */
   async printTextReceipt(receiptText, printerName = null) {
     try {
+      // Sanitize printer name before using it in shell commands
+      const safePrinterName = sanitizePrinterName(printerName);
+
       // Get temp file path
       const tempDir = require('os').tmpdir()
       const tempFile = path.join(tempDir, `Receipt_${Date.now()}.txt`)
@@ -22,15 +35,15 @@ const PrintHandlers = {
       
       if (process.platform === 'win32') {
         // Windows: Use notepad or powershell
-        const printerCmd = printerName ? `-d "${printerName}"` : ''
+        const printerCmd = safePrinterName ? `-d "${safePrinterName}"` : ''
         printCommand = `powershell "Get-Content '${tempFile}' | Out-Printer ${printerCmd}"`
       } else if (process.platform === 'darwin') {
         // macOS: Use lpr
-        const printerCmd = printerName ? `-P "${printerName}"` : ''
+        const printerCmd = safePrinterName ? `-P "${safePrinterName}"` : ''
         printCommand = `lpr ${printerCmd} "${tempFile}"`
       } else {
         // Linux: Use lpwrapper or lp
-        const printerCmd = printerName ? `-d "${printerName}"` : ''
+        const printerCmd = safePrinterName ? `-d "${safePrinterName}"` : ''
         printCommand = `lp ${printerCmd} "${tempFile}"`
       }
       
@@ -146,6 +159,8 @@ const PrintHandlers = {
    */
   async testPrint(printerName = null) {
     try {
+      // Sanitize printer name before use
+      const safePrinterName = sanitizePrinterName(printerName);
       const testReceipt = `
 ============================
     TEST PRINT RECEIPT
@@ -159,7 +174,7 @@ This is a test print to verify
 that your printer is working
 correctly with the POS system.
 
-Printer: ${printerName || 'Default Printer'}
+Printer: ${safePrinterName || 'Default Printer'}
 
 ============================
 If you can read this, printing
@@ -167,7 +182,7 @@ is working correctly!
 ============================
 `
 
-      return await PrintHandlers.printTextReceipt(testReceipt, printerName)
+      return await PrintHandlers.printTextReceipt(testReceipt, safePrinterName)
       
     } catch (error) {
       return {

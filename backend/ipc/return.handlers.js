@@ -1,5 +1,6 @@
 const { ipcMain } = require('electron');
 const Return = require('../models/return.model');
+const { ipcError } = require('../utils/ipcError');
 
 function setupReturnHandlers() {
 // Get all returns
@@ -8,7 +9,7 @@ ipcMain.handle('get-returns', async (event) => {
         const returns = await Return.getAll();
         return returns;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -22,7 +23,7 @@ ipcMain.handle('get-return-by-id', async (event, id) => {
             return returnItem;
         }
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -32,7 +33,7 @@ ipcMain.handle('create-return', async (event, returnData) => {
         const returnId = await Return.create(returnData);
         return { id: returnId, ...returnData };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -42,7 +43,7 @@ ipcMain.handle('update-return', async (event, id, returnData) => {
         await Return.update(id, returnData);
         return { message: 'Return updated successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -52,7 +53,7 @@ ipcMain.handle('delete-return', async (event, id) => {
         await Return.delete(id);
         return { message: 'Return deleted successfully' };
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -62,7 +63,7 @@ ipcMain.handle('get-returns-by-sale', async (event, saleId) => {
         const returns = await Return.getReturnsBySale(saleId);
         return returns;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -72,7 +73,7 @@ ipcMain.handle('get-returns-by-customer', async (event, customerId) => {
         const returns = await Return.getReturnsByCustomer(customerId);
         return returns;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -82,7 +83,7 @@ ipcMain.handle('get-return-items', async (event, returnId) => {
         const items = await Return.getItems(returnId);
         return items;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 
@@ -92,7 +93,7 @@ ipcMain.handle('search-returns', async (event, searchParams) => {
         const returns = await Return.searchReturns(searchParams);
         return returns;
     } catch (error) {
-        throw new Error(error.message);
+        throw ipcError(error);
     }
 });
 

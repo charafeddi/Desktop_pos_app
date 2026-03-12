@@ -716,8 +716,6 @@ onMounted(async () => {
     isLoading.value = true
     resetErrorState()
     
-    showInfo('Loading Settings', 'Loading your settings from database...')
-    
     // Load settings from database
     await settingsStore.loadSettings()
     
@@ -731,8 +729,6 @@ onMounted(async () => {
     
     // Refresh printers list
     await refreshPrinters()
-    
-    showSuccess('Settings Loaded', 'Your settings have been loaded successfully!')
     
     // Debug: Check current locale and translations
     console.log('Settings component mounted')

@@ -173,13 +173,13 @@
 
       <!-- Confirmation Dialog -->
       <ConfirmationDialog
-        :isOpen="showDeleteConfirm"
+        :is-visible="showDeleteConfirm"
         :title="t('todo.confirmDelete')"
         :message="deleteConfirmMessage"
-        type="danger"
-        :confirmText="t('todo.delete')"
-        :cancelText="t('todo.cancel')"
-        :isLoading="isDeleting"
+        type="error"
+        :confirm-text="t('todo.delete')"
+        :cancel-text="t('todo.cancel')"
+        :loading="isDeleting"
         @confirm="confirmDelete"
         @cancel="cancelDelete"
       />
@@ -560,14 +560,10 @@ const formatDateForInput = (dateString) => {
 onMounted(async () => {
   try {
     isLoading.value = true
-    showInfo('Loading Todos', 'Fetching your todo items...')
-    
     await Promise.all([
       todoStore.fetchTodos(),
       themeStore.loadTheme()
     ])
-    
-    showSuccess('Todos Loaded', 'Your todo items have been loaded successfully')
   } catch (error) {
     handleNetworkError(error, 'Load Todos')
     showError('Load Failed', 'Failed to load todo items')

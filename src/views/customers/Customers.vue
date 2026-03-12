@@ -1048,11 +1048,7 @@ const getStatusDotClass = (isActive) => {
 onMounted(async () => {
     try {
         isLoading.value = true
-        showInfo('Loading Customers', 'Fetching customer data...')
-        
         await customerStore.fetchCustomers()
-        
-        showSuccess('Customers Loaded', 'Customer data loaded successfully')
         
     } catch (error) {
         handleNetworkError(error, 'Customer Data Loading')

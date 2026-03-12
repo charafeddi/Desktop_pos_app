@@ -22,5 +22,45 @@
     "deviceCount": 1,
     "packageType": "enterprise",
     "expiryDate": null
+  },
+  {
+    "generated": "2025-10-31T01:39:53.787Z",
+    "licenseKey": "MTgzN-ThhYm-VjM2U-0YjZk-Y2UxY-WU4Nz-kzNjN-kNzM0-YmI6N-zgxND-YxMjV-jYjk0-MmU2M-TlhZW-QwMzM-4YWUx-YzU2N-zFkMj-Q1Mzd-iZGVl-Y2E1N-2Y3Yj-Y3NjU-1MGQ1-OTc5M-WM1Mj-g4NDM-3Yzc5-ZjFmZ-Dk3YT-lhZDF-lZGFj-MGExY-2FjNj-k3NjR-hOTEx-YjhlN-mVjYj-cyMzE-xN2Zl-MmFiO-ThiNm-JlNDU-xNWM3-ZGU3N-zNlYW-M0MTQ-2MWM3-NDZlM-WE5Yj-JiYTQ-xNGY1-M2Y3M-GJiND-g0NDh-jOTQ3-MWFiN-mFhYW-Y1MDF-kNjUx-ODc2M-GU0Nj-Q4YjR-lOTc2-YzA3Z-WQwZj-I1NmJ-lMDZi-NWIxN-Dc2Mj-E1ZGR-kZDhh-NWQ5N-GY0MG-JjMDJ-mM2Vi-YjdiM-DEwZm-JhNWV-lY2I0-NmM4Z-DNhOD-c2ODQ-2N2Vj-YzBjM-2VkNz-cwZTB-jMGEw-MzI3O-GVhZW-VjMDY-wZDQ0-YjUzM-mFkYm-U6NjR-GN0Q1-MTQ=",
+    "customerEmail": "chaima.hafiane@gmail.com",
+    "deviceCount": 1,
+    "packageType": "enterprise",
+    "expiryDate": null
+  },
+  {
+    "generated": "2026-01-07T16:21:29.894Z",
+    "licenseKey": "ZjA1M-TY3Mz-IyMDB-hMzIx-NTFhZ-TUzOT-g2OWM-wNjE5-MzI6N-jE4MT-k2MmY-zNGQ3-MjY3N-WRmZG-M2NjA-3YjMw-YzQ0Z-DkzYT-A0MTF-lMzk2-MmVjN-DQzNz-E1YWU-2NDFi-NmUzM-DA0MD-EyNjd-jZjU1-NzI4N-WNkN2-FlODF-jYTVk-ZDFhY-WM5M2-ZjNmE-4NTJk-MmE5N-mZjOG-FjMmE-zNTdj-N2U4Y-2RlN2-FiZTM-yZDc2-MzE2M-jgzNG-FhYjU-4Mzdm-YTEwO-GRmYm-MzYzh-jODA3-ODkyM-zIyMD-IzYjY-4ZDg4-OGE0Y-2I2MD-Q1MTg-3M2Iw-YzE5N-GVlNj-g0NjF-iYjNl-OWNkN-GNlND-IwZGZ-jOTFi-ZjY5N-TNhNG-U5YTE-1Y2U1-YWRlZ-TcxZj-UxYjI-wYThh-MGFhN-2EwYj-I5Yjh-jMWE4-ZDI3Z-jdlNT-JjOWR-iZmY0-ZDNjO-TYyNj-lhYmN-hOGVi-MzczY-2Q2ZW-MyNmE-zNjUz-ZWFhM-DIyYm-M6QTB-GMzQy-Qjg=",
+    "customerEmail": "charaf.edd@gmail.com",
+    "deviceCount": 1,
+    "packageType": "professional",
+    "expiryDate": null
+  },
+  {
+    "generated": "2026-01-07T16:36:28.174Z",
+    "licenseKey": "NDJlM-2Y1Mj-I4ZmZ-lYzJh-ZmQ3Z-WY1Yz-BjMTd-lNGJh-OTg6N-GRjZm-ZiZWI-1MWU4-YzRlZ-jM3M2-M1NmE-yNDI4-ZDg3M-WRmYT-kyMWY-1OTZm-ZmVlN-GZiYj-RjZjd-mZGZm-NTExO-GZjNz-lmNjJ-kZGQ0-MjJhY-jVlMT-M2ZjI-0NTU2-ZTdiM-zhhZW-EzMTk-0MWU4-OWMzY-zY2ZG-RkN2V-jOTQy-Y2E2O-DYwYW-NmMjV-jMjVi-M2VmM-zVhYz-BkNmU-5YzY5-MjhjO-ThmZT-c0NjU-2NjFk-ZjcxY-2VkZD-AwZGU-yNDFk-ZmE5Z-WFhZW-Q5Nzg-2MzJh-ZmI5N-mVlMG-NiMDI-3ZGJm-NzJiM-Dc4ND-ZhODJ-iMGVj-NzE2M-GViZj-RjZDR-mMjBh-YTk1N-2VkZj-U3YjY-wMWE0-NGViM-mYxYj-A3MzI-wMzNl-MWU4N-TNkOG-QxM2I-4YzFm-NDAyZ-DkwMj-ZhYTA-4Mzdk-ZjBmZ-Dg1OD-Q3ZGI-5NDI2-MzVlY-zViYT-A6NzZ-ENjE5-REE=",
+    "customerEmail": "charaf.edd@gmail.com",
+    "deviceCount": 4,
+    "packageType": "professional",
+    "expiryDate": null
+  },
+  {
+    "generated": "2026-03-11T17:14:31.173Z",
+    "licenseKey": "MWFkM-TNhYj-czZWR-mMDIy-ZTZkY-zFlZD-lkN2U-0YWY2-ODk6M-2M3ZD-FmZjk-1NDQ0-NDQ0M-DhhNj-k5OWE-yMjli-YTc1N-Dc1Nj-AzMDQ-4YTY2-MzhjM-TViZm-I2MWJ-lMDQ4-YWFlY-zMxM2-FhZTc-2ZGE0-MTJhO-WRlMz-RhZWR-lYWJi-YjA2N-TU3ZD-FiODB-lMjUz-ODQxN-jUwYT-FmMTV-kZWZl-ZGRiM-mY3NT-k4N2Y-0MGJl-ZTNjZ-GJmNG-FkODF-iMjc3-MjJmZ-jI4NT-A2MjQ-4MTY1-ZGVkO-TYwMz-UwY2Q-3ZmY3-NTU0N-TM0Yz-gxZmI-0ZDEx-MjQzN-jA3Zj-RkY2Z-hMGZk-N2JmY-zAyOT-MzNjM-zNTAz-MDhlO-TQ1Nj-lkN2U-2ZWFl-MGExM-WU0ZT-lkZGZ-lNWNh-N2FiN-mUwOD-M4OWI-5NWE0-ZjhhM-GY0NT-ZlMDV-iYTI3-NDg3Z-mE3MD-JmYWU-5ODg3-NmMwY-Tg0Nm-VlZmF-mMzRm-OGFmM-zA2Nz-k6NkY-3RDYw-NkU=",
+    "customerEmail": "charafeddine@gmail.com",
+    "deviceCount": 1,
+    "packageType": "professional",
+    "expiryDate": null
+  },
+  {
+    "generated": "2026-03-12T05:14:33.389Z",
+    "licenseKey": "OTFhY-2U5YT-Q1Njc-0YTY1-YTFkM-TljZm-Q0MTY-xYWFl-Yjg6Y-WNiMz-kyMGV-mMjEz-YTJiY-zM4M2-ViNGJ-iZWZj-ZmFjZ-DIyMz-BmNGM-zNzA5-NzJkM-jZmY2-EyNmF-mNzE1-NjliZ-TE0ZT-A2Mzg-0Nzdl-MGYzM-DhlMD-liMzU-1NTIy-NzkxO-Tc2ZT-BlNzh-hNGY1-ZjIxY-zQ4Mm-RkZmY-5YjFk-MTVjZ-DE3N2-ExZjE-3OTE4-MTY1O-GZiZD-c4Nzd-kZmJj-YTQzO-TAwZj-EyN2U-yNGNh-ZjkzM-jIzM2-FiNGQ-2ZmZh-ZjQ4M-TU2Nz-kyYzV-jYTdl-ZmUzZ-GM1OW-U4MzJ-hOTZl-MmM5O-TkzMm-U1ODZ-mZDli-NDI1O-DdlZW-I0Mzh-jNThh-YWE5N-DUyNT-Q1NDc-5NDMy-MmJhN-GZjYj-AwZjg-2OWU0-Y2U0Z-TZiMz-AwMTM-1NjM5-Y2RiN-zA1NW-MyOGY-xZTMx-YzQ0M-TQzZj-A2YjU-zZGU4-MmFmM-zhmMz-U6Mjg-4RjJE-MjQ=",
+    "customerEmail": "charaf@gmail.com",
+    "deviceCount": 10,
+    "packageType": "enterprise",
+    "expiryDate": null
   }
 ]

@@ -119,6 +119,24 @@ declare global {
       closePopup: () => void;
       submitProductForm: (data: unknown) => void;
       onFormSubmitted: (callback: (data: unknown) => void) => void;
+
+      // Refresh event listeners — each returns a dispose() function to remove the listener
+      onRefreshStart: (callback: () => void) => () => void;
+      onRefreshComplete: (callback: () => void) => () => void;
+      onRefreshError: (callback: (error: string) => void) => () => void;
+      onRefreshProducts: (callback: () => void) => () => void;
+      onRefreshSales: (callback: () => void) => () => void;
+      onRefreshCustomers: (callback: () => void) => () => void;
+      onRefreshCategories: (callback: () => void) => () => void;
+      onRefreshSuppliers: (callback: () => void) => () => void;
+      onRefreshAnalytics: (callback: () => void) => () => void;
+      onRefreshTodos: (callback: () => void) => () => void;
+      onRefreshSettings: (callback: () => void) => () => void;
+      removeRefreshListeners: () => void;
+
+      bulkUpdateProducts: (productIds: number[], updateData: any) => Promise<any>;
+      bulkDeleteProducts: (productIds: number[]) => Promise<any>;
+      exportProducts: (productIds: number[]) => Promise<any>;
     };
   }
 }

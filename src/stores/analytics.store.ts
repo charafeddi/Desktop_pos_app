@@ -546,9 +546,16 @@ export const useAnalyticsStore = defineStore('analytics', {
       // Low stock: products with stock above 0 but below minimum threshold
       const lowStockItems = products.filter((p: any) => (p.current_stock || 0) > 0 && (p.current_stock || 0) <= (p.min_stock_level || 0)).length
       // Out of stock: products with zero stock
-      const outOfStockItems = products.filter((p: any) => (p.current_stock || 0) === 0).length
+      const outOfStockProducts = products.filter((p: any) => (p.current_stock || 0) === 0)
+      const outOfStockItems = outOfStockProducts.length
 
-      console.log('Calculated KPIs:', { totalRevenue, averageOrderValue, totalSales: sales.length })
+      console.log('=== STOCK CALCULATION DEBUG ===')
+      console.log('Total products:', products.length)
+      console.log('Low stock items:', lowStockItems)
+      console.log('Out of stock items:', outOfStockItems)
+      console.log('Out of stock products:', outOfStockProducts.map(p => ({ id: p.id, name: p.name, stock: p.current_stock })))
+      console.log('================================')
+      console.log('Calculated KPIs:', { totalRevenue, averageOrderValue, totalSales: sales.length, lowStockItems, outOfStockItems })
 
       // Update the store state with calculated KPIs
       this.kpis = {

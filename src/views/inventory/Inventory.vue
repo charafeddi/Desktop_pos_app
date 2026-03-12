@@ -439,12 +439,8 @@ const formatDate = (dateString) => {
 onMounted(async () => {
   try {
     isLoading.value = true
-    showInfo('Loading Inventory', 'Fetching inventory data...')
-    
     await productStore.getAllProducts()
     await categoryStore.fetchCategories()
-    
-    showSuccess('Inventory Loaded', 'Inventory data loaded successfully')
     
   } catch (error) {
     handleNetworkError(error, 'Inventory Data Loading')
